@@ -14,42 +14,43 @@
 
 from __future__ import annotations
 
-from typing import NamedTuple, Union
-
 import dash
-from dash import MATCH, ctx
+from dash import MATCH
 from dash.dependencies import Input, Output, State
-from dash.exceptions import PreventUpdate
 
-from demo_interface import generate_problem_details_table_rows
+from demo_interface import generate_table
 from src.demo_enums import SolverType
 
 
 @dash.callback(
     Output({"type": "to-collapse-class", "index": MATCH}, "className"),
+    Output({"type": "collapse-trigger", "index": MATCH}, "aria-expanded"),
     inputs=[
         Input({"type": "collapse-trigger", "index": MATCH}, "n_clicks"),
         State({"type": "to-collapse-class", "index": MATCH}, "className"),
     ],
     prevent_initial_call=True,
 )
-def toggle_left_column(collapse_trigger: int, to_collapse_class: str) -> str:
+def toggle_left_column(collapse_trigger: int, to_collapse_class: str) -> tuple[str, str]:
     """Toggles a 'collapsed' class that hides and shows some aspect of the UI.
 
     Args:
-        collapse_trigger (int): The (total) number of times a collapse button has been clicked.
-        to_collapse_class (str): Current class name of the thing to collapse, 'collapsed' if not
+        collapse_trigger: The (total) number of times a collapse button has been clicked.
+        to_collapse_class: Current class name of the thing to collapse, 'collapsed' if not
             visible, empty string if visible.
 
     Returns:
-        str: The new class name of the thing to collapse.
+        A tuple containing:
+
+        - str: The new class name of the thing to collapse.
+        - str: The aria-expanded value.
     """
 
     classes = to_collapse_class.split(" ") if to_collapse_class else []
     if "collapsed" in classes:
         classes.remove("collapsed")
-        return " ".join(classes)
-    return to_collapse_class + " collapsed" if to_collapse_class else "collapsed"
+        return " ".join(classes), "true"
+    return to_collapse_class + " collapsed" if to_collapse_class else "collapsed", "false"
 
 
 @dash.callback(
@@ -66,22 +67,13 @@ def render_initial_state(slider_value: int) -> str:
         slider_value: The value of the slider.
 
     Returns:
-        str: The content of the input tab.
+        The content of the input tab.
     """
-    return f"Put demo input here. The current slider value is {slider_value}."
-
-
-class RunOptimizationReturn(NamedTuple):
-    """Return type for the ``run_optimization`` callback function."""
-
-    results: str = dash.no_update
-    problem_details_table: list = dash.no_update
-    # Add more return variables here. Return values for callback functions
-    # with many variables should be returned as a NamedTuple for clarity.
+    return f"Put demo visuals here. The current slider value is {slider_value}."
 
 
 @dash.callback(
-    # The Outputs below must align with `RunOptimizationReturn`.
+    # The Outputs below must align with the return values of the function.
     Output("results", "children"),
     Output("problem-details", "children"),
     background=True,
@@ -97,10 +89,10 @@ class RunOptimizationReturn(NamedTuple):
         State("radio", "value"),
     ],
     running=[
-        (Output("cancel-button", "className"), "", "display-none"),  # Show/hide cancel button.
-        (Output("run-button", "className"), "display-none", ""),  # Hides run button while running.
+        (Output("cancel-button", "style"), {}, {"display": "none"}),  # Show/hide cancel button.
+        (Output("run-button", "style"), {"display": "none"}, {}),  # Hides run button while running.
         (Output("results-tab", "disabled"), True, False),  # Disables results tab while running.
-        (Output("results-tab", "label"), "Loading...", "Results"),
+        (Output("results-tab", "children"), "Loading...", "Results"),
         (Output("tabs", "value"), "input-tab", "input-tab"),  # Switch to input tab while running.
         (Output("run-in-progress", "data"), True, False),  # Can block certain callbacks.
     ],
@@ -111,13 +103,13 @@ def run_optimization(
     # The parameters below must match the `Input` and `State` variables found
     # in the `inputs` list above.
     run_click: int,
-    solver_type: Union[SolverType, int],
+    solver_type: str,
     time_limit: float,
     slider_value: int,
     dropdown_value: int,
     checklist_value: list,
     radio_value: int,
-) -> RunOptimizationReturn:
+) -> tuple[str, list]:
     """Runs the optimization and updates UI accordingly.
 
     This is the main function which is called when the ``Run Optimization`` button is clicked.
@@ -135,20 +127,13 @@ def run_optimization(
         radio_value: The value of the radio.
 
     Returns:
-        A NamedTuple (RunOptimizationReturn) containing all outputs to be used when updating the HTML
-        template (in ``demo_interface.py``). These are:
+        A tuple containing:
 
-            results: The results to display in the results tab.
-            problem-details: List of the table rows for the problem details table.
+        - str: The results to display in the results tab.
+        - list: List of the table rows for the problem details table.
     """
 
-    # Only run optimization code if this function was triggered by a click on `run-button`.
-    # Setting `Input` as exclusively `run-button` and setting `prevent_initial_call=True`
-    # also accomplishes this.
-    if run_click == 0 or ctx.triggered_id != "run-button":
-        raise PreventUpdate
-
-    solver_type = SolverType(solver_type)
+    solver_type = SolverType(int(solver_type))
 
 
     ###########################
@@ -156,13 +141,9 @@ def run_optimization(
     ###########################
 
 
-    # Generates a list of table rows for the problem details table.
-    problem_details_table = generate_problem_details_table_rows(
-        solver=solver_type.label,
-        time_limit=time_limit,
+    # Generates the problem details table on the results page.
+    problem_details_table = generate_table(
+        {"Solver": [solver_type.label], "Time Limit": [time_limit]}
     )
 
-    return RunOptimizationReturn(
-        results="Put demo results here.",
-        problem_details_table=problem_details_table,
-    )
+    return "Put demo results here.", problem_details_table

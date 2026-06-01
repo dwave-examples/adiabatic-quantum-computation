@@ -75,6 +75,11 @@ request to get your approval for certain code changes.
 - [ ] **PEP 8**: All code follows the [PEP 8](https://www.python.org/dev/peps/pep-0008/) style guide.
 If you are unsure, install and run [black](https://pypi.org/project/black/) to ensure correct formatting.
 
+- [ ] **AI Disclosure**: You must disclose whether AI has been used to assist in the development of
+your pull request. You must document which tool(s) have been used, how they were used, and specify
+what code or text is AI generated. We will reject any pull request that does not include the
+disclosure. See full policy [here](https://docs.dwavequantum.com/en/latest/ocean/ai_policy.html).
+
 - [ ] **Docstrings**: All functions contain docstrings describing what the function does and any
 arguments or return values. For more information, see the
 [Google docstrings convention](https://google.github.io/styleguide/pyguide.html#38-comments-and-docstrings).
@@ -84,13 +89,16 @@ arguments or return values. For more information, see the
 
 - [ ] **Requirements**: All requirements for running the demo have been listed in `requirements.txt`
 and are either pinned to a version supported by the latest Ocean SDK release or lower bounded.
-`dwave-ocean-sdk` is unpinned and lower bounded.
+`dwave-ocean-sdk` version specified has to be compatible with the latest release available.
 
 - [ ] **LICENSE**: The demo complies with the Apache 2.0 License and the [`LICENSE`](LICENSE) file
 is included in the root directory. All files include a license header.
 
 - [ ] **Tests**: All code included in the `/src/` directory has associated tests that are located in
 `/tests/` and discoverable through `python -m unittest discover`.
+
+- [ ] **Accessibility**: The demo must be tested for accessibility standards and score at least
+80%. The base template provided scores 100%.
 
 - [ ] **Codespaces**: The [`.devcontainer/`](.devcontainer/) directory is included in the demo's
 root directory to ensure the demo runs in
