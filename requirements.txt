@@ -1,3 +1,13 @@
 dash[diskcache]~=4.1
 dash-mantine-components~=2.5
 dwave-ocean-sdk~=9.3
+pandas~=2.3
+minorminer>=0.2.19
+dwave-system>=1.32.0
+dwave-networkx>=0.8.18
+
+# Needed only for unit testing
+pytest~=9.0
+pytest-mock~=3.15
+
+
