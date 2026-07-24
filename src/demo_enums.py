@@ -33,3 +33,25 @@ class SolverType(Enum):
 
 ### If any settings or variables are being used repeatedly, throughout the code, create a new
 ### Enum for the setting here to avoid string comparisons or other fragile code practices.
+
+class ProblemType(Enum):
+    """Future proofing for when we want to add problems with other graph structures to the demo. 
+    We'll need a consistent way to refer to them programmatically, and an Enum is easier than
+    trying to distil the graph structure itself into a unique identifier. The intent is that
+    every graph structure should get a unique Enum name, but different models (i.e. different
+    sets of weights on the same grpah structure) can share the same Enum name. When we need
+    to recover the actual graph structure, it can be inferred from any file of model weights
+    that matches the Enum name."""
+
+    DEFAULT = 0
+
+    @property
+    def label(self):
+        return {
+            ProblemType.DEFAULT: "Default AQC Workshop Problem",
+        }[self]
+
+class ModelType(Enum):
+    SMALL_GAP = 0
+    INTERMEDIATE_GAP = 1
+    LARGE_GAP = 2

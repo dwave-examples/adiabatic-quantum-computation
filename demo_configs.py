@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from src.demo_enums import ModelType
+
 """This file stores input parameters for the app."""
 
 THUMBNAIL = "static/dwave_logo.svg"
@@ -50,3 +52,40 @@ SOLVER_TIME = {
     "step": 5,
     "value": 10,
 }
+
+THUMBNAIL = "static/dwave_logo.svg"
+
+APP_TITLE = "Demo Name"
+MAIN_HEADER = "Demo Name"
+DESCRIPTION = """\
+This is a Dash template for new examples. It includes some basic settings, tabs, and styling.
+"""
+
+# config settings for ZNE tab
+MAIN_HEADER_NM = "Zero-Noise Extrapolation"
+DESCRIPTION_NM = """
+    The statistics of a target J chain can be inferred using weaker coupling and longer quench
+    durations, though this increases noise. By collecting data at multiple noise levels, it is
+    possible to extrapolate to a denoised result.
+    """
+
+ANNEALING_TIME_SERIES = [5, 7, 10, 14, 20]
+NUM_PARALLEL_EMBEDDINGS = 10
+
+# TODO link to enums
+DEFAULT_QPU = "Advantage2_system1"  # If not available, the first returned will be default
+DEFAULT_MODEL = ModelType.LARGE_GAP
+
+JOB_BAR_DISPLAY = { # TODO make enum for this
+    "READY": [0, "#737373"],
+    "EMBEDDING": [20, "#FF7006"],
+    "NO SOLVER": [100, "#AA3A3C"],
+    "SUBMITTED": [40, "#03B8FF"],
+    "PENDING": [60, "#2A7DE1"],
+    "IN_PROGRESS": [85, "#2A7DE1"],
+    "COMPLETED": [100, "#17BEBB"],
+    "CANCELLED": [100, "#737373"],
+    "FAILED": [100, "#AA3A3C"],
+    "ERROR": [100, "#AA3A3C"],
+}
+

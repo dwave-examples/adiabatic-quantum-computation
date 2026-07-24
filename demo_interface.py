@@ -20,78 +20,19 @@ from dash import dcc, html
 import dash_mantine_components as dmc
 
 from demo_configs import (
-    CHECKLIST,
+    DEFAULT_QPU,
+    DEFAULT_MODEL,
     DESCRIPTION,
-    DROPDOWN,
     MAIN_HEADER,
-    RADIO,
-    SLIDER,
-    SOLVER_TIME,
     THUMBNAIL,
 )
-from src.demo_enums import SolverType
+from src.demo_enums import SolverType, ProblemType, ModelType
+from src.qpu_resources import get_init_job_status, get_solvers
+from src.data_loading import load_all_embeddings_from_file, load_all_models_from_file
 
 THEME_COLOR = "#2d4376"
 
-
-def slider(label: str, id: str, config: dict) -> html.Div:
-    """Slider element for value selection.
-
-    Args:
-        label: The title that goes above the slider.
-        id: A unique selector for this element.
-        config: A dictionary of slider configurations, see dmc.Slider Dash Mantine docs.
-    """
-    return html.Div(
-        className="slider-wrapper",
-        children=[
-            html.Label(label, htmlFor=id),
-            dmc.Slider(
-                id=id,
-                className="slider",
-                **config,
-                marks=[
-                    {"value": config["min"], "label": f'{config["min"]}'},
-                    {"value": config["max"], "label": f'{config["max"]}'},
-                ],
-                labelAlwaysOn=True,
-                thumbLabel=f"{label} slider",
-                color=THEME_COLOR,
-            ),
-        ],
-    )
-
-
-def range_slider(label: str, id: str, config: dict) -> html.Div:
-    """Range slider element for value selection.
-
-    Args:
-        label: The title that goes above the range slider.
-        id: A unique selector for this element.
-        config: A dictionary of range slider configurations, see dmc.RangeSlider Dash Mantine docs.
-    """
-    return html.Div(
-        className="rangeslider-wrapper",
-        children=[
-            html.Label(label, htmlFor=id),
-            dmc.RangeSlider(
-                id=id,
-                className="slider",
-                **config,
-                marks=[
-                    {"value": config["min"], "label": f'{config["min"]}'},
-                    {"value": config["max"], "label": f'{config["max"]}'},
-                ],
-                labelAlwaysOn=True,
-                thumbFromLabel=f"{label} slider start",
-                thumbToLabel=f"{label} slider end",
-                color=THEME_COLOR,
-            )
-        ]
-    )
-
-
-def dropdown(label: str, id: str, options: list) -> html.Div:
+def dropdown(label: str, id: str, options: list, value: str | None = None) -> html.Div:
     """Dropdown element for option selection.
 
     Args:
@@ -106,192 +47,66 @@ def dropdown(label: str, id: str, options: list) -> html.Div:
             dmc.Select(
                 id=id,
                 data=options,
-                value=options[0]["value"],
+                value=value if value else options[0]["value"],
                 allowDeselect=False,
             ),
         ],
     )
 
 
-def checklist(label: str, id: str, options: list, values: list, inline: bool = True) -> html.Div:
-    """Checklist element for option selection.
-
-    Args:
-        label: The title that goes above the checklist.
-        id: A unique selector for this element.
-        options: A list of dictionaries of labels and values.
-        values: A list of values that should be preselected in the checklist.
-        inline: Whether the options of the checklist are displayed beside or below each other.
-    """
-    return html.Div(
-        className="checklist-wrapper",
-        children=[
-            dmc.CheckboxGroup(
-                id=id,
-                className=f"checklist{' checklist--inline' if inline else ''}",
-                label=label,
-                value=values,
-                children=dmc.Group(
-                    [
-                        dmc.Checkbox(label=option["label"], value=option["value"], color=THEME_COLOR)
-                        for option in options
-                    ],
-                ),
-            ),
-        ],
-    )
-
-
-def checkbox(label: str, id: str, checked: bool) -> html.Div:
-    """Checkbox element.
-
-    Args:
-        label: The title that goes above the checkbox.
-        id: A unique selector for this element.
-        checked: Whether the checkbox is checked or not.
-    """
-    return html.Div(
-        className="checkbox-wrapper",
-        children=[
-            dmc.Checkbox(
-                id=id,
-                label=label,
-                checked=checked,
-                color=THEME_COLOR,
-            )
-        ],
-    )
-
-
-def radio(label: str, id: str, options: list, value: str, inline: bool = True) -> html.Div:
-    """Radio element for option selection.
-
-    Args:
-        label: The title that goes above the radio.
-        id: A unique selector for this element.
-        options: A list of dictionaries of labels and values.
-        value: The value of the radio that should be preselected.
-        inline: Whether the options are displayed beside or below each other.
-    """
-    return html.Div(
-        className="radio-wrapper",
-        children=[
-            dmc.RadioGroup(
-                id=id,
-                className=f"radio{' radio--inline' if inline else ''}",
-                label=label,
-                value=value,
-                children=dmc.Group(
-                    [
-                        dmc.Radio(option["label"], value=option["value"], color=THEME_COLOR)
-                        for option in options
-                    ]
-                ),
-            ),
-        ],
-    )
-
-
-def input(label: str, id: str, configs: dict, type: str="number") -> html.Div:
-    """Input element for either text or number input.
-
-    Args:
-        label: The title that goes above the input.
-        id: A unique selector for this element.
-        configs: A dictionary of configurations for the input element.
-        type: The type of input, either "number" or "text".
-    """
-    return html.Div(
-        className="input-wrapper",
-        children=[
-            html.Label(label, htmlFor=id),
-            dmc.TextInput(
-                id=id,
-                **configs,
-            ) if type == "text" else dmc.NumberInput(
-                id=id,
-                **configs,
-            ),
-        ],
-    )
-
-
-def generate_options(options: list | EnumMeta | dict) -> list[dict]:
-    """Format options for dropdowns, checklists, radios, etc.
-
-    Args:
-        options: A list, EnumMeta, or dictionary of options to format.
-
-    Returns:
-        A list of dictionaries with "label" and "value" keys for each option.
-    """
+def generate_options(options: list | EnumMeta) -> list[dict]:
+    """Generates options for dropdowns, checklists, radios, etc."""
     if isinstance(options, EnumMeta):
         return [{"label": option.label, "value": f"{option.value}"} for option in options]
-
-    if isinstance(options, dict):
-        return [{"label": f"{key}", "value": f"{value}"} for key, value in options.items()]
 
     return [{"label": f"{option}", "value": f"{option}"} for option in options]
 
 
 def generate_settings_form() -> html.Div:
-    """Generate settings for selecting the scenario, model, and solver.
+    """This function generates settings for selecting the scenario, model, and solver.
 
     Returns:
-        A Div containing the settings for selecting the scenario, model, and solver.
+        html.Div: A Div containing the settings for selecting the scenario, model, and solver.
     """
-    dropdown_options = generate_options(DROPDOWN)
-    checklist_options = generate_options(CHECKLIST)
-    radio_options = generate_options(RADIO)
-    solver_options = generate_options(SolverType)
+    solvers = get_solvers() #TODO link to specific solver list
+    qpu_options = generate_options(solvers)
+
+    model_options = generate_options(ModelType)
+
+    if DEFAULT_QPU in solvers:
+        default_solver = DEFAULT_QPU
+    elif len(solvers):
+        default_solver = list(solvers.keys())[0]
+    else:
+        default_solver = "No Leap Access"
 
     return html.Div(
         className="settings",
         children=[
-            slider(
-                "Example Slider",
-                "slider",
-                SLIDER,
+            dropdown(
+                "QPU",
+                "qpu-selection",
+                sorted(qpu_options, key=lambda op: op["value"]),
+                value=default_solver,
             ),
             dropdown(
-                "Example Dropdown",
-                "dropdown",
-                sorted(dropdown_options, key=lambda op: op["value"]),
-            ),
-            checklist(
-                "Example Checklist",
-                "checklist",
-                sorted(checklist_options, key=lambda op: op["value"]),
-                [checklist_options[0]["value"]],
-            ),
-            radio(
-                "Example Radio",
-                "radio",
-                sorted(radio_options, key=lambda op: op["value"]),
-                radio_options[0]["value"],
-            ),
-            dropdown(
-                "Solver",
-                "solver-type-select",
-                sorted(solver_options, key=lambda op: op["value"]),
-            ),
-            input(
-                "Solver Time Limit (seconds)",
-                "solver-time-limit",
-                SOLVER_TIME,
+                "Model",
+                "model-selection",
+                model_options,
+                value=DEFAULT_MODEL.name,
             ),
         ],
     )
 
 
 def generate_run_buttons() -> html.Div:
-    """Generate run and cancel buttons to run the optimization."""
+    """Run and cancel buttons to run the simulation."""
     return html.Div(
         id="button-group",
         children=[
-            html.Button("Run Optimization", id="run-button", className="button"),
+            html.Button("Run Simulation", id="run-button", className="button"),
             html.Button(
-                "Cancel Optimization",
+                "Cancel Simulation",
                 id="cancel-button",
                 className="button",
                 style={"display": "none"},
@@ -300,69 +115,129 @@ def generate_run_buttons() -> html.Div:
     )
 
 
-def generate_table(table_data: dict[str, list]) -> html.Table:
-    """Generate a table containing table_data.
+def default_graph(title: str, id: str) -> html.Div:
+    """Default graph element with a title and optional radio buttons for graph selection.
 
     Args:
-        table_data: A dictionary of table header keys and table column values.
+        title: The title that goes above the graph.
+        id: A unique selector for this graph element.
+        load_radio: Whether to create radio buttons for graph selection or not.
 
     Returns:
-        An HTML table containing table_data.
+        A Div containing the graph and optional radio buttons.
     """
-    table_columns = table_data.values()
-    num_rows = len(next(iter(table_columns)))
 
-    return html.Table(
-        className="problem-details-table",
-        children=[
-            html.Thead(html.Tr([html.Th(table_header) for table_header in table_data.keys()])),
-            html.Tbody(
-                [
-                    html.Tr(
-                        [
-                            html.Td(column[i]) for column in table_columns
-                        ]
-                    ) for i in range(num_rows)
-                ]
+    return html.Div(
+        [
+            html.H3(title),
+            dcc.Graph(
+                id=f"{id}-graph",
+                responsive=True,
+                config={"displayModeBar": False},
             ),
-        ],
+        ]
     )
 
 
-def problem_details(index: int) -> html.Div:
-    """Generate the problem details section.
-
-    Args:
-        index: Unique element id to differentiate matching elements. Must be different from left
-            column collapse button.
+def show_progress() -> html.Div:
+    """Show job submission and progress.
 
     Returns:
-        Div containing a collapsable table.
+        A Div containing the job submission status and progress bar.
     """
+
+    init_job_status = get_init_job_status()
+    job_status_style = {"color": "#AA3A3C"} if init_job_status == "NO SOLVER" else {}
+
     return html.Div(
-        id={"type": "to-collapse-class", "index": index},
-        className="details-collapse-wrapper collapsed",
-        children=[
-            # Problem details collapsible button and header
-            html.Button(
-                id={"type": "collapse-trigger", "index": index},
-                className="details-collapse",
-                children=[
-                    html.H5("Problem Details"),
-                    html.Div(className="collapse-arrow"),
+        [
+            html.P(
+                [
+                    "Status: ",
+                    html.Span(
+                        id="job-submit-state",
+                        children=f"{init_job_status}",
+                        style=job_status_style,
+                    ),
                 ],
-                **{"aria-expanded": "true"},
+                className="caption",
             ),
             html.Div(
-                className="details-to-collapse",
-                id="problem-details",
+                className="progress-bar",
+                title="Job Progress",
+                children=[
+                    html.Div(
+                        id="job-status-progress",
+                        className="progress-bar-fill",
+                    )
+                ],
             ),
+        ],
+        className="progress-wrapper",
+    )
+
+
+def no_solver_modal() -> dmc.Modal:
+    """Modal to alert users that no solvers are available."""
+    return dmc.Modal(
+        title="Leap's Quantum Computers Inaccessible",
+        id="no-solver-modal",
+        centered=True,
+        children=[
+            html.Div(
+                [
+                    html.H2("Could not connect to a Leap quantum computer"),
+                    html.P(
+                        [
+                            """
+                            If you are running locally, set environment variables or a
+                            dwave-cloud-client configuration file as described in the
+                            """,
+                            html.A(
+                                " Ocean",
+                                href="https://docs.dwavequantum.com/en/latest/ocean/sapi_access_basic.html",
+                                target="_blank",
+                                rel="noopener",
+                            ),
+                            " documentation.",
+                        ],
+                    ),
+                    html.P(
+                        [
+                            "If you are running in an online IDE, see the ",
+                            html.A(
+                                "system documentation",
+                                href="https://docs.dwavequantum.com/en/latest/leap_sapi/dev_env.html",
+                                target="_blank",
+                                rel="noopener",
+                            ),
+                            " on supported IDEs.",
+                        ],
+                    ),
+                ]
+            )
         ],
     )
 
 
+def error_modal() -> dmc.Modal:
+    """Modal to alert users that an error occurred creating a graph."""
+    return dmc.Modal(
+        title="Error",
+        id="error-modal",
+        centered=True,
+        children=[
+            html.P(
+                "Fitting function failed likely due to ill conditioned data, please collect more."
+            )
+        ],
+    )
+
+def load_saved_embeddings() -> dict:
+    pass
+
 def create_interface() -> html.Div:
-    """Create the main application interface."""
+    """Set the application HTML."""
     return html.Div(
         id="app-container",
         children=[
@@ -373,8 +248,29 @@ def create_interface() -> html.Div:
                 className="skip-link",
                 tabIndex=1,
             ),
-            # Below are any temporary storage items, e.g., for sharing data between callbacks.
-            dcc.Store(id="run-in-progress", data=False),  # Indicates whether run is in progress
+
+            dcc.Store(id="modal-trigger", data=False),
+            dcc.Store(id="qpu-select-time", data=""),
+            dcc.Store(id="job-submit-time"),
+            dcc.Store(id="job-id"),
+            dcc.Store(id="cached-embeddings", data=load_all_embeddings_from_file()),
+            dcc.Store(id="current-embeddings", data={}),
+            dcc.Store(id="uncached-embeddings", data={}),
+            dcc.Store(id="cached-models", data=load_all_models_from_file()),
+            dcc.Store(id="current-model", data={}),
+            dcc.Store(id="current-results", data = []),
+            dcc.Store(id="current-problem-type", data=ProblemType.DEFAULT.name), # Currently no functionality for
+            # changing this as we only have one problem type. But it's a lot easier to design around having
+            # more problem types from the start than it is to add that in later.
+            dcc.Interval(
+                id="wd-job",
+                interval=500,
+                n_intervals=0,
+                disabled=True,
+                max_intervals=1,
+            ),
+            no_solver_modal(),
+            error_modal(),
             # Settings and results columns
             html.Main(
                 className="columns-main",
@@ -393,8 +289,8 @@ def create_interface() -> html.Div:
                                         children=[
                                             html.Div(
                                                 [
-                                                    html.H1(MAIN_HEADER),
-                                                    html.P(DESCRIPTION),
+                                                    html.H1(MAIN_HEADER, id="main-header"),
+                                                    html.P(DESCRIPTION, id="main-description"),
                                                 ],
                                                 className="title-section",
                                             ),
@@ -405,6 +301,7 @@ def create_interface() -> html.Div:
                                                             [
                                                                 generate_settings_form(),
                                                                 generate_run_buttons(),
+                                                                show_progress(),
                                                             ],
                                                             className="settings-and-buttons",
                                                         ),
@@ -440,68 +337,31 @@ def create_interface() -> html.Div:
                         children=[
                             dmc.Tabs(
                                 id="tabs",
-                                value="input-tab",
+                                value=f"tab-{ProblemType.KZ.value}",
                                 color="white",
                                 children=[
                                     html.Header(
                                         className="banner",
                                         children=[
-                                            html.Nav(
-                                                [
-                                                    dmc.TabsList(
-                                                        [
-                                                            dmc.TabsTab("Input", value="input-tab"),
-                                                            dmc.TabsTab(
-                                                                "Results",
-                                                                value="results-tab",
-                                                                id="results-tab",
-                                                                disabled=True,
-                                                            ),
-                                                        ]
-                                                    ),
-                                                ]
-                                            ),
                                             html.Img(src=THUMBNAIL, alt="D-Wave logo"),
                                         ],
                                     ),
                                     dmc.TabsPanel(
-                                        value="input-tab",
+                                        value=f"tab-{ProblemType.KZ.value}",
                                         tabIndex="12",
                                         children=[
                                             html.Div(
                                                 className="tab-content-wrapper",
                                                 children=[
-                                                    dcc.Loading(
-                                                        parent_className="input",
-                                                        type="circle",
-                                                        color=THEME_COLOR,
-                                                        # A Dash callback (in app.py) will generate content in the Div below
-                                                        children=html.Div(id="input"),
+                                                    default_graph(
+                                                        "QPU Samples vs Kibble-Zurek Prediction",
+                                                        "sample-v-theory",
                                                     ),
-                                                ]
-                                            )
-                                        ],
-                                    ),
-                                    dmc.TabsPanel(
-                                        value="results-tab",
-                                        tabIndex="13",
-                                        children=[
-                                            html.Div(
-                                                className="tab-content-wrapper",
-                                                children=[
-                                                    dcc.Loading(
-                                                        parent_className="results",
-                                                        type="circle",
-                                                        color=THEME_COLOR,
-                                                        # A Dash callback (in app.py) will generate content in the Div below
-                                                        children=html.Div(id="results"),
-                                                    ),
-                                                    # Problem details dropdown
-                                                    html.Div([html.Hr(), problem_details(1)]),
                                                 ],
                                             )
                                         ],
                                     ),
+
                                 ],
                             )
                         ],
