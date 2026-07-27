@@ -16,10 +16,7 @@ from __future__ import annotations
 
 from src.demo_enums import SolverType
 
-import datetime
-import json
-from pathlib import Path
-from typing import NamedTuple
+import time
 
 import dash
 import dimod
@@ -27,15 +24,13 @@ import numpy as np
 import plotly.graph_objects as go
 from dash import ALL, MATCH, Patch, Input, Output, State, ctx
 from dash.exceptions import PreventUpdate
-from dwave.embedding import embed_bqm, is_valid_embedding
 from dwave.system import DWaveSampler, ParallelEmbeddingComposite
 
-from src.demo_enums import ProblemType
-
-from src.qa import create_bqm, find_one_to_one_embedding, get_job_status, get_samples, json_to_dict
-from src.qpu_resources import get_client, get_solvers
+from src.demo_enums import JobState, ModelType, ProblemType
+from src.qpu_resources import get_client, get_solvers, get_qpu_ids
 
 from src.get_embeddings import get_embeddings
+from demo_configs import ANNEALING_TIME_SERIES
 
 @dash.callback(
     Output({"type": "to-collapse-class", "index": MATCH}, "className"),
@@ -108,6 +103,7 @@ def set_schedule(qpu_name: str) -> tuple[str, str]:
 @dash.callback(
     Output("current-embedding", "data"),
     Output("run-button", "disabled"),
+    Output("job-submit-state", "children"),
     Output("qpu-select-time", "data"),
     Input("qpu-selection", "value"),
 )
@@ -119,7 +115,7 @@ def process_qpu_select(qpu_name: str) -> tuple[dict, str]:
     is found and cached.
     """
 
-    return {}, True
+    return {}, True, JobState.FINDING_EMBEDDING.label, time.time()
 
 #======================================================================================================================
 
@@ -127,25 +123,27 @@ def process_qpu_select(qpu_name: str) -> tuple[dict, str]:
     Output("current-embeddings", "data"),
     Output("uncached-embeddings", "data"),
     Output("run-button", "disabled"),
+    Output("job-submit-state", "children"),
     Input("qpu-select-time", "data"),
-    Input("current-problem-type", "data"),
+    State("current-problem-type", "data"), #TODO add proper target
     State("cached-embeddings", "data"),
     State("qpu-selection", "value"),
+    State("available-solvers", "data"),
 )
 def set_current_embeddings(
         qpu_select_time: float, 
         problem_type: str, 
         cached_embeddings: dict, 
-        qpu_name: str
+        qpu_name: str,
+        qpu_ids: dict
         ) -> tuple[dict, str]:
     """
     """
 
-    qpu_id = None #TODO: set up schema to get qpu_id from qpu_name
-
+    qpu_id = qpu_ids[qpu_name]
     problem_embeddings, generated = get_embeddings(qpu_name, cached_embeddings, ProblemType[problem_type])
     embeddings_to_cache = {(qpu_id, problem_type): problem_embeddings} if generated else dash.no_update
-    return problem_embeddings, embeddings_to_cache, False
+    return problem_embeddings, embeddings_to_cache, False, JobState.READY.label
 
 #======================================================================================================================
 
@@ -165,7 +163,6 @@ def cache_new_embeddings(uncached_embeddings: dict) -> dict:
 @dash.callback(
     Output("current-model", "data"),
     Output("run-button", "disabled"),
-    Output("qpu-select-time", "data"),
     Input("qpu-selection", "value"),
 )
 def process_model_select(qpu_name: str) -> tuple[dict, str]:
@@ -182,83 +179,20 @@ def process_model_select(qpu_name: str) -> tuple[dict, str]:
 
 @dash.callback(
     Output("current-model", "data"),
+    Output("run-button", "disabled"),
     Input("model-selection", "value"),
     State("current-problem-type", "data"), 
     State("cached-models", "data"),
 )
 def set_current_model(model_name: str, problem_type: str, cached_models: dict) -> tuple[dict, str]:
-    return cached_models[(problem_type, model_name)]
-
-#======================================================================================================================
-
-@dash.callback(
-    Output("job-id", "data"),
-    inputs=[
-        Input("job-submit-time", "data"), #TODO add necessary pieces to interface
-        State("qpu-selection", "value"),
-        State("current-model", "data"),
-        State("current-embeddings", "data"),
-        State("anneal-duration", "value"), #TODO set this
-    ],
-    prevent_initial_call=True,
-)
-def submit_job(
-    job_submit_time: str,
-    qpu_name: str,
-    model_data: dict,
-    model_embeddings: dict,
-    ta: int,
-) -> float:
-    """Submit job and provide job ID.
-
-    Args:
-
-
-    Returns:
-
-    """
-
-    h = model_data["h"]
-    J = model_data["J"]
-    EGS = model_data["EGS"]
-    # TODO handle anneal time
-
-    embeddings = json_to_dict(embeddings)
-    solver = get_solvers()[qpu_name] 
-    sampler = ParallelEmbeddingComposite(
-            solver, embedding={k: (v,) for k, v in embeddings[0].items()}
-        )
-
-    qpu_kwargs = dict(
-        num_reads=100,
-        answer_mode="raw",
-        fast_anneal=True,
-        auto_scale=False,
-        label="AQC Demo",
-    )
-
-    qpu_kwargs["annealing_time"] = ta / 1000
-    ss = sampler.sample_ising(h, J, **qpu_kwargs)
-    stats = 1 - np.mean(ss.record.energy <= EGS + 1e-8)
-
-    return stats
+    return cached_models[(problem_type, model_name)], False
 
 #==============================================================================================
 
-class RunButtonClickReturn(NamedTuple):
-    """Return type for the ``run_button_click`` callback function."""
-
-    run_button_disabled: bool = True
-    wd_job_disabled: bool = False
-    wd_job_n_intervals: int = 0
-    job_submit_state: str = "EVALUATING"
-
-
 @dash.callback(
     Output("run-button", "disabled"),
-    Output("wd-job", "disabled"),
-    Output("wd-job", "n_intervals", allow_duplicate=True),
     Output("job-submit-state", "children"),
+    Output("job-submit-time", "data"),
     inputs=[
         Input("run-button", "n_clicks"),
 
@@ -267,7 +201,7 @@ class RunButtonClickReturn(NamedTuple):
 )
 def run_button_click(
     run_btn_click: int,
-) -> RunButtonClickReturn:
+) -> tuple[bool, str]:
     """Start simulation run when button is clicked.
 
     Args:
@@ -280,125 +214,139 @@ def run_button_click(
         - wd_job_n_intervals: The number of intervals that have passed since the simulation started.
         - job_submit_state: The new state of the job submission process.
     """
-    #TODO: check to make sure this will trigger all necessary callbacks.
-    return RunButtonClickReturn()
 
-#==========================================================================================================
+    return True, JobState.PREPROCESSING.label, time.time()
 
-class SimulateReturn(NamedTuple):
-    """Return type for the ``simulate`` callback function."""
-
-    run_button_disabled: bool = dash.no_update
-    wd_job_disabled: bool = dash.no_update
-    wd_job_interval: int = dash.no_update
-    wd_job_n_intervals: int = dash.no_update
-    job_submit_state: str = dash.no_update
-    job_submit_time: str = dash.no_update
-    embeddings: dict = dash.no_update
-    cached_embeddings: str = dash.no_update
-
+#======================================================================================================================
 
 @dash.callback(
-    Output("run-button", "disabled", allow_duplicate=True),
-    Output("wd-job", "disabled", allow_duplicate=True),
-    Output("wd-job", "interval"),
-    Output("wd-job", "n_intervals", allow_duplicate=True),
-    Output("job-submit-state", "children", allow_duplicate=True),
-    Output("job-submit-time", "data", allow_duplicate=True),
-    Output("embeddings", "data", allow_duplicate=True),
-    Output("cached-embeddings", "children", allow_duplicate=True),
+    Output("job-submit-args", "data"),
+    Output("job-submit-state", "children"),
     inputs=[
-        Input("wd-job", "n_intervals"),
-        State("job-id", "data"),
-        State("job-submit-state", "children"),
-        State("job-submit-time", "data"),
-        State("spins", "value"),
-        State("qpu-selection", "value"),
-        State("embeddings", "data"),
+        Input("job-submit-time", "data"),
+        State("job-submit-state", "children"), 
+        State("current-model", "data"),
+        State("model-selection", "value"),
+        State("current-embeddings", "data"),
+        State("current-results", "data"),
     ],
     prevent_initial_call=True,
 )
-def simulate(
-    interval: int,
-    job_id: str,
-    job_submit_state: str,
+def preprocess_job(
     job_submit_time: str,
-    spins: str,
-    qpu_name: str,
-    embeddings: dict,
-) -> SimulateReturn:
-    """Manage simulation: embedding, job submission.
+    job_submit_state: str,
+    model_data: dict,
+    model_name: str,
+    model_embeddings: dict,
+    measurement_data: dict,
+) -> float:
+    """Submit job and provide job ID.
 
     Args:
-        interval: The number of intervals that have passed since the simulation started.
-        job_id: The ID of the job that was submitted.
-        job_submit_state: The current state of the job submission process.
-        job_submit_time: The time that the job was submitted.
-        spins: The value of the spins setting.
-        qpu_name: The name of the quantum processing unit (QPU) to which the job is being submitted.
-        embeddings: A dictionary of cached embeddings for different numbers of spins.
+
 
     Returns:
-        A NamedTuple, SimulateReturn, containing:
 
-        - run_button_disabled: Whether the run button should be disabled.
-        - wd_job_disabled: Whether the interval component should be disabled.
-        - wd_job_interval: The number of milliseconds between interval updates.
-        - wd_job_n_intervals: The number of intervals that have passed since the simulation started.
-        - job_submit_state: The new state of the job submission process.
-        - job_submit_time: The time that the job was submitted.
-        - embeddings: The dictionary of cached embeddings for different numbers of spins.
-        - cached_embeddings: A string representation of which embeddings are cached.
     """
 
-    #TODO modify as necessary to work with the new code
+    if job_submit_state != JobState.PREPROCESSING.label:
+        raise PreventUpdate
 
-    if job_submit_state == "EMBEDDING":
-        try:
-            spins = int(spins)
-            embedding = find_one_to_one_embedding(spins, get_solvers()[qpu_name].edges)
-            if embedding:
-                embeddings = json_to_dict(embeddings)
-                embeddings.update({spins: embedding})
+    h = model_data["h"]
+    J = model_data["J"]
+    current_job_results = measurement_data[model_name]
+    measurement_number = len(current_job_results) + 1
+    ta = ANNEALING_TIME_SERIES[(measurement_number - 1)%len(ANNEALING_TIME_SERIES)]/1000
+    job_kwargs = {"h": h, "J": J, "annealing_time": ta, "embeddings": model_embeddings}
 
-                return SimulateReturn(
-                    wd_job_interval=200,
-                    job_submit_state="SUBMITTED",
-                    job_submit_time=datetime.datetime.now().strftime("%c"),
-                    embeddings=embeddings,
-                    cached_embeddings=", ".join(str(em) for em in embeddings.keys()),
-                )
+    return job_kwargs, JobState.RUNNING.label
 
-            return SimulateReturn(
-                run_button_disabled=False,
-                wd_job_disabled=True,
-                job_submit_state="FAILED",
-            )
-        except Exception:
-            return SimulateReturn(
-                run_button_disabled=False,
-                wd_job_disabled=True,
-                job_submit_state="FAILED",
-            )
+#======================================================================================================================
 
-    if job_submit_state in ["SUBMITTED", "PENDING", "IN_PROGRESS"]:
-        job_submit_state = get_job_status(get_client(), job_id, job_submit_time)
-        wd_time = 1000
+@dash.callback(
+    Output("current-results", "data"),
+    inputs=[
+        Input("job-submit-args", "data"),
+        State ("job-submit-state", "children"),
+        State("qpu-selection", "value"),
+    ],
+    prevent_initial_call=True,
+)
+def submit_job(
+    job_submit_args: dict,
+    job_submit_state: str,
+    qpu_name: str, 
+) -> float:
+    """Submit job and provide job ID.
 
-        if not job_submit_state:
-            job_submit_state = "SUBMITTED"
-            wd_time = 200
+    Args:
 
-        return SimulateReturn(
-            wd_job_interval=wd_time,
-            wd_job_n_intervals=0,
-            job_submit_state=job_submit_state,
+
+    Returns:
+
+    """
+
+    if job_submit_state != JobState.RUNNING.label:
+        raise PreventUpdate
+
+    embeddings = job_submit_args.pop("embeddings")
+    EGS = job_submit_args.pop("EGS")
+
+    solver = get_solvers()[qpu_name] 
+    sampler = ParallelEmbeddingComposite(
+            solver,
+            embeddings=[{k: (v,) for k, v in emb.items()} for emb in embeddings],
         )
 
-    return SimulateReturn(
-        run_button_disabled=False,
-        wd_job_disabled=True,
-        job_submit_state=(
-            dash.no_update if job_submit_state in ["COMPLETED", "CANCELLED", "FAILED"] else "ERROR"
-        ),
+    qpu_kwargs = dict(
+        num_reads=100,
+        answer_mode="raw",
+        fast_anneal=True,
+        auto_scale=False,
+        label="AQC Demo",
     )
+
+    qpu_kwargs.update(job_submit_args)
+    ss = sampler.sample_ising(**qpu_kwargs)
+    stats = 1 - np.mean(ss.record.energy <= EGS + 1e-8)
+
+    return stats
+
+#==========================================================================================================
+
+@dash.callback(
+    Output("sample-v-theory-graph", "figure"),
+    Output("job-submit-state", "children"),
+    Input("current-results", "data"),
+)
+def update_main_graph(measurement_data: dict) -> go.Figure:
+    fig = go.Figure()
+
+    problem_type = measurement_data["problem_type"]
+    data_sets = measurement_data["model_results"]
+
+        # Add trace for each data se
+    for label, stat_set in data_sets.items():
+        anneal_times = [x[0] for x in stat_set]
+        egs_probs = [x[1] for x in stat_set]
+        fig.add_trace(go.Scatter(
+            x=anneal_times,
+            y=egs_probs,
+            mode='lines+markers',
+            marker=dict(symbol='x', size=8),
+            name=label
+        ))
+
+    # Update layout with title, axis labels, and log scale
+    fig.update_layout(
+        title=f"Probabilty of Excited State vs Annealing Time as a Fucntion of Energy Gap for {problem_type}",
+        xaxis_title="Annealing time (ns)",
+        yaxis_title="Excited State Probability",
+        yaxis_type="log",
+        hovermode='x unified',
+        template='plotly_white'
+    )
+
+    return fig, JobState.COMPLETED.label
+
+#==========================================================================================================

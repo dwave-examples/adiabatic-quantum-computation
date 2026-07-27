@@ -26,8 +26,8 @@ from demo_configs import (
     MAIN_HEADER,
     THUMBNAIL,
 )
-from src.demo_enums import SolverType, ProblemType, ModelType
-from src.qpu_resources import get_init_job_status, get_solvers
+from src.demo_enums import SolverType, ProblemType, ModelType, JobState
+from src.qpu_resources import get_init_job_status, get_solvers, get_qpu_ids
 from src.data_loading import load_all_embeddings_from_file, load_all_models_from_file
 
 THEME_COLOR = "#2d4376"
@@ -138,16 +138,30 @@ def default_graph(title: str, id: str) -> html.Div:
         ]
     )
 
+def generate_new_results_dict(proble_type: ProblemType) -> dict:
+    """ Generates a new standardized dictionary for storing measurement results. At present there
+    is only one problem type and no functionality to change or reset exisitng results, so this will
+    be called once at initialization and never again. If the demo is expanded to include more problem
+    types or other options that would make clearing and resetting results useful, this function will
+    make it easy to prepare the current-results store for a fresh batch of measurements."""
 
-def show_progress() -> html.Div:
-    """Show job submission and progress.
+    results_dict = {"problem_type": proble_type.name}
+    model_reslults = {m.name: [] for m in ModelType}
+    results_dict["model_results"] = model_reslults
+    return results_dict
+
+def show_status() -> html.Div:
+    """Show job submission state.
 
     Returns:
         A Div containing the job submission status and progress bar.
+
+    #TODO: Progress bar has been left out of V1 of the KZ demo as it adds extra, unnecessary complexity.
+    It should probably be added back later, but it's much lower priority than the functional pieces.
     """
 
     init_job_status = get_init_job_status()
-    job_status_style = {"color": "#AA3A3C"} if init_job_status == "NO SOLVER" else {}
+    job_status_style = {"color": "#AA3A3C"} if init_job_status == JobState.NO_SOLVER else {}
 
     return html.Div(
         [
@@ -156,21 +170,11 @@ def show_progress() -> html.Div:
                     "Status: ",
                     html.Span(
                         id="job-submit-state",
-                        children=f"{init_job_status}",
+                        children=init_job_status.label,
                         style=job_status_style,
                     ),
                 ],
                 className="caption",
-            ),
-            html.Div(
-                className="progress-bar",
-                title="Job Progress",
-                children=[
-                    html.Div(
-                        id="job-status-progress",
-                        className="progress-bar-fill",
-                    )
-                ],
             ),
         ],
         className="progress-wrapper",
@@ -249,26 +253,20 @@ def create_interface() -> html.Div:
                 tabIndex=1,
             ),
 
+            dcc.Store(id="available-solvers", data = get_solver_ids()),
+            dcc.Store(id="qpu-select-time", data=0), 
             dcc.Store(id="modal-trigger", data=False),
-            dcc.Store(id="qpu-select-time", data=""),
-            dcc.Store(id="job-submit-time"),
-            dcc.Store(id="job-id"),
+            dcc.Store(id="job-submit_time", data=0),
             dcc.Store(id="cached-embeddings", data=load_all_embeddings_from_file()),
             dcc.Store(id="current-embeddings", data={}),
             dcc.Store(id="uncached-embeddings", data={}),
             dcc.Store(id="cached-models", data=load_all_models_from_file()),
             dcc.Store(id="current-model", data={}),
-            dcc.Store(id="current-results", data = []),
+            dcc.Store(id="current-results", data = generate_new_results_dict(ProblemType.DEFAULT)),
             dcc.Store(id="current-problem-type", data=ProblemType.DEFAULT.name), # Currently no functionality for
             # changing this as we only have one problem type. But it's a lot easier to design around having
             # more problem types from the start than it is to add that in later.
-            dcc.Interval(
-                id="wd-job",
-                interval=500,
-                n_intervals=0,
-                disabled=True,
-                max_intervals=1,
-            ),
+
             no_solver_modal(),
             error_modal(),
             # Settings and results columns
@@ -301,7 +299,7 @@ def create_interface() -> html.Div:
                                                             [
                                                                 generate_settings_form(),
                                                                 generate_run_buttons(),
-                                                                show_progress(),
+                                                                show_status(),
                                                             ],
                                                             className="settings-and-buttons",
                                                         ),

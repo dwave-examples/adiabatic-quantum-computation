@@ -18,6 +18,7 @@ from enum import Enum
 class SolverType(Enum):
     """Add a list of solver options here. If this demo only requires 1 solver,
     this functionality can be removed.
+
     """
 
     SOLVER_1 = 0
@@ -55,3 +56,24 @@ class ModelType(Enum):
     SMALL_GAP = 0
     INTERMEDIATE_GAP = 1
     LARGE_GAP = 2
+
+class JobState(Enum):
+
+    FINDING_EMBEDDING = 0
+    READY = 1
+    PREPROCESSING = 2
+    CONNECTING = 3
+    RUNNING = 4
+    COMPLETED = 5
+    NO_SOLVER = 6
+
+    @property
+    def label(self):
+        return {j: j.name.replace("_", " ").title() for j in JobState}[self]
+
+    @property
+    def normal_job_states(self):
+        return [
+            js for js in JobState if js not in 
+            [JobState.FINDING_EMBEDDING, JobState.READY, JobState.NO_SOLVER]
+            ]

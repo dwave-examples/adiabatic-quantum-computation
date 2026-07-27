@@ -19,29 +19,39 @@ from typing import NamedTuple
 
 from dwave.cloud import Client
 
+from src.demo_enums import JobState, SolverType
+from demo_configs import ANNEALING_TIME_SERIES
+annealing_times = [t/1000 for t in ANNEALING_TIME_SERIES]  # Convert milliseconds to seconds
+
+
 class QPUResources(NamedTuple):
     client: Client | None
     solvers: dict
-    init_job_status: str
+    init_job_status: JobState
 
 
-@lru_cache(maxsize=1)
-def get_qpus() -> QPUResources:
+@lru_cache(maxsize=len(SolverType))
+def get_qpus() -> QPUResources: #TODO troubleshoot: not currently working
     """Get QPU resources, including client and solvers. Results are cached."""
     try:
         client = Client.from_config(client="qpu")
         solvers = {
-            qpu.name: qpu for qpu in client.get_solvers(fast_anneal_time_range__covers=[0.005, 0.1])
+            qpu.name: qpu 
+            for qpu in client.get_solvers(fast_anneal_time_range__covers=annealing_times)
+            if qpu.name in [slvr.label for slvr in SolverType]
         }
 
         if not solvers:
             raise Exception
 
-        return QPUResources(client=client, solvers=solvers, init_job_status="READY")
+        return QPUResources(client=client, solvers=solvers, init_job_status=JobState.READY)
 
     except Exception:
-        return QPUResources(client=None, solvers={}, init_job_status="NO SOLVER")
+        return QPUResources(client=None, solvers={}, init_job_status=JobState.NO_SOLVER)
 
+def get_qpu_ids() -> dict:
+    available_qpus = get_qpus().solvers
+    return {qpu.name: qpu.graph_id for qpu in available_qpus.values()}
 
 def get_client() -> Client | None:
     """Get the client, if available. Returns None if no client is available."""
