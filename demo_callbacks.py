@@ -28,8 +28,8 @@ from dwave.system import DWaveSampler, ParallelEmbeddingComposite
 
 from src.demo_enums import JobState, ModelType, ProblemType
 from src.qpu_resources import get_client, get_solvers, get_qpu_ids
-
 from src.get_embeddings import get_embeddings
+from src.data_loading import ProblemModel
 from demo_configs import ANNEALING_TIME_SERIES
 
 @dash.callback(
@@ -65,12 +65,12 @@ def toggle_left_column(collapse_trigger: int, to_collapse_class: str) -> tuple[s
 #===================================================================================================================
 
 
-@dash.callback(
-    Output("schedule-filename", "children"),
-    Output("schedule-filename", "className"),
-    Input("qpu-selection", "value"),
-)
-def set_schedule(qpu_name: str) -> tuple[str, str]:
+#@dash.callback(
+#    Output("schedule-filename", "children"),
+#    Output("schedule-filename", "className"),
+#    Input("qpu-selection", "value"),
+#)
+#def set_schedule(qpu_name: str) -> tuple[str, str]:
     """Set the schedule for the selected QPU.
 
     Args:
@@ -85,27 +85,28 @@ def set_schedule(qpu_name: str) -> tuple[str, str]:
 
     #TODO: get schedule and simplify.
 
-    schedule_filename = "FALLBACK_SCHEDULE.csv"
-    schedule_filename_class = "no-schedule"
+ #   schedule_filename = "FALLBACK_SCHEDULE.csv"
+ #   schedule_filename_class = "no-schedule"
 
-    if qpu_name:
-        for file in SCHEDULES_EMBEDDINGS_PATH.glob("*_schedule.csv"):  # get schedule files
-            file_solver_name = _schedule_solver_name(file)
-
-            if file_solver_name and qpu_name == file_solver_name:
-                schedule_filename = file.name
-                schedule_filename_class = ""
-
-    return schedule_filename, schedule_filename_class
+ #   if qpu_name:
+ #       for file in SCHEDULES_EMBEDDINGS_PATH.glob("*_schedule.csv"):  # get schedule files
+ #           file_solver_name = _schedule_solver_name(file)
+#
+ #           if file_solver_name and qpu_name == file_solver_name:
+  #              schedule_filename = file.name
+   #             schedule_filename_class = ""
+#
+ #   return schedule_filename, schedule_filename_class
 
 #======================================================================================================================
 
 @dash.callback(
-    Output("current-embedding", "data"),
-    Output("run-button", "disabled"),
-    Output("job-submit-state", "children"),
+    Output("current-embeddings", "data", allow_duplicate=True),
+    Output("run-button", "disabled", allow_duplicate=True),
+    Output("job-submit-state", "children", allow_duplicate=True),
     Output("qpu-select-time", "data"),
     Input("qpu-selection", "value"),
+    prevent_initial_call=True, #TODO deal with startup QPU behavior
 )
 def process_qpu_select(qpu_name: str) -> tuple[dict, str]:
     """Removes stored value for current embedding and disables run button.
@@ -120,15 +121,16 @@ def process_qpu_select(qpu_name: str) -> tuple[dict, str]:
 #======================================================================================================================
 
 @dash.callback(
-    Output("current-embeddings", "data"),
+    Output("current-embeddings", "data", allow_duplicate=True),
     Output("uncached-embeddings", "data"),
-    Output("run-button", "disabled"),
-    Output("job-submit-state", "children"),
+    Output("run-button", "disabled", allow_duplicate=True),
+    Output("job-submit-state", "children", allow_duplicate=True),
     Input("qpu-select-time", "data"),
     State("current-problem-type", "data"), #TODO add proper target
     State("cached-embeddings", "data"),
     State("qpu-selection", "value"),
     State("available-solvers", "data"),
+    prevent_initial_call=True,
 )
 def set_current_embeddings(
         qpu_select_time: float, 
@@ -160,38 +162,41 @@ def cache_new_embeddings(uncached_embeddings: dict) -> dict:
 
 #======================================================================================================================
 
-@dash.callback(
-    Output("current-model", "data"),
-    Output("run-button", "disabled"),
-    Input("qpu-selection", "value"),
-)
-def process_model_select(qpu_name: str) -> tuple[dict, str]:
-    """Removes stored value for current embedding and disables run button.
-    This will trigger the set_current_embeddings callback to run. If an appropriate
-    embedding is already cached, it will be used and the run button will be re-enabled
-    almost immediately. If not, the run button will remain disabled until the embedding 
-    is found and cached.
-    """
+#@dash.callback(
+ #   Output("current-model", "data", allow_duplicate=True),
+  #  Output("run-button", "disabled", allow_duplicate=True),
+   # Input("qpu-selection", "value"),
+#)
+#def process_model_select(qpu_name: str) -> tuple[dict, str]:
+ #   """Removes stored value for current embedding and disables run button.
+  #  This will trigger the set_current_embeddings callback to run. If an appropriate
+   # embedding is already cached, it will be used and the run button will be re-enabled
+    #almost immediately. If not, the run button will remain disabled until the embedding 
+    #is found and cached.
+    #"""
 
-    return {}, True
+    #return {}, True
 
 #======================================================================================================================
 
 @dash.callback(
     Output("current-model", "data"),
-    Output("run-button", "disabled"),
     Input("model-selection", "value"),
     State("current-problem-type", "data"), 
     State("cached-models", "data"),
+    prevent_initial_call=True,
 )
-def set_current_model(model_name: str, problem_type: str, cached_models: dict) -> tuple[dict, str]:
-    return cached_models[(problem_type, model_name)], False
+def set_current_model(model_val: str, problem_type: str, cached_models: dict) -> tuple[dict, str]:
+    print(cached_models)
+    print()
+    print(type(model_val))
+    return cached_models[ProblemModel(ProblemType[problem_type], ModelType(int(model_val))).lookup_key]
 
 #==============================================================================================
 
 @dash.callback(
-    Output("run-button", "disabled"),
-    Output("job-submit-state", "children"),
+    Output("run-button", "disabled", allow_duplicate=True),
+    Output("job-submit-state", "children", allow_duplicate=True),
     Output("job-submit-time", "data"),
     inputs=[
         Input("run-button", "n_clicks"),
@@ -221,7 +226,7 @@ def run_button_click(
 
 @dash.callback(
     Output("job-submit-args", "data"),
-    Output("job-submit-state", "children"),
+    Output("job-submit-state", "children", allow_duplicate=True),
     inputs=[
         Input("job-submit-time", "data"),
         State("job-submit-state", "children"), 
@@ -236,7 +241,7 @@ def preprocess_job(
     job_submit_time: str,
     job_submit_state: str,
     model_data: dict,
-    model_name: str,
+    model_val: int,
     model_embeddings: dict,
     measurement_data: dict,
 ) -> float:
@@ -252,12 +257,13 @@ def preprocess_job(
     if job_submit_state != JobState.PREPROCESSING.label:
         raise PreventUpdate
 
-    h = model_data["h"]
-    J = model_data["J"]
-    current_job_results = measurement_data[model_name]
+    #h = model_data["h"]
+    #J = model_data["J"]
+    job_kwargs = model_data.copy()
+    current_job_results = measurement_data[ModelType(int(model_val)).name]
     measurement_number = len(current_job_results) + 1
     ta = ANNEALING_TIME_SERIES[(measurement_number - 1)%len(ANNEALING_TIME_SERIES)]/1000
-    job_kwargs = {"h": h, "J": J, "annealing_time": ta, "embeddings": model_embeddings}
+    job_kwargs.update({"annealing_time": ta, "embeddings": model_embeddings})
 
     return job_kwargs, JobState.RUNNING.label
 
@@ -269,13 +275,15 @@ def preprocess_job(
         Input("job-submit-args", "data"),
         State ("job-submit-state", "children"),
         State("qpu-selection", "value"),
+        State("model-selection", "value"),
     ],
     prevent_initial_call=True,
 )
 def submit_job(
     job_submit_args: dict,
     job_submit_state: str,
-    qpu_name: str, 
+    qpu_name: str,
+    model_val: int,
 ) -> float:
     """Submit job and provide job ID.
 
@@ -309,21 +317,25 @@ def submit_job(
     qpu_kwargs.update(job_submit_args)
     ss = sampler.sample_ising(**qpu_kwargs)
     stats = 1 - np.mean(ss.record.energy <= EGS + 1e-8)
+    results_dict = Patch()
+    results_dict[ModelType(model_val).name].append(stats)
 
-    return stats
+
+    return results_dict
 
 #==========================================================================================================
 
 @dash.callback(
     Output("sample-v-theory-graph", "figure"),
-    Output("job-submit-state", "children"),
+    Output("job-submit-state", "children", allow_duplicate=True),
     Input("current-results", "data"),
+    prevent_initial_call=True,
 )
 def update_main_graph(measurement_data: dict) -> go.Figure:
     fig = go.Figure()
 
     problem_type = measurement_data["problem_type"]
-    data_sets = measurement_data["model_results"]
+    data_sets = {k:v for k,v in measurement_data.items() if k != "problem_type"}
 
         # Add trace for each data se
     for label, stat_set in data_sets.items():

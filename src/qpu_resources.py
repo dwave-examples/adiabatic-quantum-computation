@@ -35,11 +35,14 @@ def get_qpus() -> QPUResources: #TODO troubleshoot: not currently working
     """Get QPU resources, including client and solvers. Results are cached."""
     try:
         client = Client.from_config(client="qpu")
-        solvers = {
-            qpu.name: qpu 
-            for qpu in client.get_solvers(fast_anneal_time_range__covers=annealing_times)
-            if qpu.name in [slvr.label for slvr in SolverType]
-        }
+        solver_opts = client.get_solvers()
+        print(f"Available solvers: {[s.name for s in solver_opts]}")
+        solvers = {s.name: s for s in solver_opts}
+        #solvers = {
+            #qpu.name: qpu 
+            #for qpu in client.get_solvers(fast_anneal_time_range__covers=annealing_times)
+            #if qpu.name in [slvr.label for slvr in SolverType]
+        #}
 
         if not solvers:
             raise Exception

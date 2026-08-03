@@ -27,8 +27,8 @@ class SolverType(Enum):
     @property
     def label(self):
         return {
-            SolverType.SOLVER_1: "Solver 1",
-            SolverType.SOLVER_2: "Solver 2",
+            SolverType.SOLVER_1: "Advantage2_system1",
+            SolverType.SOLVER_2: "Advantage_system4",
         }[self]
 
 
@@ -57,6 +57,10 @@ class ModelType(Enum):
     INTERMEDIATE_GAP = 1
     LARGE_GAP = 2
 
+    @property
+    def label(self):
+        return self.name.replace("_", " ").title()
+
 class JobState(Enum):
 
     FINDING_EMBEDDING = 0
@@ -69,7 +73,7 @@ class JobState(Enum):
 
     @property
     def label(self):
-        return {j: j.name.replace("_", " ").title() for j in JobState}[self]
+        return self.name.replace("_", " ").title()
 
     @property
     def normal_job_states(self):

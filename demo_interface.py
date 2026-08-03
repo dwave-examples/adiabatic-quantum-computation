@@ -28,7 +28,9 @@ from demo_configs import (
 )
 from src.demo_enums import SolverType, ProblemType, ModelType, JobState
 from src.qpu_resources import get_init_job_status, get_solvers, get_qpu_ids
-from src.data_loading import load_all_embeddings_from_file, load_all_models_from_file
+from src.data_loading import load_all_embeddings_from_file, ProblemModel
+
+print("At top of demo_interface.py")
 
 THEME_COLOR = "#2d4376"
 
@@ -138,16 +140,15 @@ def default_graph(title: str, id: str) -> html.Div:
         ]
     )
 
-def generate_new_results_dict(proble_type: ProblemType) -> dict:
+def generate_new_results_dict(problem_type: str) -> dict:
     """ Generates a new standardized dictionary for storing measurement results. At present there
     is only one problem type and no functionality to change or reset exisitng results, so this will
     be called once at initialization and never again. If the demo is expanded to include more problem
     types or other options that would make clearing and resetting results useful, this function will
     make it easy to prepare the current-results store for a fresh batch of measurements."""
 
-    results_dict = {"problem_type": proble_type.name}
-    model_reslults = {m.name: [] for m in ModelType}
-    results_dict["model_results"] = model_reslults
+    results_dict = {m.name: [] for m in ModelType} #TODO use more durable keys
+    results_dict["problem_type"] = problem_type
     return results_dict
 
 def show_status() -> html.Div:
@@ -253,16 +254,17 @@ def create_interface() -> html.Div:
                 tabIndex=1,
             ),
 
-            dcc.Store(id="available-solvers", data = get_solver_ids()),
-            dcc.Store(id="qpu-select-time", data=0), 
+            dcc.Store(id="available-solvers", data = get_qpu_ids()),
+            dcc.Store(id="qpu-select-time", data=0.0), 
             dcc.Store(id="modal-trigger", data=False),
-            dcc.Store(id="job-submit_time", data=0),
+            dcc.Store(id="job-submit-time", data=0.0),
+            dcc.Store(id="job-submit-args", data={}),
             dcc.Store(id="cached-embeddings", data=load_all_embeddings_from_file()),
             dcc.Store(id="current-embeddings", data={}),
             dcc.Store(id="uncached-embeddings", data={}),
-            dcc.Store(id="cached-models", data=load_all_models_from_file()),
+            dcc.Store(id="cached-models", data=ProblemModel.load_all_models_from_file(as_dicts=True)),
             dcc.Store(id="current-model", data={}),
-            dcc.Store(id="current-results", data = generate_new_results_dict(ProblemType.DEFAULT)),
+            dcc.Store(id="current-results", data = generate_new_results_dict(ProblemType.DEFAULT.name)),
             dcc.Store(id="current-problem-type", data=ProblemType.DEFAULT.name), # Currently no functionality for
             # changing this as we only have one problem type. But it's a lot easier to design around having
             # more problem types from the start than it is to add that in later.
@@ -335,7 +337,7 @@ def create_interface() -> html.Div:
                         children=[
                             dmc.Tabs(
                                 id="tabs",
-                                value=f"tab-{ProblemType.KZ.value}",
+                                value=f"tab-{ProblemType.DEFAULT.value}",
                                 color="white",
                                 children=[
                                     html.Header(
@@ -345,7 +347,7 @@ def create_interface() -> html.Div:
                                         ],
                                     ),
                                     dmc.TabsPanel(
-                                        value=f"tab-{ProblemType.KZ.value}",
+                                        value=f"tab-{ProblemType.DEFAULT.value + 1}",
                                         tabIndex="12",
                                         children=[
                                             html.Div(
