@@ -27,7 +27,7 @@ from dash.exceptions import PreventUpdate
 from dwave.system import DWaveSampler, ParallelEmbeddingComposite
 
 from src.demo_enums import JobState, ModelType, ProblemType
-from src.data_loading import ProblemModel
+from src.model_loading import ProblemModel
 from demo_configs import ANNEALING_TIME_SERIES
 from src.process_embeddings import EmbeddingSet
 

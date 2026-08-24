@@ -28,7 +28,7 @@ from demo_configs import (
 )
 from src.demo_enums import SolverType, ProblemType, ModelType, JobState
 from src.qpu_resources import get_init_job_status, get_solvers, get_qpu_ids
-from src.data_loading import ProblemModel
+from src.model_loading import ProblemModel
 
 print("At top of demo_interface.py")
 

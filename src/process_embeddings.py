@@ -6,7 +6,7 @@ from minorminer.utils.parallel_embeddings import find_multiple_embeddings
 from dwave.system import DWaveSampler
 
 from src.demo_enums import ProblemType
-from src.data_loading import ProblemModel
+from src.model_loading import ProblemModel
 from demo_configs import NUM_PARALLEL_EMBEDDINGS
 from src.values import EMBEDDINGS_PATH
 
