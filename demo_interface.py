@@ -28,7 +28,7 @@ from demo_configs import (
 )
 from src.demo_enums import SolverType, ProblemType, ModelType, JobState
 from src.qpu_resources import get_init_job_status, get_solvers, get_qpu_ids
-from src.data_loading import load_all_embeddings_from_file, ProblemModel
+from src.data_loading import ProblemModel
 
 print("At top of demo_interface.py")
 
@@ -238,8 +238,6 @@ def error_modal() -> dmc.Modal:
         ],
     )
 
-def load_saved_embeddings() -> dict:
-    pass
 
 def create_interface() -> html.Div:
     """Set the application HTML."""
@@ -259,9 +257,7 @@ def create_interface() -> html.Div:
             dcc.Store(id="modal-trigger", data=False),
             dcc.Store(id="job-submit-time", data=0.0),
             dcc.Store(id="job-submit-args", data={}),
-            dcc.Store(id="cached-embeddings", data=load_all_embeddings_from_file()),
             dcc.Store(id="current-embeddings", data={}),
-            dcc.Store(id="uncached-embeddings", data={}),
             dcc.Store(id="cached-models", data=ProblemModel.load_all_models_from_file(as_dicts=True)),
             dcc.Store(id="current-model", data={}),
             dcc.Store(id="current-results", data = generate_new_results_dict(ProblemType.DEFAULT.name)),

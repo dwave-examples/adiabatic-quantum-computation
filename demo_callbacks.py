@@ -27,10 +27,9 @@ from dash.exceptions import PreventUpdate
 from dwave.system import DWaveSampler, ParallelEmbeddingComposite
 
 from src.demo_enums import JobState, ModelType, ProblemType
-from src.qpu_resources import get_client, get_solvers, get_qpu_ids
-from src.get_embeddings import get_embeddings
 from src.data_loading import ProblemModel
 from demo_configs import ANNEALING_TIME_SERIES
+from src.process_embeddings import EmbeddingSet
 
 @dash.callback(
     Output({"type": "to-collapse-class", "index": MATCH}, "className"),
@@ -122,12 +121,10 @@ def process_qpu_select(qpu_name: str) -> tuple[dict, str]:
 
 @dash.callback(
     Output("current-embeddings", "data", allow_duplicate=True),
-    Output("uncached-embeddings", "data"),
     Output("run-button", "disabled", allow_duplicate=True),
     Output("job-submit-state", "children", allow_duplicate=True),
     Input("qpu-select-time", "data"),
     State("current-problem-type", "data"), #TODO add proper target
-    State("cached-embeddings", "data"),
     State("qpu-selection", "value"),
     State("available-solvers", "data"),
     prevent_initial_call=True,
@@ -135,30 +132,29 @@ def process_qpu_select(qpu_name: str) -> tuple[dict, str]:
 def set_current_embeddings(
         qpu_select_time: float, 
         problem_type: str, 
-        cached_embeddings: dict, 
         qpu_name: str,
         qpu_ids: dict
         ) -> tuple[dict, str]:
     """
     """
 
-    qpu_id = qpu_ids[qpu_name]
-    problem_embeddings, generated = get_embeddings(qpu_name, cached_embeddings, ProblemType[problem_type])
-    embeddings_to_cache = {(qpu_id, problem_type): problem_embeddings} if generated else dash.no_update
-    return problem_embeddings, embeddings_to_cache, False, JobState.READY.label
+    emb_set = EmbeddingSet(qpu_name)
+    problem_embeddings = emb_set.get_embeddings()
+
+    return problem_embeddings, False, JobState.READY.label
 
 #======================================================================================================================
 
-@dash.callback(
-    Output("cached-embeddings", "data"),
-    Input("uncached-embeddings", "data"),
-)
-def cache_new_embeddings(uncached_embeddings: dict) -> dict:
-    """Update the cached embeddings with any new embeddings found during the current run."""
-    embedding_update = Patch()
-    uncached_key, uncached_value = next(iter(uncached_embeddings.items()))
-    embedding_update[uncached_key] = uncached_value
-    return embedding_update
+#@dash.callback(
+#    Output("cached-embeddings", "data"),
+#    Input("uncached-embeddings", "data"),
+#)
+#def cache_new_embeddings(uncached_embeddings: dict) -> dict:
+#    """Update the cached embeddings with any new embeddings found during the current run."""
+#    embedding_update = Patch() 
+#    uncached_key, uncached_value = next(iter(uncached_embeddings.items()))
+#    embedding_update[uncached_key] = uncached_value
+#    return embedding_update
 
 #======================================================================================================================
 
@@ -187,9 +183,6 @@ def cache_new_embeddings(uncached_embeddings: dict) -> dict:
     prevent_initial_call=True,
 )
 def set_current_model(model_val: str, problem_type: str, cached_models: dict) -> tuple[dict, str]:
-    print(cached_models)
-    print()
-    print(type(model_val))
     return cached_models[ProblemModel(ProblemType[problem_type], ModelType(int(model_val))).lookup_key]
 
 #==============================================================================================
@@ -259,6 +252,7 @@ def preprocess_job(
 
     #h = model_data["h"]
     #J = model_data["J"]
+
     job_kwargs = model_data.copy()
     current_job_results = measurement_data[ModelType(int(model_val)).name]
     measurement_number = len(current_job_results) + 1
@@ -297,13 +291,22 @@ def submit_job(
     if job_submit_state != JobState.RUNNING.label:
         raise PreventUpdate
 
+    print(f"Embeddings 1: {job_submit_args['embeddings']}")
+    print()
     embeddings = job_submit_args.pop("embeddings")
     EGS = job_submit_args.pop("EGS")
+    job_submit_args['h'] = {int(k): v for k, v in job_submit_args['h'].items()}
+    job_submit_args['J'] = {tuple(map(int, k.strip("()").split(","))): v for k, v in job_submit_args['J'].items()}
 
-    solver = get_solvers()[qpu_name] 
+    print(job_submit_args)
+    embeddings = [{int(k): tuple([v]) for k, v in emb.items()} for emb in embeddings]
+    print(f"Embeddings: {embeddings}")
+
+    #solver = get_solvers()[qpu_name]
+    qpu = DWaveSampler(solver=qpu_name)
     sampler = ParallelEmbeddingComposite(
-            solver,
-            embeddings=[{k: (v,) for k, v in emb.items()} for emb in embeddings],
+            qpu,
+            embeddings=embeddings,
         )
 
     qpu_kwargs = dict(
