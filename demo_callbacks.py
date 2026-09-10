@@ -26,10 +26,15 @@ from dash import ALL, MATCH, Patch, Input, Output, State, ctx
 from dash.exceptions import PreventUpdate
 from dwave.system import DWaveSampler, ParallelEmbeddingComposite
 
+from minorminer.utils.parallel_embeddings import find_multiple_embeddings
+from demo_configs import NUM_PARALLEL_EMBEDDINGS
+import networkx as nx
+
 from src.demo_enums import JobState, ModelType, ProblemType
 from src.model_loading import ProblemModel
 from demo_configs import ANNEALING_TIME_SERIES
 from src.process_embeddings import EmbeddingSet
+from src.plotting import get_spectrum_plot, get_results_plot
 
 @dash.callback(
     Output({"type": "to-collapse-class", "index": MATCH}, "className"),
@@ -62,42 +67,6 @@ def toggle_left_column(collapse_trigger: int, to_collapse_class: str) -> tuple[s
     return to_collapse_class + " collapsed" if to_collapse_class else "collapsed", "false"
 
 #===================================================================================================================
-
-
-#@dash.callback(
-#    Output("schedule-filename", "children"),
-#    Output("schedule-filename", "className"),
-#    Input("qpu-selection", "value"),
-#)
-#def set_schedule(qpu_name: str) -> tuple[str, str]:
-    """Set the schedule for the selected QPU.
-
-    Args:
-        qpu_name: The name of the selected QPU.
-
-    Returns:
-        A tuple containing:
-
-        - str: The name of the schedule file to use for the selected QPU.
-        - str: The class to apply to the schedule filename display.
-    """
-
-    #TODO: get schedule and simplify.
-
- #   schedule_filename = "FALLBACK_SCHEDULE.csv"
- #   schedule_filename_class = "no-schedule"
-
- #   if qpu_name:
- #       for file in SCHEDULES_EMBEDDINGS_PATH.glob("*_schedule.csv"):  # get schedule files
- #           file_solver_name = _schedule_solver_name(file)
-#
- #           if file_solver_name and qpu_name == file_solver_name:
-  #              schedule_filename = file.name
-   #             schedule_filename_class = ""
-#
- #   return schedule_filename, schedule_filename_class
-
-#======================================================================================================================
 
 @dash.callback(
     Output("current-embeddings", "data", allow_duplicate=True),
@@ -145,45 +114,31 @@ def set_current_embeddings(
 
 #======================================================================================================================
 
-#@dash.callback(
-#    Output("cached-embeddings", "data"),
-#    Input("uncached-embeddings", "data"),
-#)
-#def cache_new_embeddings(uncached_embeddings: dict) -> dict:
-#    """Update the cached embeddings with any new embeddings found during the current run."""
-#    embedding_update = Patch() 
-#    uncached_key, uncached_value = next(iter(uncached_embeddings.items()))
-#    embedding_update[uncached_key] = uncached_value
-#    return embedding_update
-
-#======================================================================================================================
-
-#@dash.callback(
- #   Output("current-model", "data", allow_duplicate=True),
-  #  Output("run-button", "disabled", allow_duplicate=True),
-   # Input("qpu-selection", "value"),
-#)
-#def process_model_select(qpu_name: str) -> tuple[dict, str]:
- #   """Removes stored value for current embedding and disables run button.
-  #  This will trigger the set_current_embeddings callback to run. If an appropriate
-   # embedding is already cached, it will be used and the run button will be re-enabled
-    #almost immediately. If not, the run button will remain disabled until the embedding 
-    #is found and cached.
-    #"""
-
-    #return {}, True
-
-#======================================================================================================================
-
 @dash.callback(
     Output("current-model", "data"),
+    Output("spectrum-graph", "figure"),
     Input("model-selection", "value"),
     State("current-problem-type", "data"), 
     State("cached-models", "data"),
     prevent_initial_call=True,
 )
 def set_current_model(model_val: str, problem_type: str, cached_models: dict) -> tuple[dict, str]:
-    return cached_models[ProblemModel(ProblemType[problem_type], ModelType(int(model_val))).lookup_key]
+    """ Sets the data and the spectrum plot for the currently selected model. Triggers whenever the
+    model selection dropdown is changed. The spectrum plot is currently generated from a CSV file
+    that is loaded from disk. The model data is retrieved from the cached models dictionary.
+    
+    Args
+        model_val: The value of the currently selected model from the dropdown.
+        problem_type: The currently selected problem type.
+        cached_models: A dictionary of cached models, keyed by their lookup keys.
+        
+    Returns
+        model_data: the data for the currently selected model, including h and J values
+            and its ground state energy (EGS).
+        spectrum_plot: a plotly figure of the spectrum of energies for the selected model."""
+    spectrum_plot = get_spectrum_plot(ProblemType[problem_type], ModelType(int(model_val)))
+    model_data = cached_models[ProblemModel(ProblemType[problem_type], ModelType(int(model_val))).lookup_key]
+    return model_data, spectrum_plot
 
 #==============================================================================================
 
@@ -225,7 +180,7 @@ def run_button_click(
         State("job-submit-state", "children"), 
         State("current-model", "data"),
         State("model-selection", "value"),
-        State("current-embeddings", "data"),
+        #State("current-embeddings", "data"),
         State("current-results", "data"),
     ],
     prevent_initial_call=True,
@@ -235,7 +190,7 @@ def preprocess_job(
     job_submit_state: str,
     model_data: dict,
     model_val: int,
-    model_embeddings: dict,
+    #model_embeddings: dict,
     measurement_data: dict,
 ) -> float:
     """Submit job and provide job ID.
@@ -255,9 +210,9 @@ def preprocess_job(
 
     job_kwargs = model_data.copy()
     current_job_results = measurement_data[ModelType(int(model_val)).name]
-    measurement_number = len(current_job_results) + 1
-    ta = ANNEALING_TIME_SERIES[(measurement_number - 1)%len(ANNEALING_TIME_SERIES)]/1000
-    job_kwargs.update({"annealing_time": ta, "embeddings": model_embeddings})
+    measurement_number = len(current_job_results)
+    ta = ANNEALING_TIME_SERIES[(measurement_number)%len(ANNEALING_TIME_SERIES)]/1000
+    job_kwargs.update({"annealing_time": ta})
 
     return job_kwargs, JobState.RUNNING.label
 
@@ -265,11 +220,13 @@ def preprocess_job(
 
 @dash.callback(
     Output("current-results", "data"),
+    Output("run-button", "disabled", allow_duplicate=True),
     inputs=[
         Input("job-submit-args", "data"),
         State ("job-submit-state", "children"),
         State("qpu-selection", "value"),
         State("model-selection", "value"),
+        State("current-embeddings", "data"),
     ],
     prevent_initial_call=True,
 )
@@ -278,6 +235,7 @@ def submit_job(
     job_submit_state: str,
     qpu_name: str,
     model_val: int,
+    model_embeddings: dict,
 ) -> float:
     """Submit job and provide job ID.
 
@@ -291,19 +249,30 @@ def submit_job(
     if job_submit_state != JobState.RUNNING.label:
         raise PreventUpdate
 
-    print(f"Embeddings 1: {job_submit_args['embeddings']}")
-    print()
-    embeddings = job_submit_args.pop("embeddings")
     EGS = job_submit_args.pop("EGS")
     job_submit_args['h'] = {int(k): v for k, v in job_submit_args['h'].items()}
     job_submit_args['J'] = {tuple(map(int, k.strip("()").split(","))): v for k, v in job_submit_args['J'].items()}
 
-    print(job_submit_args)
-    embeddings = [{int(k): tuple([v]) for k, v in emb.items()} for emb in embeddings]
-    print(f"Embeddings: {embeddings}")
+    #embeddings = [{int(k): tuple([v]) for k, v in emb.items()} for emb in model_embeddings]
+
+    qpu = DWaveSampler(solver=qpu_name)
+
+    source_graph = nx.Graph()
+    source_graph.add_nodes_from(job_submit_args['h'].keys())
+    source_graph.add_edges_from(job_submit_args['J'].keys())
+    target_graph = qpu.to_networkx_graph()
+
+    embeddings = find_multiple_embeddings(
+                source_graph,
+                target_graph,
+                max_num_emb=NUM_PARALLEL_EMBEDDINGS,
+                timeout=30
+            )
+
+    embeddings=[{k: (v,) for k, v in emb.items()} for emb in embeddings]
 
     #solver = get_solvers()[qpu_name]
-    qpu = DWaveSampler(solver=qpu_name)
+
     sampler = ParallelEmbeddingComposite(
             qpu,
             embeddings=embeddings,
@@ -321,10 +290,10 @@ def submit_job(
     ss = sampler.sample_ising(**qpu_kwargs)
     stats = 1 - np.mean(ss.record.energy <= EGS + 1e-8)
     results_dict = Patch()
-    results_dict[ModelType(model_val).name].append(stats)
+    results_dict[ModelType(int(model_val)).name].append(stats)
 
 
-    return results_dict
+    return results_dict, False
 
 #==========================================================================================================
 
@@ -332,35 +301,26 @@ def submit_job(
     Output("sample-v-theory-graph", "figure"),
     Output("job-submit-state", "children", allow_duplicate=True),
     Input("current-results", "data"),
+    State("model-selection", "value"),
     prevent_initial_call=True,
 )
-def update_main_graph(measurement_data: dict) -> go.Figure:
-    fig = go.Figure()
+def update_main_graph(measurement_data: dict, model_val: str) -> go.Figure:
+    """ Updates the main graph showing the excited state probability as a function of annealing 
+        time. This callback triggers whenever a new measurement is added to the current-results
+        data store: it updates the graph with the new data point and returns the updated figure. 
+        It also updates the job submission state to COMPLETED.
+        
+        Args:
+            measurement_data: A dictionary containing the current measurement results.
+            model_val: The currently selected model value as a string.
 
-    problem_type = measurement_data["problem_type"]
-    data_sets = {k:v for k,v in measurement_data.items() if k != "problem_type"}
+        Returns:
+            fig: A plotly figure of the excited state probability as a function of annealing time.
+            job_submit_state: The new state of the job submission process, set to COMPLETED.
+        """
 
-        # Add trace for each data se
-    for label, stat_set in data_sets.items():
-        anneal_times = [x[0] for x in stat_set]
-        egs_probs = [x[1] for x in stat_set]
-        fig.add_trace(go.Scatter(
-            x=anneal_times,
-            y=egs_probs,
-            mode='lines+markers',
-            marker=dict(symbol='x', size=8),
-            name=label
-        ))
-
-    # Update layout with title, axis labels, and log scale
-    fig.update_layout(
-        title=f"Probabilty of Excited State vs Annealing Time as a Fucntion of Energy Gap for {problem_type}",
-        xaxis_title="Annealing time (ns)",
-        yaxis_title="Excited State Probability",
-        yaxis_type="log",
-        hovermode='x unified',
-        template='plotly_white'
-    )
+    job_results = measurement_data[ModelType(int(model_val)).name]
+    fig = get_results_plot(job_results)
 
     return fig, JobState.COMPLETED.label
 

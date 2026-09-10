@@ -20,6 +20,7 @@ from typing import NamedTuple
 from dwave.cloud import Client
 
 from src.demo_enums import JobState, SolverType
+from src.values import SCHEDULES_PATH
 from demo_configs import ANNEALING_TIME_SERIES
 annealing_times = [t/1000 for t in ANNEALING_TIME_SERIES]  # Convert milliseconds to seconds
 
@@ -69,3 +70,15 @@ def get_solvers() -> dict:
 def get_init_job_status() -> str:
     """Get initial job status. "READY" if solvers are available, "NO SOLVER" otherwise."""
     return get_qpus().init_job_status
+
+def get_schedule(qpu_name: str):
+    schedule = None
+    for file in SCHEDULES_PATH.glob("*_schedule.csv"):  # get schedule files
+        if qpu_name in file.name:
+            if schedule is not None:
+                raise ValueError(f"Multiple schedule files found for QPU {qpu_name}.")
+            schedule = file #TODO extract actual schedule
+
+    if schedule is None:
+        schedule = SCHEDULES_PATH / "default_schedule.csv" #TODO improve
+    return schedule

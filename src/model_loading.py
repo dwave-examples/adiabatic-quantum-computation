@@ -1,5 +1,8 @@
 import json
 import os
+
+import numpy as np
+
 from src.demo_enums import ProblemType, ModelType
 from src.values import MODELS_PATH
 
@@ -29,6 +32,10 @@ class ProblemModel:
     @property
     def json_filename(self) -> str:
         return f"{self.lookup_key}.json"
+
+    @property
+    def scatter_filename(self) -> str:
+        return f"{self.lookup_key}_scatter.csv"
 
     @property
     def graph_nodes(self):
@@ -78,7 +85,6 @@ class ProblemModel:
 
     @staticmethod
     def from_json_file(json_filename: str):
-        print(f"Loading model from file: {json_filename}")
         model_path = os.path.join(MODELS_PATH, json_filename)
         with open(model_path, "r") as f:
             model_dict = json.load(f)
@@ -87,7 +93,6 @@ class ProblemModel:
 
     @staticmethod
     def load_all_models_from_file(as_dicts: bool = False):
-        print("LOADING MODELS")
         models_dict = {}
         for model_filename in os.listdir(MODELS_PATH):
             if model_filename.endswith(".json"):
@@ -98,3 +103,13 @@ class ProblemModel:
                     models_dict[model.lookup_key] = model
 
         return models_dict
+
+    @staticmethod
+    def load_scatter_csv_from_file(problem_type: ProblemType, model_type: ModelType):
+        lookup_key = f"{problem_type.name}_{model_type.name}"
+        scatter_filename = f"{lookup_key}_SCATTER.csv"
+        scatter_path = os.path.join(MODELS_PATH, scatter_filename)
+        if not os.path.exists(scatter_path):
+            raise FileNotFoundError(f"Scatter CSV file not found for model {scatter_filename}.")
+        filedata = np.loadtxt(scatter_path, delimiter=',', skiprows=3)
+        return filedata

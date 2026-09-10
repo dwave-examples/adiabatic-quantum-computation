@@ -67,8 +67,8 @@ class EmbeddingSet():
 
             self.save_to_json_file(embeddings)
 
-        if stringify_keys:
-            embeddings = {str(k): v for k, v in embeddings.items()}
+        #if stringify_keys:
+            #embeddings = {str(k): v for k, v in embeddings.items()}
 
         return embeddings
 

@@ -333,7 +333,7 @@ def create_interface() -> html.Div:
                         children=[
                             dmc.Tabs(
                                 id="tabs",
-                                value=f"tab-{ProblemType.DEFAULT.value}",
+                                value=f"tab-{ProblemType.DEFAULT.value + 1}",
                                 color="white",
                                 children=[
                                     html.Header(
@@ -349,10 +349,29 @@ def create_interface() -> html.Div:
                                             html.Div(
                                                 className="tab-content-wrapper",
                                                 children=[
-                                                    default_graph(
-                                                        "QPU Samples vs Kibble-Zurek Prediction",
-                                                        "sample-v-theory",
-                                                    ),
+                                                    html.Div(
+                                                        className="plots-wrapper",
+                                                        children=[
+                                                            html.Div(
+                                                                className="graph-wrapper",
+                                                                children=[
+                                                                    default_graph(
+                                                                    "QPU Samples vs Landau-Zener Prediction",
+                                                                    "sample-v-theory",
+                                                                    ),
+                                                                ],
+                                                            ),
+                                                            html.Div(
+                                                                className="spectrum-plot-wrapper",
+                                                                children=[
+                                                                    default_graph(
+                                                                    "Energy Spectrum",
+                                                                    "spectrum",
+                                                                    ),
+                                                                ],
+                                                            )
+                                                        ]
+                                                    )   
                                                 ],
                                             )
                                         ],

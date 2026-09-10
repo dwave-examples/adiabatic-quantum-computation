@@ -42,3 +42,29 @@ custom CSS can be added below.
   /****************************/
  /*** CUSTOM CSS GOES HERE ***/
 /****************************/
+
+.plots-wrapper {
+    display: flex;
+    height: 100%;
+    margin-top: 1rem;
+}
+
+.graph-wrapper {
+    display: flex;
+    height: 100%;
+    margin-top: 1rem;
+} 
+
+.graph-wrapper > div:first-child {
+    height: calc(50vw - var(--left-col-width)/2);
+    width: calc(50vw - var(--left-col-width)/3);
+    margin-right: 0.5rem;
+    position: relative;
+}
+
+.spectrum-plot-wrapper > div:first-child {
+    height: calc(50vw - var(--left-col-width)/3);
+    width: calc(50vw - var(--left-col-width)/2.5);
+    margin-right: 3rem;
+    position: relative;
+}
