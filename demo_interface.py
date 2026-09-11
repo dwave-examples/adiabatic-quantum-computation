@@ -30,8 +30,6 @@ from src.demo_enums import SolverType, ProblemType, ModelType, JobState
 from src.qpu_resources import get_init_job_status, get_solvers, get_qpu_ids
 from src.model_loading import ProblemModel
 
-print("At top of demo_interface.py")
-
 THEME_COLOR = "#2d4376"
 
 def dropdown(label: str, id: str, options: list, value: str | None = None) -> html.Div:
@@ -140,7 +138,7 @@ def default_graph(title: str, id: str) -> html.Div:
         ]
     )
 
-def generate_new_results_dict(problem_type: str) -> dict:
+def generate_new_results_dict(problem_type: str = ProblemType.DEFAULT.name) -> dict:
     """ Generates a new standardized dictionary for storing measurement results. At present there
     is only one problem type and no functionality to change or reset exisitng results, so this will
     be called once at initialization and never again. If the demo is expanded to include more problem
@@ -260,7 +258,7 @@ def create_interface() -> html.Div:
             dcc.Store(id="current-embeddings", data={}),
             dcc.Store(id="cached-models", data=ProblemModel.load_all_models_from_file(as_dicts=True)),
             dcc.Store(id="current-model", data={}),
-            dcc.Store(id="current-results", data = generate_new_results_dict(ProblemType.DEFAULT.name)),
+            dcc.Store(id="current-results", data = generate_new_results_dict()),
             dcc.Store(id="current-problem-type", data=ProblemType.DEFAULT.name), # Currently no functionality for
             # changing this as we only have one problem type. But it's a lot easier to design around having
             # more problem types from the start than it is to add that in later.
@@ -356,7 +354,7 @@ def create_interface() -> html.Div:
                                                                 className="graph-wrapper",
                                                                 children=[
                                                                     default_graph(
-                                                                    "QPU Samples vs Landau-Zener Prediction",
+                                                                    "Experiment vs Theory",
                                                                     "sample-v-theory",
                                                                     ),
                                                                 ],

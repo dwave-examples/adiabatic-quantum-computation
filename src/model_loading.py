@@ -55,6 +55,14 @@ class ProblemModel:
 
         return model_dict
 
+    def set_min_energy_gap(self):
+        try:
+            filedata =ProblemModel.load_scatter_csv_from_file(self.problem_type, self.model_type)
+            energy_series = filedata[:,2] -filedata[:,1]  # Energy of the first excited state minus ground state energy
+            E_first_excited = min(energy_series)  # Minimum energy of the first excited state
+        except FileNotFoundError:
+            E_first_excited = None
+
     def to_json_file(self, overwrite_existing: bool = False):
         model_dict = self.to_dict()
         model_dict["J"] = {str(k): v for k, v in model_dict["J"].items()} #TODO this looks redundant. Examine.
@@ -113,3 +121,16 @@ class ProblemModel:
             raise FileNotFoundError(f"Scatter CSV file not found for model {scatter_filename}.")
         filedata = np.loadtxt(scatter_path, delimiter=',', skiprows=3)
         return filedata
+
+    @staticmethod
+    def load_theory_data_from_file(problem_type: ProblemType, model_type: ModelType):
+        lookup_key = f"{problem_type.name}_{model_type.name}"
+        data_filename = f"{lookup_key}_THEORY.txt"
+        theory_data_path = os.path.join(MODELS_PATH, data_filename)
+        if not os.path.exists(theory_data_path):
+            raise FileNotFoundError(f"Theory data file not found for model {data_filename}.")
+        with open(theory_data_path, "r") as f:
+            lines = f.readlines()
+        xs = [float(num) for num in lines[0].strip().split(",")]
+        ys = [float(num) for num in lines[1].strip().split(",")]
+        return xs, ys

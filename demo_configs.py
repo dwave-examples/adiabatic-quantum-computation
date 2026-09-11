@@ -18,10 +18,10 @@ from src.demo_enums import ModelType
 
 THUMBNAIL = "static/dwave_logo.svg"
 
-APP_TITLE = "Demo Name"
-MAIN_HEADER = "Demo Name"
+APP_TITLE = "Adiabatic Quantum Computation"
+MAIN_HEADER = "Adiabatic Quantum Computation"
 DESCRIPTION = """\
-This is a Dash template for new examples. It includes some basic settings, tabs, and styling.
+Demonstration of adiabatic quantum computation in frustrated 25-qubit Ising models, compared with exact modeling.
 """
 
 #######################################
@@ -55,12 +55,6 @@ SOLVER_TIME = {
 
 THUMBNAIL = "static/dwave_logo.svg"
 
-APP_TITLE = "Demo Name"
-MAIN_HEADER = "Demo Name"
-DESCRIPTION = """\
-This is a Dash template for new examples. It includes some basic settings, tabs, and styling.
-"""
-
 # config settings for ZNE tab
 MAIN_HEADER_NM = "Zero-Noise Extrapolation"
 DESCRIPTION_NM = """
@@ -73,8 +67,20 @@ ANNEALING_TIME_SERIES = [5, 7, 10, 14, 20]
 NUM_PARALLEL_EMBEDDINGS = 10
 
 # TODO link to enums
-DEFAULT_QPU = "Advantage2_system1"  # If not available, the first returned will be default
+DEFAULT_QPU = "Advantage_system4"  # If not available, the first returned will be default
 DEFAULT_MODEL = ModelType.LARGE_GAP
+
+MODEL_COLORS_THEORY = {
+    ModelType.LARGE_GAP: "#1f77b4",
+    ModelType.INTERMEDIATE_GAP: "#2ca02c",
+    ModelType.SMALL_GAP: "#ff7f0e",
+}
+
+MODEL_COLORS_RESULTS = {
+    ModelType.LARGE_GAP: "#299ef1",
+    ModelType.INTERMEDIATE_GAP: "#1cf21c",
+    ModelType.SMALL_GAP: "#9F520E",
+}
 
 JOB_BAR_DISPLAY = { # TODO make enum for this
     "READY": [0, "#737373"],

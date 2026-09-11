@@ -28,6 +28,7 @@ from dwave.system import DWaveSampler, ParallelEmbeddingComposite
 
 from minorminer.utils.parallel_embeddings import find_multiple_embeddings
 from demo_configs import NUM_PARALLEL_EMBEDDINGS
+from demo_interface import generate_new_results_dict
 import networkx as nx
 
 from src.demo_enums import JobState, ModelType, ProblemType
@@ -73,6 +74,7 @@ def toggle_left_column(collapse_trigger: int, to_collapse_class: str) -> tuple[s
     Output("run-button", "disabled", allow_duplicate=True),
     Output("job-submit-state", "children", allow_duplicate=True),
     Output("qpu-select-time", "data"),
+    Output("current-results", "data", allow_duplicate=True),
     Input("qpu-selection", "value"),
     prevent_initial_call=True, #TODO deal with startup QPU behavior
 )
@@ -84,7 +86,7 @@ def process_qpu_select(qpu_name: str) -> tuple[dict, str]:
     is found and cached.
     """
 
-    return {}, True, JobState.FINDING_EMBEDDING.label, time.time()
+    return {}, True, JobState.FINDING_EMBEDDING.label, time.time(), generate_new_results_dict()
 
 #======================================================================================================================
 
@@ -299,12 +301,12 @@ def submit_job(
 
 @dash.callback(
     Output("sample-v-theory-graph", "figure"),
-    Output("job-submit-state", "children", allow_duplicate=True),
+    Output("job-submit-state", "children"),
     Input("current-results", "data"),
     State("model-selection", "value"),
-    prevent_initial_call=True,
+    State("qpu-selection", "value"),
 )
-def update_main_graph(measurement_data: dict, model_val: str) -> go.Figure:
+def update_main_graph(measurement_data: dict, model_val: str, qpu_name: str) -> go.Figure:
     """ Updates the main graph showing the excited state probability as a function of annealing 
         time. This callback triggers whenever a new measurement is added to the current-results
         data store: it updates the graph with the new data point and returns the updated figure. 
@@ -319,8 +321,7 @@ def update_main_graph(measurement_data: dict, model_val: str) -> go.Figure:
             job_submit_state: The new state of the job submission process, set to COMPLETED.
         """
 
-    job_results = measurement_data[ModelType(int(model_val)).name]
-    fig = get_results_plot(job_results)
+    fig = get_results_plot(measurement_data, ProblemType.DEFAULT, qpu_name)
 
     return fig, JobState.COMPLETED.label
 
