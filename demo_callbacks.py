@@ -36,6 +36,7 @@ from src.model_loading import ProblemModel
 from demo_configs import ANNEALING_TIME_SERIES
 from src.process_embeddings import EmbeddingSet
 from src.plotting import get_spectrum_plot, get_results_plot
+from src.values import ENERGY_THRESHOLD
 
 @dash.callback(
     Output({"type": "to-collapse-class", "index": MATCH}, "className"),
@@ -76,7 +77,7 @@ def toggle_left_column(collapse_trigger: int, to_collapse_class: str) -> tuple[s
     Output("qpu-select-time", "data"),
     Output("current-results", "data", allow_duplicate=True),
     Input("qpu-selection", "value"),
-    prevent_initial_call=True, #TODO deal with startup QPU behavior
+    prevent_initial_call=True,
 )
 def process_qpu_select(qpu_name: str) -> tuple[dict, str]:
     """Removes stored value for current embedding and disables run button.
@@ -91,28 +92,40 @@ def process_qpu_select(qpu_name: str) -> tuple[dict, str]:
 #======================================================================================================================
 
 @dash.callback(
-    Output("current-embeddings", "data", allow_duplicate=True),
-    Output("run-button", "disabled", allow_duplicate=True),
-    Output("job-submit-state", "children", allow_duplicate=True),
+    Output("current-embeddings", "data"),
     Input("qpu-select-time", "data"),
-    State("current-problem-type", "data"), #TODO add proper target
     State("qpu-selection", "value"),
-    State("available-solvers", "data"),
-    prevent_initial_call=True,
 )
 def set_current_embeddings(
         qpu_select_time: float, 
-        problem_type: str, 
         qpu_name: str,
-        qpu_ids: dict
         ) -> tuple[dict, str]:
-    """
+    """ Finds and sets the current embeddings for the selected QPU and problem type. Checks embeddings
+    saved in files first; if they are absent or unusable, finds new embeddings and saves them to file.
     """
 
-    emb_set = EmbeddingSet(qpu_name)
+    sampler = DWaveSampler(solver=qpu_name)
+    target_graph = sampler.to_networkx_graph()
+    emb_set = EmbeddingSet(qpu_name, target_graph)
     problem_embeddings = emb_set.get_embeddings()
 
-    return problem_embeddings, False, JobState.READY.label
+    return problem_embeddings
+
+#======================================================================================================================
+
+@dash.callback(
+    Output("run-button", "disabled", allow_duplicate=True),
+    Output("job-submit-state", "children", allow_duplicate=True),
+    Input("current-embeddings", "data"),
+    prevent_initial_call=True,
+)
+def set_state_to_ready(
+        current_embeddings: dict, 
+        ) -> tuple[bool, str]:
+    """ 
+    """
+    return False, JobState.READY.label
+
 
 #======================================================================================================================
 
@@ -182,7 +195,6 @@ def run_button_click(
         State("job-submit-state", "children"), 
         State("current-model", "data"),
         State("model-selection", "value"),
-        #State("current-embeddings", "data"),
         State("current-results", "data"),
     ],
     prevent_initial_call=True,
@@ -192,10 +204,9 @@ def preprocess_job(
     job_submit_state: str,
     model_data: dict,
     model_val: int,
-    #model_embeddings: dict,
     measurement_data: dict,
 ) -> float:
-    """Submit job and provide job ID.
+    """Sets the annealing time and changes the job state to RUNNING.
 
     Args:
 
@@ -206,9 +217,6 @@ def preprocess_job(
 
     if job_submit_state != JobState.PREPROCESSING.label:
         raise PreventUpdate
-
-    #h = model_data["h"]
-    #J = model_data["J"]
 
     job_kwargs = model_data.copy()
     current_job_results = measurement_data[ModelType(int(model_val)).name]
@@ -255,25 +263,9 @@ def submit_job(
     job_submit_args['h'] = {int(k): v for k, v in job_submit_args['h'].items()}
     job_submit_args['J'] = {tuple(map(int, k.strip("()").split(","))): v for k, v in job_submit_args['J'].items()}
 
-    #embeddings = [{int(k): tuple([v]) for k, v in emb.items()} for emb in model_embeddings]
+    embeddings = [{int(k): tuple([v]) for k, v in emb.items()} for emb in model_embeddings]
 
     qpu = DWaveSampler(solver=qpu_name)
-
-    source_graph = nx.Graph()
-    source_graph.add_nodes_from(job_submit_args['h'].keys())
-    source_graph.add_edges_from(job_submit_args['J'].keys())
-    target_graph = qpu.to_networkx_graph()
-
-    embeddings = find_multiple_embeddings(
-                source_graph,
-                target_graph,
-                max_num_emb=NUM_PARALLEL_EMBEDDINGS,
-                timeout=30
-            )
-
-    embeddings=[{k: (v,) for k, v in emb.items()} for emb in embeddings]
-
-    #solver = get_solvers()[qpu_name]
 
     sampler = ParallelEmbeddingComposite(
             qpu,
@@ -290,7 +282,7 @@ def submit_job(
 
     qpu_kwargs.update(job_submit_args)
     ss = sampler.sample_ising(**qpu_kwargs)
-    stats = 1 - np.mean(ss.record.energy <= EGS + 1e-8)
+    stats = 1 - np.mean(ss.record.energy <= EGS + ENERGY_THRESHOLD) #Excited state probability
     results_dict = Patch()
     results_dict[ModelType(int(model_val)).name].append(stats)
 

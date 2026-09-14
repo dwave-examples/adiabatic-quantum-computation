@@ -11,3 +11,12 @@ SCHEDULES_PATH = os.path.join(STATIC_PATH, "annealing_schedules")
 if not os.path.exists(EMBEDDINGS_PATH):
     os.makedirs(EMBEDDINGS_PATH)
 
+ENERGY_TIME_RESCALING = {
+    "Advantage2_system5": 2.48,
+    "Advantage_system4": 1.09,
+}
+
+Y_AXIS_RESCALING = {
+    "Advantage2_system5": -1.9,
+}
+

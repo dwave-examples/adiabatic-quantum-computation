@@ -65,7 +65,7 @@ class ProblemModel:
 
     def to_json_file(self, overwrite_existing: bool = False):
         model_dict = self.to_dict()
-        model_dict["J"] = {str(k): v for k, v in model_dict["J"].items()} #TODO this looks redundant. Examine.
+        #model_dict["J"] = {str(k): v for k, v in model_dict["J"].items()} #TODO this looks redundant. Examine.
 
         if not overwrite_existing:
             pre_saved_models = os.listdir(MODELS_PATH)
@@ -86,7 +86,7 @@ class ProblemModel:
         problem_type_name, model_type_name = lookup_key.split("_", 1) #TODO replace with more durable method
         problem_type = ProblemType[problem_type_name]
         model_type = ModelType[model_type_name]
-        h = props_dict["h"]
+        h = {int(u): v for u, v in props_dict["h"].items()}
         J = {tuple(map(int, k.strip("()").split(","))): v for k, v in props_dict["J"].items()}
         EGS = props_dict["EGS"]
         return ProblemModel(problem_type, model_type, h, J, EGS)
