@@ -66,10 +66,10 @@ def generate_options(options: list | EnumMeta | dict) -> list[dict]:
 
 
 def generate_settings_form() -> html.Div:
-    """This function generates settings for selecting the scenario, model, and solver.
+    """Generate settings for selecting the scenario, model, and solver.
 
     Returns:
-        html.Div: A Div containing the settings for selecting the scenario, model, and solver.
+        A Div containing the settings for selecting the scenario, model, and solver.
     """
     solvers = get_solvers()  # TODO link to specific solver list
     qpu_options = generate_options(solvers)
@@ -103,7 +103,7 @@ def generate_settings_form() -> html.Div:
 
 
 def generate_run_buttons() -> html.Div:
-    """Run and cancel buttons to run the simulation."""
+    """Generate run and cancel buttons to run the optimization."""
     return html.Div(
         id="button-group",
         children=[
@@ -243,7 +243,7 @@ def error_modal() -> dmc.Modal:
 
 
 def create_interface() -> html.Div:
-    """Set the application HTML."""
+    """Create the main application interface."""
     return html.Div(
         id="app-container",
         children=[
