@@ -14,23 +14,19 @@
 
 """This file stores the Dash HTML layout for the app."""
 from __future__ import annotations
+
 from enum import EnumMeta
 
-from dash import dcc, html
 import dash_mantine_components as dmc
+from dash import dcc, html
 
-from demo_configs import (
-    DEFAULT_QPU,
-    DEFAULT_MODEL,
-    DESCRIPTION,
-    MAIN_HEADER,
-    THUMBNAIL,
-)
-from src.demo_enums import SolverType, ProblemType, ModelType, JobState
-from src.qpu_resources import get_init_job_status, get_solvers, get_qpu_ids
+from demo_configs import DEFAULT_MODEL, DEFAULT_QPU, DESCRIPTION, MAIN_HEADER, THUMBNAIL
+from src.demo_enums import JobState, ModelType, ProblemType, SolverType
 from src.model_loading import ProblemModel
+from src.qpu_resources import get_init_job_status, get_qpu_ids, get_solvers
 
 THEME_COLOR = "#2d4376"
+
 
 def dropdown(label: str, id: str, options: list, value: str | None = None) -> html.Div:
     """Dropdown element for option selection.
@@ -68,7 +64,7 @@ def generate_settings_form() -> html.Div:
     Returns:
         html.Div: A Div containing the settings for selecting the scenario, model, and solver.
     """
-    solvers = get_solvers() #TODO link to specific solver list
+    solvers = get_solvers()  # TODO link to specific solver list
     qpu_options = generate_options(solvers)
 
     model_options = generate_options(ModelType)
@@ -138,16 +134,18 @@ def default_graph(title: str, id: str) -> html.Div:
         ]
     )
 
+
 def generate_new_results_dict(problem_type: str = ProblemType.DEFAULT.name) -> dict:
-    """ Generates a new standardized dictionary for storing measurement results. At present there
+    """Generates a new standardized dictionary for storing measurement results. At present there
     is only one problem type and no functionality to change or reset exisitng results, so this will
     be called once at initialization and never again. If the demo is expanded to include more problem
     types or other options that would make clearing and resetting results useful, this function will
     make it easy to prepare the current-results store for a fresh batch of measurements."""
 
-    results_dict = {m.name: [] for m in ModelType} #TODO use more durable keys
+    results_dict = {m.name: [] for m in ModelType}  # TODO use more durable keys
     results_dict["problem_type"] = problem_type
     return results_dict
+
 
 def show_status() -> html.Div:
     """Show job submission state.
@@ -249,20 +247,22 @@ def create_interface() -> html.Div:
                 className="skip-link",
                 tabIndex=1,
             ),
-
-            dcc.Store(id="available-solvers", data = get_qpu_ids()),
-            dcc.Store(id="qpu-select-time", data=0.0), 
+            dcc.Store(id="available-solvers", data=get_qpu_ids()),
+            dcc.Store(id="qpu-select-time", data=0.0),
             dcc.Store(id="modal-trigger", data=False),
             dcc.Store(id="job-submit-time", data=0.0),
             dcc.Store(id="job-submit-args", data={}),
             dcc.Store(id="current-embeddings", data={}),
-            dcc.Store(id="cached-models", data=ProblemModel.load_all_models_from_file(as_dicts=True)),
+            dcc.Store(
+                id="cached-models", data=ProblemModel.load_all_models_from_file(as_dicts=True)
+            ),
             dcc.Store(id="current-model", data={}),
-            dcc.Store(id="current-results", data = generate_new_results_dict()),
-            dcc.Store(id="current-problem-type", data=ProblemType.DEFAULT.name), # Currently no functionality for
+            dcc.Store(id="current-results", data=generate_new_results_dict()),
+            dcc.Store(
+                id="current-problem-type", data=ProblemType.DEFAULT.name
+            ),  # Currently no functionality for
             # changing this as we only have one problem type. But it's a lot easier to design around having
             # more problem types from the start than it is to add that in later.
-
             no_solver_modal(),
             error_modal(),
             # Settings and results columns
@@ -354,8 +354,8 @@ def create_interface() -> html.Div:
                                                                 className="graph-wrapper",
                                                                 children=[
                                                                     default_graph(
-                                                                    "Experiment vs Theory",
-                                                                    "sample-v-theory",
+                                                                        "Experiment vs Theory",
+                                                                        "sample-v-theory",
                                                                     ),
                                                                 ],
                                                             ),
@@ -363,18 +363,17 @@ def create_interface() -> html.Div:
                                                                 className="spectrum-plot-wrapper",
                                                                 children=[
                                                                     default_graph(
-                                                                    "Energy Spectrum",
-                                                                    "spectrum",
+                                                                        "Energy Spectrum",
+                                                                        "spectrum",
                                                                     ),
                                                                 ],
-                                                            )
-                                                        ]
-                                                    )   
+                                                            ),
+                                                        ],
+                                                    )
                                                 ],
                                             )
                                         ],
                                     ),
-
                                 ],
                             )
                         ],

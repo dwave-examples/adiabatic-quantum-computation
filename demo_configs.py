@@ -82,7 +82,7 @@ MODEL_COLORS_RESULTS = {
     ModelType.SMALL_GAP: "#9F520E",
 }
 
-JOB_BAR_DISPLAY = { # TODO make enum for this
+JOB_BAR_DISPLAY = {  # TODO make enum for this
     "READY": [0, "#737373"],
     "EMBEDDING": [20, "#FF7006"],
     "NO SOLVER": [100, "#AA3A3C"],
@@ -94,4 +94,3 @@ JOB_BAR_DISPLAY = { # TODO make enum for this
     "FAILED": [100, "#AA3A3C"],
     "ERROR": [100, "#AA3A3C"],
 }
-

@@ -1,24 +1,26 @@
 import json
 import os
+
 import networkx as nx
-
-from minorminer.utils.parallel_embeddings import find_multiple_embeddings
-from dwave.system import DWaveSampler
 from dwave.embedding import verify_embedding
+from dwave.system import DWaveSampler
+from minorminer.utils.parallel_embeddings import find_multiple_embeddings
 
+from demo_configs import NUM_PARALLEL_EMBEDDINGS
 from src.demo_enums import ProblemType
 from src.model_loading import ProblemModel
-from demo_configs import NUM_PARALLEL_EMBEDDINGS
 from src.values import EMBEDDINGS_PATH
 
-class EmbeddingSet():
+
+class EmbeddingSet:
     def __init__(
-            self, qpu_name: str,
-            target_graph: nx.graph,
-            problem_type: ProblemType = ProblemType.DEFAULT,
-            embeddings_dir = EMBEDDINGS_PATH,
-            ):
-        
+        self,
+        qpu_name: str,
+        target_graph: nx.graph,
+        problem_type: ProblemType = ProblemType.DEFAULT,
+        embeddings_dir=EMBEDDINGS_PATH,
+    ):
+
         self.qpu_name = qpu_name
         self.problem_type = problem_type
         self.embedding_id = f"{qpu_name}_{problem_type.name}"
@@ -27,7 +29,7 @@ class EmbeddingSet():
         self.target_graph = target_graph
 
     def get_source_graph(self):
-        """ Retrieves the source graph for the problem type from the saved model data."""
+        """Retrieves the source graph for the problem type from the saved model data."""
         models_dict = ProblemModel.load_all_models_from_file()
         source_graph = None
         for model in models_dict.values():
@@ -37,7 +39,7 @@ class EmbeddingSet():
                 source_graph.add_edges_from(model.J.keys())
                 break
 
-        if source_graph is None: 
+        if source_graph is None:
             raise ValueError(f"No model found for problem type {self.problem_type.name}")
 
         return source_graph
@@ -45,7 +47,7 @@ class EmbeddingSet():
     def get_embeddings(self) -> dict:
         """
         Get the embedding for the selected QPU. Checks for saved embeddings is file first,
-        if none or saved or they are invalid or incomplete, finds new embeddings and saves 
+        if none or saved or they are invalid or incomplete, finds new embeddings and saves
         them to file before returning them.
 
         Args:
@@ -69,7 +71,7 @@ class EmbeddingSet():
                         break
 
                 valid_embeddings = True
-            
+
         else:
             print("No saved embeddings found. Finding embeddings now...")
 
@@ -80,7 +82,7 @@ class EmbeddingSet():
                 self.source_graph,
                 self.target_graph,
                 max_num_emb=NUM_PARALLEL_EMBEDDINGS,
-                timeout=30
+                timeout=30,
             )
 
             self.save_to_json_file(embeddings)

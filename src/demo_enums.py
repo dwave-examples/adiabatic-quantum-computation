@@ -35,8 +35,9 @@ class SolverType(Enum):
 ### If any settings or variables are being used repeatedly, throughout the code, create a new
 ### Enum for the setting here to avoid string comparisons or other fragile code practices.
 
+
 class ProblemType(Enum):
-    """Future proofing for when we want to add problems with other graph structures to the demo. 
+    """Future proofing for when we want to add problems with other graph structures to the demo.
     We'll need a consistent way to refer to them programmatically, and an Enum is easier than
     trying to distil the graph structure itself into a unique identifier. The intent is that
     every graph structure should get a unique Enum name, but different models (i.e. different
@@ -52,6 +53,7 @@ class ProblemType(Enum):
             ProblemType.DEFAULT: "Default AQC Workshop Problem",
         }[self]
 
+
 class ModelType(Enum):
     SMALL_GAP = 0
     INTERMEDIATE_GAP = 1
@@ -60,6 +62,7 @@ class ModelType(Enum):
     @property
     def label(self):
         return self.name.replace("_", " ").title()
+
 
 class JobState(Enum):
 
@@ -78,6 +81,7 @@ class JobState(Enum):
     @property
     def normal_job_states(self):
         return [
-            js for js in JobState if js not in 
-            [JobState.FINDING_EMBEDDING, JobState.READY, JobState.NO_SOLVER]
-            ]
+            js
+            for js in JobState
+            if js not in [JobState.FINDING_EMBEDDING, JobState.READY, JobState.NO_SOLVER]
+        ]
