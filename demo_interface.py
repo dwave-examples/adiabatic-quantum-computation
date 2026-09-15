@@ -50,8 +50,15 @@ def dropdown(label: str, id: str, options: list, value: str | None = None) -> ht
     )
 
 
-def generate_options(options: list | EnumMeta) -> list[dict]:
-    """Generates options for dropdowns, checklists, radios, etc."""
+def generate_options(options: list | EnumMeta | dict) -> list[dict]:
+    """Format options for dropdowns, checklists, radios, etc.
+
+    Args:
+        options: A list, EnumMeta, or dictionary of options to format.
+
+    Returns:
+        A list of dictionaries with "label" and "value" keys for each option.
+    """
     if isinstance(options, EnumMeta):
         return [{"label": option.label, "value": f"{option.value}"} for option in options]
 
