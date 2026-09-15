@@ -84,6 +84,21 @@ def process_qpu_select(qpu_name: str) -> tuple[dict, str]:
     embedding is already cached, it will be used and the run button will be re-enabled
     almost immediately. If not, the run button will remain disabled until the embedding
     is found and cached.
+
+    Args:
+        qpu_name: Name of the selected QPU
+
+    Returns:
+        Clear Embeddings: returns and empty dict to current-embeddings to clear the store and trigger QPU-specific
+            embeddings to be cached for the newly-selected QPU
+        Disable Run Button: returns 'True' to 'disabled' property of the Run Button. User should not be able to click
+            the run button until new embeddings have been cached.
+        Job State Embedding Label: returns the FINDING_EMBEDDING label to the job-submit-state field to indicate the
+            the demo is currently searching for embeddings
+        QPU Selection Time: returns the current time to the qpu-select-time store. Used to trigger set_current_embeddings
+            callback
+        Clear Results Dict: returns a new, empty results dictionary to return to the current-results store. Results are 
+            QPU-specific, so changing the QPU clears all the old results.
     """
 
     return {}, True, JobState.FINDING_EMBEDDING.label, time.time(), generate_new_results_dict()
@@ -226,13 +241,23 @@ def preprocess_job(
     model_data: dict,
     model_val: int,
     measurement_data: dict,
-) -> float:
+) -> tuple[dict, str]:
     """Sets the annealing time and changes the job state to RUNNING.
 
     Args:
-
+        job_submit_time (str): Not accessed, only used to trigger the callback.
+        job_submit_state (str): Current job state. Used to check that the job is in the proper
+            state before proceeding.
+        model_data (dict): data dict for the current model. Callback makes a copy of this data and adds the 
+            annealing time to it before returning it as the job_kwargs dict that run_job will use.
+        model_val (int): currently selected model. Used to retreive the correct model data.
+        measurement_data (dict): existing measurement data. Used to determine how many measurements have been
+            made for this model to determine what the next annealing time should be.
 
     Returns:
+        Job Submission Args: returns the existing job submission arguments with the next annealing time added to it.
+        Job Running Label: returns the RUNNING label to the job-submit-state field to indcate to the user that the
+            job is currently running
 
     """
 
