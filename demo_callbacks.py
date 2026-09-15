@@ -103,6 +103,11 @@ def set_current_embeddings(
 ) -> tuple[dict, str]:
     """Finds and sets the current embeddings for the selected QPU and problem type. Checks embeddings
     saved in files first; if they are absent or unusable, finds new embeddings and saves them to file.
+
+    Args:
+        qpu_select_time (float): Value is irrelevant, used entirely as a callback trigger.
+        qpu_name (str): The name of the selected QPU. Used to get the QPU graph to pass to the
+            embedding function.
     """
 
     sampler = DWaveSampler(solver=qpu_name)
@@ -125,7 +130,15 @@ def set_current_embeddings(
 def set_state_to_ready(
     current_embeddings: dict,
 ) -> tuple[bool, str]:
-    """ """
+    """ Resets the job state and enables the run button after embeddings are found.
+
+    Args:
+        current_embeddings (dict): Value is not accessed, used as a trigger to know when its safe to re-enable the run button.
+
+    Returns:
+        Enable Run Button: returns 'False' to the 'disabled' property of the run-button to re-enable it
+        Job State Ready: returns the JobState.READY label to cause it to be displayed for the job state
+    """
     return False, JobState.READY.label
 
 
