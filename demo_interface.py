@@ -62,6 +62,9 @@ def generate_options(options: list | EnumMeta | dict) -> list[dict]:
     if isinstance(options, EnumMeta):
         return [{"label": option.label, "value": f"{option.value}"} for option in options]
 
+    if isinstance(options, dict):
+        return [{"label": f"{key}", "value": f"{value}"} for key, value in options.items()]
+
     return [{"label": f"{option}", "value": f"{option}"} for option in options]
 
 
