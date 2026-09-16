@@ -13,9 +13,11 @@ if not os.path.exists(EMBEDDINGS_PATH):
 
 ENERGY_TIME_RESCALING = {  # Used to rescale energy axis for plotting samples from
     "Advantage2_system5": 2.48,  # processors that have different energy scales.
+    "Advantage2_system1": 2.85,
     "Advantage_system4": 1.09,
 }
 
 Y_AXIS_RESCALING = {
     "Advantage2_system5": -1.9,
+    "Advantage2_system1": -1.9,
 }

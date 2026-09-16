@@ -74,7 +74,7 @@ def generate_settings_form() -> html.Div:
     Returns:
         A Div containing the settings for selecting the scenario, model, and solver.
     """
-    solvers = get_solvers()  # TODO link to specific solver list
+    solvers = [s for s in get_qpu_ids().keys()]  # TODO link to specific solver list
     qpu_options = generate_options(solvers)
 
     model_options = generate_options(ModelType)
