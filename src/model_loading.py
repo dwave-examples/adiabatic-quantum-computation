@@ -8,7 +8,7 @@ from src.values import MODELS_PATH
 
 
 class ProblemModel:
-    """ This class exists to simplify and encapsulate the loading and saving of specific problem instances:
+    """This class exists to simplify and encapsulate the loading and saving of specific problem instances:
     i.e. graphs including h and J values as they'll be submitted to the QPU. It helps with tracking and
     loading any other files that have relevant information for a given problem instance, such as
     the points to create an energy spectrum scatter plot, and the theoretical predictions for
@@ -45,7 +45,7 @@ class ProblemModel:
 
     @property
     def lookup_key(self) -> str:
-        """ Combination of problem type and model type should be sufficient to uniquely
+        """Combination of problem type and model type should be sufficient to uniquely
         identify a problem instance, so it's currently used as the basis for associated file
         names and the key for dictionaries of problem instances."""
         return f"{self.problem_type.name}_{self.model_type.name}"
@@ -78,7 +78,7 @@ class ProblemModel:
 
     def problem_to_json_file(self, overwrite_existing: bool = False):
         model_dict = self.to_dict()
-        
+
         if not overwrite_existing:
             pre_saved_models = os.listdir(MODELS_PATH)
             for model_filename in pre_saved_models:
@@ -128,8 +128,10 @@ class ProblemModel:
 
     @staticmethod
     def load_spectrum_scatter_from_file(problem_type: ProblemType, model_type: ModelType):
-        """ Loads the data to create a scatter plot of the energy spectrum for a given problem instance."""
-        scatter_path = os.path.join(MODELS_PATH, ProblemModel(problem_type, model_type).spectrum_scatter_filename)
+        """Loads the data to create a scatter plot of the energy spectrum for a given problem instance."""
+        scatter_path = os.path.join(
+            MODELS_PATH, ProblemModel(problem_type, model_type).spectrum_scatter_filename
+        )
         if not os.path.exists(scatter_path):
             raise FileNotFoundError(f"Scatter CSV file not found at {scatter_path}.")
         filedata = np.loadtxt(scatter_path, delimiter=",", skiprows=3)
@@ -137,9 +139,11 @@ class ProblemModel:
 
     @staticmethod
     def load_theory_data_from_file(problem_type: ProblemType, model_type: ModelType):
-        """ Loads the data for the theoretical predictions of ground state probability as a
-        function of annealing time for a given problem instance. """
-        theory_data_path = os.path.join(MODELS_PATH, ProblemModel(problem_type, model_type).theory_data_filename)
+        """Loads the data for the theoretical predictions of ground state probability as a
+        function of annealing time for a given problem instance."""
+        theory_data_path = os.path.join(
+            MODELS_PATH, ProblemModel(problem_type, model_type).theory_data_filename
+        )
         if not os.path.exists(theory_data_path):
             raise FileNotFoundError(f"Theory data file not found at {theory_data_path}.")
         with open(theory_data_path, "r") as f:

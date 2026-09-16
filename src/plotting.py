@@ -47,7 +47,7 @@ def get_results_plot(job_results: dict, problem_type: ProblemType, qpu_name: str
         job_results (dict): A dictionary containing the results of the jobs for each model type.
         problem_type (ProblemType): The type of problem for which the results are being plotted.
         qpu_name (str): The name of the QPU for which the results are being plotted.
-        
+
     Returns:
         go.Figure: A Plotly figure object containing the results plot."""
     fig = go.Figure()

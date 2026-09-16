@@ -94,7 +94,7 @@ def process_qpu_select(qpu_name: str) -> tuple[dict, str]:
             the demo is currently searching for embeddings
         QPU Selection Time: returns the current time to the qpu-select-time store. Used to trigger set_current_embeddings
             callback
-        Clear Results Dict: returns a new, empty results dictionary to return to the current-results store. Results are 
+        Clear Results Dict: returns a new, empty results dictionary to return to the current-results store. Results are
             QPU-specific, so changing the QPU clears all the old results.
     """
 
@@ -142,7 +142,7 @@ def set_current_embeddings(
 def set_state_to_ready(
     current_embeddings: dict,
 ) -> tuple[bool, str]:
-    """ Resets the job state and enables the run button after embeddings are found.
+    """Resets the job state and enables the run button after embeddings are found.
 
     Args:
         current_embeddings (dict): Value is not accessed, used as a trigger to know when its safe to re-enable the run button.
@@ -245,7 +245,7 @@ def preprocess_job(
         job_submit_time (str): Not accessed, only used to trigger the callback.
         job_submit_state (str): Current job state. Used to check that the job is in the proper
             state before proceeding.
-        model_data (dict): data dict for the current model. Callback makes a copy of this data and adds the 
+        model_data (dict): data dict for the current model. Callback makes a copy of this data and adds the
             annealing time to it before returning it as the job_kwargs dict that run_job will use.
         model_val (int): currently selected model. Used to retreive the correct model data.
         measurement_data (dict): existing measurement data. Used to determine how many measurements have been

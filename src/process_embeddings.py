@@ -12,7 +12,7 @@ from src.values import EMBEDDINGS_PATH
 
 
 class EmbeddingSet:
-    """ This class finds, saves and manages embeddings for a given problem type and QPU."""
+    """This class finds, saves and manages embeddings for a given problem type and QPU."""
 
     def __init__(
         self,
@@ -21,11 +21,11 @@ class EmbeddingSet:
         problem_type: ProblemType = ProblemType.DEFAULT,
         embeddings_dir=EMBEDDINGS_PATH,
     ):
-        """ Initializes the EmbeddingSet for a particular QPU. The QPU name and graph must
+        """Initializes the EmbeddingSet for a particular QPU. The QPU name and graph must
         both be provided. Currently the demo only supports a single problem graph structure,
         so it's not necessary to provide a problem type, but if more graph structures are added
         they should be easy to integratge.
-        
+
         Args:
             qpu_name (str): The name of the QPU for which embeddings are being managed
             target_graph (nx.graph): The graph structure of the QPU for which embeddings are being managed
