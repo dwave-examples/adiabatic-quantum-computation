@@ -17,18 +17,15 @@ from __future__ import annotations
 import time
 
 import dash
-import dimod
-import networkx as nx
 import numpy as np
 import plotly.graph_objects as go
-from dash import ALL, MATCH, Input, Output, Patch, State, ctx
+from dash import ALL, MATCH, Input, Output, Patch, State
 from dash.exceptions import PreventUpdate
 from dwave.system import DWaveSampler, ParallelEmbeddingComposite
-from minorminer.utils.parallel_embeddings import find_multiple_embeddings
 
-from demo_configs import ANNEALING_TIME_SERIES, NUM_PARALLEL_EMBEDDINGS
+from demo_configs import ANNEALING_TIME_SERIES
 from demo_interface import generate_new_results_dict
-from src.demo_enums import JobState, ModelType, ProblemType, SolverType
+from src.demo_enums import JobState, ModelType, ProblemType
 from src.model_loading import ProblemModel
 from src.plotting import get_results_plot, get_spectrum_plot
 from src.process_embeddings import EmbeddingSet

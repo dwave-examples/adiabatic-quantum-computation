@@ -3,7 +3,6 @@ import os
 
 import networkx as nx
 from dwave.embedding import verify_embedding
-from dwave.system import DWaveSampler
 from minorminer.utils.parallel_embeddings import find_multiple_embeddings
 
 from demo_configs import NUM_PARALLEL_EMBEDDINGS
@@ -13,6 +12,8 @@ from src.values import EMBEDDINGS_PATH
 
 
 class EmbeddingSet:
+    """ This class finds, saves and manages embeddings for a given problem type and QPU."""
+
     def __init__(
         self,
         qpu_name: str,
@@ -20,6 +21,17 @@ class EmbeddingSet:
         problem_type: ProblemType = ProblemType.DEFAULT,
         embeddings_dir=EMBEDDINGS_PATH,
     ):
+        """ Initializes the EmbeddingSet for a particular QPU. The QPU name and graph must
+        both be provided. Currently the demo only supports a single problem graph structure,
+        so it's not necessary to provide a problem type, but if more graph structures are added
+        they should be easy to integratge.
+        
+        Args:
+            qpu_name (str): The name of the QPU for which embeddings are being managed
+            target_graph (nx.graph): The graph structure of the QPU for which embeddings are being managed
+            problem_type (ProblemType, optional): The type of problem for which embeddings are being managed.
+            embeddings_dir (str, optional): The directory where embeddings are saved. Defaults to EMBEDDINGS_PATH.
+        """
 
         self.qpu_name = qpu_name
         self.problem_type = problem_type

@@ -8,6 +8,14 @@ from src.values import MODELS_PATH
 
 
 class ProblemModel:
+    """ This class exists to simplify and encapsulate the loading and saving of specific problem instances:
+    i.e. graphs including h and J values as they'll be submitted to the QPU. It helps with tracking and
+    loading any other files that have relevant information for a given problem instance, such as
+    the points to create an energy spectrum scatter plot, and the theoretical predictions for
+    ground state probabilities."""
+
+    DEFINITION_FILE_SUFFIX = "_PROBLEM_DEFINITION.json"
+
     def __init__(
         self,
         problem_type: ProblemType,
@@ -37,15 +45,22 @@ class ProblemModel:
 
     @property
     def lookup_key(self) -> str:
+        """ Combination of problem type and model type should be sufficient to uniquely
+        identify a problem instance, so it's currently used as the basis for associated file
+        names and the key for dictionaries of problem instances."""
         return f"{self.problem_type.name}_{self.model_type.name}"
 
     @property
-    def json_filename(self) -> str:
-        return f"{self.lookup_key}.json"
+    def problem_definition_json_filename(self) -> str:
+        return f"{self.lookup_key}{ProblemModel.DEFINITION_FILE_SUFFIX}"
 
     @property
-    def scatter_filename(self) -> str:
-        return f"{self.lookup_key}_scatter.csv"
+    def spectrum_scatter_filename(self) -> str:
+        return f"{self.lookup_key}_SCATTER.csv"
+
+    @property
+    def theory_data_filename(self) -> str:
+        return f"{self.lookup_key}_THEORY.txt"
 
     @property
     def graph_nodes(self):
@@ -61,31 +76,20 @@ class ProblemModel:
 
         return model_dict
 
-    def set_min_energy_gap(self):
-        try:
-            filedata = ProblemModel.load_scatter_csv_from_file(self.problem_type, self.model_type)
-            energy_series = (
-                filedata[:, 2] - filedata[:, 1]
-            )  # Energy of the first excited state minus ground state energy
-            E_first_excited = min(energy_series)  # Minimum energy of the first excited state
-        except FileNotFoundError:
-            E_first_excited = None
-
-    def to_json_file(self, overwrite_existing: bool = False):
+    def problem_to_json_file(self, overwrite_existing: bool = False):
         model_dict = self.to_dict()
-        # model_dict["J"] = {str(k): v for k, v in model_dict["J"].items()} #TODO this looks redundant. Examine.
-
+        
         if not overwrite_existing:
             pre_saved_models = os.listdir(MODELS_PATH)
             for model_filename in pre_saved_models:
-                if model_filename == self.json_filename:
-                    existing_model = ProblemModel.from_json_file(model_filename)
+                if model_filename == self.problem_definition_json_filename:
+                    existing_model = ProblemModel.problem_from_json_file(model_filename)
                     if self != existing_model:
                         raise ValueError(
                             f"Model {self.lookup_key} already exists with different properties."
                         )
 
-        model_path = os.path.join(MODELS_PATH, self.json_filename)
+        model_path = os.path.join(MODELS_PATH, self.problem_definition_json_filename)
         with open(model_path, "w") as f:
             json.dump(model_dict, f)
 
@@ -102,19 +106,19 @@ class ProblemModel:
         return ProblemModel(problem_type, model_type, h, J, EGS)
 
     @staticmethod
-    def from_json_file(json_filename: str):
+    def problem_from_json_file(json_filename: str):
         model_path = os.path.join(MODELS_PATH, json_filename)
         with open(model_path, "r") as f:
             model_dict = json.load(f)
-        lookup_key = json_filename.replace(".json", "")
+        lookup_key = json_filename.replace(ProblemModel.DEFINITION_FILE_SUFFIX, "")
         return ProblemModel.from_dict(lookup_key, model_dict)
 
     @staticmethod
     def load_all_models_from_file(as_dicts: bool = False):
         models_dict = {}
         for model_filename in os.listdir(MODELS_PATH):
-            if model_filename.endswith(".json"):
-                model = ProblemModel.from_json_file(model_filename)
+            if model_filename.endswith(ProblemModel.DEFINITION_FILE_SUFFIX):
+                model = ProblemModel.problem_from_json_file(model_filename)
                 if as_dicts:
                     models_dict[model.lookup_key] = model.to_dict()
                 else:
@@ -123,22 +127,21 @@ class ProblemModel:
         return models_dict
 
     @staticmethod
-    def load_scatter_csv_from_file(problem_type: ProblemType, model_type: ModelType):
-        lookup_key = f"{problem_type.name}_{model_type.name}"
-        scatter_filename = f"{lookup_key}_SCATTER.csv"
-        scatter_path = os.path.join(MODELS_PATH, scatter_filename)
+    def load_spectrum_scatter_from_file(problem_type: ProblemType, model_type: ModelType):
+        """ Loads the data to create a scatter plot of the energy spectrum for a given problem instance."""
+        scatter_path = os.path.join(MODELS_PATH, ProblemModel(problem_type, model_type).spectrum_scatter_filename)
         if not os.path.exists(scatter_path):
-            raise FileNotFoundError(f"Scatter CSV file not found for model {scatter_filename}.")
+            raise FileNotFoundError(f"Scatter CSV file not found at {scatter_path}.")
         filedata = np.loadtxt(scatter_path, delimiter=",", skiprows=3)
         return filedata
 
     @staticmethod
     def load_theory_data_from_file(problem_type: ProblemType, model_type: ModelType):
-        lookup_key = f"{problem_type.name}_{model_type.name}"
-        data_filename = f"{lookup_key}_THEORY.txt"
-        theory_data_path = os.path.join(MODELS_PATH, data_filename)
+        """ Loads the data for the theoretical predictions of ground state probability as a
+        function of annealing time for a given problem instance. """
+        theory_data_path = os.path.join(MODELS_PATH, ProblemModel(problem_type, model_type).theory_data_filename)
         if not os.path.exists(theory_data_path):
-            raise FileNotFoundError(f"Theory data file not found for model {data_filename}.")
+            raise FileNotFoundError(f"Theory data file not found at {theory_data_path}.")
         with open(theory_data_path, "r") as f:
             lines = f.readlines()
         xs = [float(num) for num in lines[0].strip().split(",")]

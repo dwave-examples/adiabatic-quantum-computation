@@ -21,7 +21,7 @@ import dash_mantine_components as dmc
 from dash import dcc, html
 
 from demo_configs import DEFAULT_MODEL, DEFAULT_QPU, DESCRIPTION, MAIN_HEADER, THUMBNAIL
-from src.demo_enums import JobState, ModelType, ProblemType, SolverType
+from src.demo_enums import JobState, ModelType, ProblemType
 from src.model_loading import ProblemModel
 from src.qpu_resources import get_init_job_status, get_qpu_ids, get_solvers
 

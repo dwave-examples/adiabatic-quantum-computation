@@ -11,7 +11,7 @@ def get_spectrum_plot(problem_type: ProblemType, model_type: ModelType) -> go.Fi
     Currently uses pre-computed data from CSV files, though we may want to change
     this later."""
 
-    filedata = ProblemModel.load_scatter_csv_from_file(problem_type, model_type)
+    filedata = ProblemModel.load_spectrum_scatter_from_file(problem_type, model_type)
     fig = go.Figure()
 
     rows = filedata[:, 2:]
@@ -46,7 +46,10 @@ def get_results_plot(job_results: dict, problem_type: ProblemType, qpu_name: str
     Args:
         job_results (dict): A dictionary containing the results of the jobs for each model type.
         problem_type (ProblemType): The type of problem for which the results are being plotted.
-        qpu_name (str): The name of the QPU for which the results are being plotted."""
+        qpu_name (str): The name of the QPU for which the results are being plotted.
+        
+    Returns:
+        go.Figure: A Plotly figure object containing the results plot."""
     fig = go.Figure()
 
     for model in ModelType:
