@@ -64,6 +64,5 @@ custom CSS can be added below.
 .spectrum-plot-wrapper > div:first-child {
     height: calc(50vw - var(--left-col-width) / 2 - 2rem);
     width: calc(50vw - var(--left-col-width) / 2 - 2rem);
-    margin-right: 3rem;
     position: relative;
 }
