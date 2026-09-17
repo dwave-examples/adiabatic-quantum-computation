@@ -52,7 +52,6 @@ custom CSS can be added below.
 .graph-wrapper {
     display: flex;
     height: 100%;
-    margin-top: 1rem;
 } 
 
 .graph-wrapper > div:first-child {
