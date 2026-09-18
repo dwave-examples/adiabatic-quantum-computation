@@ -66,7 +66,7 @@ def get_solvers() -> dict:
 
 
 def get_init_job_status() -> str:
-    """Get initial job status. "READY" if solvers are available, "NO SOLVER" otherwise."""
+    """Get initial job status. ``READY`` if solvers are available, ``NO SOLVER`` otherwise."""
     return get_qpus().init_job_status
 
 

@@ -17,20 +17,20 @@ class EmbeddingSet:
     def __init__(
         self,
         qpu_name: str,
-        target_graph: nx.graph,
+        target_graph: nx.Graph,
         problem_type: ProblemType = ProblemType.DEFAULT,
-        embeddings_dir=EMBEDDINGS_PATH,
+        embeddings_dir: str = EMBEDDINGS_PATH,
     ):
         """Initializes the EmbeddingSet for a particular QPU. The QPU name and graph must
         both be provided. Currently the demo only supports a single problem graph structure,
         so it's not necessary to provide a problem type, but if more graph structures are added
-        they should be easy to integratge.
+        they should be easy to integrate.
 
         Args:
-            qpu_name (str): The name of the QPU for which embeddings are being managed
-            target_graph (nx.graph): The graph structure of the QPU for which embeddings are being managed
-            problem_type (ProblemType, optional): The type of problem for which embeddings are being managed.
-            embeddings_dir (str, optional): The directory where embeddings are saved. Defaults to EMBEDDINGS_PATH.
+            qpu_name: The name of the QPU for which embeddings are being managed
+            target_graph: The graph structure of the QPU for which embeddings are being managed
+            problem_type: The type of problem for which embeddings are being managed.
+            embeddings_dir: The directory where embeddings are saved. Defaults to EMBEDDINGS_PATH.
         """
 
         self.qpu_name = qpu_name
@@ -40,7 +40,7 @@ class EmbeddingSet:
         self.source_graph = self.get_source_graph()
         self.target_graph = target_graph
 
-    def get_source_graph(self):
+    def get_source_graph(self) -> nx.Graph:
         """Retrieves the source graph for the problem type from the saved model data."""
         models_dict = ProblemModel.load_all_models_from_file()
         source_graph = None
@@ -57,9 +57,8 @@ class EmbeddingSet:
         return source_graph
 
     def get_embeddings(self) -> dict:
-        """
-        Get the embedding for the selected QPU. Checks for saved embeddings is file first,
-        if none or saved or they are invalid or incomplete, finds new embeddings and saves
+        """Get the embeddings for the selected QPU. Checks for saved embeddings in file first,
+        if none are saved or they are invalid or incomplete, finds new embeddings and saves
         them to file before returning them.
 
         Args:
@@ -67,7 +66,7 @@ class EmbeddingSet:
             embeddings_dict (dict): A dictionary containing embeddings for different QPUs.
 
         Returns:
-            dict: The embedding for the selected QPU.
+            A list of embeddings, each a dict mapping source node to target qubit.
         """
 
         valid_embeddings = False

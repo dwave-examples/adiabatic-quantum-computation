@@ -10,5 +10,3 @@ tqdm~=4.66
 # Needed only for unit testing
 pytest~=9.0
 pytest-mock~=3.15
-
-

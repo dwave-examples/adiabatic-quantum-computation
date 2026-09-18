@@ -44,12 +44,13 @@ def get_results_plot(job_results: dict, problem_type: ProblemType, qpu_name: str
     theoretical results as lines so that the experimental results can be compared to them.
 
     Args:
-        job_results (dict): A dictionary containing the results of the jobs for each model type.
-        problem_type (ProblemType): The type of problem for which the results are being plotted.
-        qpu_name (str): The name of the QPU for which the results are being plotted.
+        job_results: A dictionary containing the results of the jobs for each model type.
+        problem_type: The type of problem for which the results are being plotted.
+        qpu_name: The name of the QPU for which the results are being plotted.
 
     Returns:
-        go.Figure: A Plotly figure object containing the results plot."""
+        A Plotly figure object containing the results plot.
+    """
     fig = go.Figure()
 
     for model in ModelType:
@@ -57,8 +58,7 @@ def get_results_plot(job_results: dict, problem_type: ProblemType, qpu_name: str
 
         y_axis_min = -1.0
 
-        # Crude patch to rescale theory data for specific QPUs. Should be replaced
-        # with a better implementation later.
+        # TODO: Replace with better implementation. Currently a crude patch to rescale theory data for specific QPUs.
         for qpu_prefix, rescale in ENERGY_TIME_RESCALING.items():
             if qpu_name.startswith(qpu_prefix):
                 theory_ys = [y**rescale for y in theory_ys]

@@ -147,7 +147,7 @@ def default_graph(title: str, id: str) -> html.Div:
 
 def generate_new_results_dict(problem_type: str = ProblemType.DEFAULT.name) -> dict:
     """Generates a new standardized dictionary for storing measurement results. At present there
-    is only one problem type and no functionality to change or reset exisitng results, so this will
+    is only one problem type and no functionality to change or reset existing results, so this will
     be called once at initialization and never again. If the demo is expanded to include more problem
     types or other options that would make clearing and resetting results useful, this function will
     make it easy to prepare the current-results store for a fresh batch of measurements."""
@@ -262,7 +262,7 @@ def create_interface() -> html.Div:
             dcc.Store(id="modal-trigger", data=False),
             dcc.Store(id="job-submit-time", data=0.0),
             dcc.Store(id="job-submit-args", data={}),
-            dcc.Store(id="current-embeddings", data={}),
+            dcc.Store(id="current-embeddings", data=[]),
             dcc.Store(
                 id="cached-models", data=ProblemModel.load_all_models_from_file(as_dicts=True)
             ),

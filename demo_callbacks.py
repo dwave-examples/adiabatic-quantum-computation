@@ -19,7 +19,7 @@ import time
 import dash
 import numpy as np
 import plotly.graph_objects as go
-from dash import ALL, MATCH, Input, Output, Patch, State
+from dash import MATCH, Input, Output, Patch, State
 from dash.exceptions import PreventUpdate
 from dwave.system import DWaveSampler, ParallelEmbeddingComposite
 
@@ -75,7 +75,7 @@ def toggle_left_column(collapse_trigger: int, to_collapse_class: str) -> tuple[s
     Input("qpu-selection", "value"),
     prevent_initial_call=True,
 )
-def process_qpu_select(qpu_name: str) -> tuple[dict, str]:
+def process_qpu_select(qpu_name: str) -> tuple[list[dict], bool, str, float, dict]:
     """Removes stored value for current embedding and disables run button.
     This will trigger the set_current_embeddings callback to run. If an appropriate
     embedding is already cached, it will be used and the run button will be re-enabled
@@ -86,16 +86,14 @@ def process_qpu_select(qpu_name: str) -> tuple[dict, str]:
         qpu_name: Name of the selected QPU
 
     Returns:
-        Clear Embeddings: returns and empty dict to current-embeddings to clear the store and trigger QPU-specific
-            embeddings to be cached for the newly-selected QPU
-        Disable Run Button: returns 'True' to 'disabled' property of the Run Button. User should not be able to click
-            the run button until new embeddings have been cached.
-        Job State Embedding Label: returns the FINDING_EMBEDDING label to the job-submit-state field to indicate the
-            the demo is currently searching for embeddings
-        QPU Selection Time: returns the current time to the qpu-select-time store. Used to trigger set_current_embeddings
-            callback
-        Clear Results Dict: returns a new, empty results dictionary to return to the current-results store. Results are
-            QPU-specific, so changing the QPU clears all the old results.
+        A tuple containing:
+
+        - list[dict]: Clears the ``current-embeddings`` store and triggers QPU-specific embeddings to be cached for the newly-selected QPU
+        - bool: True, to disable the run button until new embeddings have been cached.
+        - str: The FINDING_EMBEDDING label for the job-submit-state field.
+        - float: The current time, stored in qpu-select-time to trigger set_current_embeddings.
+        - dict: A new, empty results dictionary. Results are QPU-specific, so changing the QPU
+        clears all the old results.
     """
 
     return {}, True, JobState.FINDING_EMBEDDING.label, time.time(), generate_new_results_dict()
@@ -112,14 +110,17 @@ def process_qpu_select(qpu_name: str) -> tuple[dict, str]:
 def set_current_embeddings(
     qpu_select_time: float,
     qpu_name: str,
-) -> tuple[dict, str]:
+) -> list[dict]:
     """Finds and sets the current embeddings for the selected QPU and problem type. Checks embeddings
     saved in files first; if they are absent or unusable, finds new embeddings and saves them to file.
 
     Args:
-        qpu_select_time (float): Value is irrelevant, used entirely as a callback trigger.
-        qpu_name (str): The name of the selected QPU. Used to get the QPU graph to pass to the
+        qpu_select_time: Value is irrelevant, used entirely as a callback trigger.
+        qpu_name: The name of the selected QPU. Used to get the QPU graph to pass to the
             embedding function.
+
+    Returns:
+        The embeddings for the selected QPU, or an empty list if none could be found.
     """
 
     sampler = DWaveSampler(solver=qpu_name)
@@ -140,16 +141,19 @@ def set_current_embeddings(
     prevent_initial_call=True,
 )
 def set_state_to_ready(
-    current_embeddings: dict,
+    current_embeddings: list[dict],
 ) -> tuple[bool, str]:
     """Resets the job state and enables the run button after embeddings are found.
 
     Args:
-        current_embeddings (dict): Value is not accessed, used as a trigger to know when its safe to re-enable the run button.
+        current_embeddings: The embeddings for the selected QPU.
 
     Returns:
-        Enable Run Button: returns 'False' to the 'disabled' property of the run-button to re-enable it
-        Job State Ready: returns the JobState.READY label to cause it to be displayed for the job state
+        A tuple containing:
+
+        - bool: Whether the run button should be disabled.
+        - str: The READY label for the job-submit-state field.
+    """
     """
     return False, JobState.READY.label
 
@@ -165,20 +169,23 @@ def set_state_to_ready(
     State("cached-models", "data"),
     prevent_initial_call=True,
 )
-def set_current_model(model_val: str, problem_type: str, cached_models: dict) -> tuple[dict, str]:
+def set_current_model(model_val: str, problem_type: str, cached_models: dict) -> tuple[dict, go.Figure]:
     """Sets the data and the spectrum plot for the currently selected model. Triggers whenever the
     model selection dropdown is changed. The spectrum plot is currently generated from a CSV file
     that is loaded from disk. The model data is retrieved from the cached models dictionary.
 
-    Args
+    Args:
         model_val: The value of the currently selected model from the dropdown.
         problem_type: The currently selected problem type.
         cached_models: A dictionary of cached models, keyed by their lookup keys.
 
-    Returns
-        model_data: the data for the currently selected model, including h and J values
-            and its ground state energy (EGS).
-        spectrum_plot: a plotly figure of the spectrum of energies for the selected model."""
+    Returns:
+        A tuple containing:
+
+        - dict: The data for the currently selected model, including h and J values and its
+          ground state energy (EGS).
+        - go.Figure: A plotly figure of the spectrum of energies for the selected model.
+    """
     spectrum_plot = get_spectrum_plot(ProblemType[problem_type], ModelType(int(model_val)))
     model_data = cached_models[
         ProblemModel(ProblemType[problem_type], ModelType(int(model_val))).lookup_key
@@ -200,18 +207,18 @@ def set_current_model(model_val: str, problem_type: str, cached_models: dict) ->
 )
 def run_button_click(
     run_btn_click: int,
-) -> tuple[bool, str]:
+) -> tuple[bool, str, float]:
     """Start simulation run when button is clicked.
 
     Args:
+        run_btn_click: The (total) number of times the run button has been clicked.
 
     Returns:
-        A NamedTuple, RunButtonClickReturn, containing:
+        A tuple containing:
 
-        - run_button_disabled: Whether the run button should be disabled.
-        - wd_job_disabled: Whether the interval component should be disabled.
-        - wd_job_n_intervals: The number of intervals that have passed since the simulation started.
-        - job_submit_state: The new state of the job submission process.
+        - bool: True, to disable the run button while the job runs.
+        - str: The PREPROCESSING label for the job-submit-state field.
+        - float: The current time, stored in job-submit-time to trigger preprocess_job.
     """
 
     return True, JobState.PREPROCESSING.label, time.time()
@@ -233,28 +240,30 @@ def run_button_click(
     prevent_initial_call=True,
 )
 def preprocess_job(
-    job_submit_time: str,
+    job_submit_time: float,
     job_submit_state: str,
     model_data: dict,
-    model_val: int,
+    model_val: str,
     measurement_data: dict,
 ) -> tuple[dict, str]:
     """Sets the annealing time and changes the job state to RUNNING.
 
     Args:
-        job_submit_time (str): Not accessed, only used to trigger the callback.
-        job_submit_state (str): Current job state. Used to check that the job is in the proper
+        job_submit_time: Not accessed, only used to trigger the callback.
+        job_submit_state: Current job state. Used to check that the job is in the proper
             state before proceeding.
-        model_data (dict): data dict for the current model. Callback makes a copy of this data and adds the
-            annealing time to it before returning it as the job_kwargs dict that run_job will use.
-        model_val (int): currently selected model. Used to retreive the correct model data.
-        measurement_data (dict): existing measurement data. Used to determine how many measurements have been
-            made for this model to determine what the next annealing time should be.
+        model_data: Data dict for the current model. Callback makes a copy of this data and adds
+            the annealing time to it before returning it as the job_kwargs dict that submit_job
+            will use.
+        model_val: Currently selected model. Used to retrieve the correct model data.
+        measurement_data: Existing measurement data. Used to determine how many measurements
+            have been made for this model to determine what the next annealing time should be.
 
     Returns:
-        Job Submission Args: returns the existing job submission arguments with the next annealing time added to it.
-        Job Running Label: returns the RUNNING label to the job-submit-state field to indcate to the user that the
-            job is currently running
+        A tuple containing:
+
+        - dict: The model data with the next annealing time (in microseconds) added to it.
+        - str: The RUNNING label for the job-submit-state field.
 
     """
 
@@ -324,7 +333,7 @@ def submit_job(
         answer_mode="raw",
         fast_anneal=True,
         auto_scale=False,
-        label="AQC Demo",
+        label="Example - Adiabatic Quantum Computation",
     )
 
     qpu_kwargs.update(job_submit_args)
@@ -346,7 +355,7 @@ def submit_job(
     State("model-selection", "value"),
     State("qpu-selection", "value"),
 )
-def update_main_graph(measurement_data: dict, model_val: str, qpu_name: str) -> go.Figure:
+def update_main_graph(measurement_data: dict, model_val: str, qpu_name: str) -> tuple[go.Figure, str]:
     """Updates the main graph showing the excited state probability as a function of annealing
     time. This callback triggers whenever a new measurement is added to the current-results
     data store: it updates the graph with the new data point and returns the updated figure.
@@ -357,8 +366,10 @@ def update_main_graph(measurement_data: dict, model_val: str, qpu_name: str) -> 
         model_val: The currently selected model value as a string.
 
     Returns:
-        fig: A plotly figure of the excited state probability as a function of annealing time.
-        job_submit_state: The new state of the job submission process, set to COMPLETED.
+        A tuple containing:
+
+        - go.Figure: A plotly figure of the excited state probability as a function of annealing time.
+        - str: The new state of the job submission process, set to COMPLETED.
     """
 
     fig = get_results_plot(measurement_data, ProblemType.DEFAULT, qpu_name)

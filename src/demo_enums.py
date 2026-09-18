@@ -41,7 +41,7 @@ class ProblemType(Enum):
     We'll need a consistent way to refer to them programmatically, and an Enum is easier than
     trying to distil the graph structure itself into a unique identifier. The intent is that
     every graph structure should get a unique Enum name, but different models (i.e. different
-    sets of weights on the same grpah structure) can share the same Enum name. When we need
+    sets of weights on the same graph structure) can share the same Enum name. When we need
     to recover the actual graph structure, it can be inferred from any file of model weights
     that matches the Enum name."""
 
