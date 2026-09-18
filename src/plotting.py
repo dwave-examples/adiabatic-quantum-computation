@@ -1,3 +1,17 @@
+# Copyright 2024 D-Wave
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import plotly.graph_objects as go
 
 from demo_configs import ANNEALING_TIME_SERIES, MODEL_COLORS_RESULTS, MODEL_COLORS_THEORY
@@ -9,7 +23,14 @@ from src.values import ENERGY_TIME_RESCALING, Y_AXIS_RESCALING
 def get_spectrum_plot(problem_type: ProblemType, model_type: ModelType) -> go.Figure:
     """Generates a plot of the energy spectrum for a given problem and model type.
     Currently uses pre-computed data from CSV files, though we may want to change
-    this later."""
+    this later.
+    
+    Args:
+        problem_type: The type of problem for which the spectrum is being plotted.
+        model_type: The type of model for which the spectrum is being plotted.
+        
+    Returns:
+        A Plotly figure object containing the spectrum plot."""
 
     filedata = ProblemModel.load_spectrum_scatter_from_file(problem_type, model_type)
     fig = go.Figure()
@@ -71,7 +92,7 @@ def get_results_plot(job_results: dict, problem_type: ProblemType, qpu_name: str
                 x=theory_xs[:-2],
                 y=theory_ys[:-2],
                 mode="lines",
-                name=model.name.title().replace("_", " ") + " Theory",
+                name=f"{model.label} Theory",
                 line=dict(color=MODEL_COLORS_THEORY[model]),
             )
         )
@@ -91,7 +112,7 @@ def get_results_plot(job_results: dict, problem_type: ProblemType, qpu_name: str
                     y=egs_probs,
                     mode="markers",
                     marker=dict(symbol="x", size=8, color=MODEL_COLORS_RESULTS[model]),
-                    name=model.name.title().replace("_", " ") + " Samples",
+                    name=f"{model.label} Samples",
                 )
             )
 

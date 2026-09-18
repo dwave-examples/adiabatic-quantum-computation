@@ -16,42 +16,11 @@ from src.demo_enums import ModelType
 
 """This file stores input parameters for the app."""
 
-THUMBNAIL = "static/dwave_logo.svg"
-
 APP_TITLE = "Adiabatic Quantum Computation"
 MAIN_HEADER = "Adiabatic Quantum Computation"
 DESCRIPTION = """\
 Demonstration of adiabatic quantum computation in frustrated 25-qubit Ising models, compared with exact modeling.
 """
-
-#######################################
-# Sliders, buttons and option entries #
-#######################################
-
-# an example slider
-SLIDER = {
-    "min": 1,
-    "max": 10,
-    "step": 1,
-    "value": 5,
-}
-
-# an example dropdown
-DROPDOWN = ["Option 1", "Option 2"]
-
-# an example checklist
-CHECKLIST = ["Option 1", "Option 2"]
-
-# an example radio list
-RADIO = ["Option 1", "Option 2"]
-
-# solver time limits in seconds (value means default)
-SOLVER_TIME = {
-    "min": 10,
-    "max": 300,
-    "step": 5,
-    "value": 10,
-}
 
 THUMBNAIL = "static/dwave_logo.svg"
 

@@ -39,7 +39,7 @@ class SolverType(Enum):
 class ProblemType(Enum):
     """Future proofing for when we want to add problems with other graph structures to the demo.
     We'll need a consistent way to refer to them programmatically, and an Enum is easier than
-    trying to distil the graph structure itself into a unique identifier. The intent is that
+    trying to distill the graph structure itself into a unique identifier. The intent is that
     every graph structure should get a unique Enum name, but different models (i.e. different
     sets of weights on the same graph structure) can share the same Enum name. When we need
     to recover the actual graph structure, it can be inferred from any file of model weights
@@ -47,14 +47,12 @@ class ProblemType(Enum):
 
     DEFAULT = 0
 
-    @property
-    def label(self):
-        return {
-            ProblemType.DEFAULT: "Default AQC Workshop Problem",
-        }[self]
-
-
 class ModelType(Enum):
+    """Encapsulates options for different models--i.e. different sets of weights on the same problem
+    graph. The demo depends on showing the differences in behavior between the different models, so
+    if and when we add more ProblemType options, they should always have these three ModelType 
+    options available to them."""
+
     SMALL_GAP = 0
     INTERMEDIATE_GAP = 1
     LARGE_GAP = 2
@@ -65,6 +63,9 @@ class ModelType(Enum):
 
 
 class JobState(Enum):
+    """ Represents the possible states of a job on the QPU. The demo uses this both to
+    to display as user feedback and to check the state of a job to control which callbacks
+    can execute."""
 
     FINDING_EMBEDDING = 0
     READY = 1
@@ -77,11 +78,3 @@ class JobState(Enum):
     @property
     def label(self):
         return self.name.replace("_", " ").title()
-
-    @property
-    def normal_job_states(self):
-        return [
-            js
-            for js in JobState
-            if js not in [JobState.FINDING_EMBEDDING, JobState.READY, JobState.NO_SOLVER]
-        ]

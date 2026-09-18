@@ -154,7 +154,7 @@ def set_state_to_ready(
         - bool: Whether the run button should be disabled.
         - str: The READY label for the job-submit-state field.
     """
-    """
+
     return False, JobState.READY.label
 
 
