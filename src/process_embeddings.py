@@ -108,7 +108,7 @@ class EmbeddingSet:
                 timeout=30,
             )
 
-            valid_embeddings.extend(new_embeddings)
+            valid_embeddings.extend([{int(k): (v,) for k, v in emb.items()} for emb in new_embeddings])
 
             self.save_to_json_file(valid_embeddings)
 
