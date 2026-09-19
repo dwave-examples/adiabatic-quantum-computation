@@ -19,12 +19,7 @@ from typing import NamedTuple
 
 from dwave.cloud import Client
 
-from demo_configs import ANNEALING_TIME_SERIES
-from src.demo_enums import JobState, SolverType
-from src.values import SCHEDULES_PATH
-
-annealing_times = [t / 1000 for t in ANNEALING_TIME_SERIES]  # Convert milliseconds to seconds
-
+from src.demo_enums import JobState
 
 class QPUResources(NamedTuple):
     client: Client | None
@@ -32,8 +27,8 @@ class QPUResources(NamedTuple):
     init_job_status: JobState
 
 
-@lru_cache(maxsize=len(SolverType))
-def get_qpus() -> QPUResources:  # TODO troubleshoot: not currently working
+@lru_cache(maxsize=1)
+def get_qpus() -> QPUResources: 
     """Get QPU resources, including client and solvers. Results are cached."""
     try:
         client = Client.from_config(client="qpu")
@@ -53,31 +48,3 @@ def get_qpus() -> QPUResources:  # TODO troubleshoot: not currently working
 def get_qpu_ids() -> dict:
     available_qpus = get_qpus().solvers
     return {qpu.name: qpu.graph_id for qpu in available_qpus.values()}
-
-
-def get_client() -> Client | None:
-    """Get the client, if available. Returns None if no client is available."""
-    return get_qpus().client
-
-
-def get_solvers() -> dict:
-    """Get available solvers, if any. Returns an empty dictionary if no solvers are available."""
-    return get_qpus().solvers
-
-
-def get_init_job_status() -> str:
-    """Get initial job status. ``READY`` if solvers are available, ``NO SOLVER`` otherwise."""
-    return get_qpus().init_job_status
-
-
-def get_schedule(qpu_name: str):
-    schedule = None
-    for file in SCHEDULES_PATH.glob("*_schedule.csv"):  # get schedule files
-        if qpu_name in file.name:
-            if schedule is not None:
-                raise ValueError(f"Multiple schedule files found for QPU {qpu_name}.")
-            schedule = file  # TODO extract actual schedule
-
-    if schedule is None:
-        schedule = SCHEDULES_PATH / "default_schedule.csv"  # TODO improve
-    return schedule

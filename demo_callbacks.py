@@ -96,7 +96,7 @@ def process_qpu_select(qpu_name: str) -> tuple[list[dict], bool, str, float, dic
         clears all the old results.
     """
 
-    return {}, True, JobState.FINDING_EMBEDDING.label, time.time(), generate_new_results_dict()
+    return [], True, JobState.FINDING_EMBEDDING.label, time.time(), generate_new_results_dict()
 
 
 # ======================================================================================================================
@@ -167,7 +167,6 @@ def set_state_to_ready(
     Input("model-selection", "value"),
     State("current-problem-type", "data"),
     State("cached-models", "data"),
-    prevent_initial_call=True,
 )
 def set_current_model(model_val: str, problem_type: str, cached_models: dict) -> tuple[dict, go.Figure]:
     """Sets the data and the spectrum plot for the currently selected model. Triggers whenever the
@@ -301,14 +300,26 @@ def submit_job(
     model_val: int,
     model_embeddings: dict,
 ) -> float:
-    """Submit job and provide job ID.
+    """Submit job and provide job ID. Returns the updated results to be stored
+    in the current-results data store. Re-enables the run button (disabled by run_button_click)
+    after the job is complete.
 
     Args:
-
+        job_submit_args: A dictionary containing the job submission arguments including the
+            problem Hamiltonian and the annealing time.
+        job_submit_state: current job state. Used to ensure that the demo is in a state 
+            compatible with job submission.
+        qpu_name: The name of the QPU to which the job is being submitted.
+        model_val: The currently selected model value as an integer.
+        model_embeddings: A dictionary containing embeddings for the model. There should
+            be multiple parallel embeddings for the model, as determined by the 
+            NUM_PARALLEL_EMBEDDINGS constant in demo_configs.py.
 
     Returns:
+        A tuple containing:
 
-    """
+        - dict: The updated results dictionary with the new measurement appended.
+        - bool: False indicating that the run button should not be disabled."""
 
     if job_submit_state != JobState.RUNNING.label:
         raise PreventUpdate
@@ -319,7 +330,7 @@ def submit_job(
         tuple(map(int, k.strip("()").split(","))): v for k, v in job_submit_args["J"].items()
     }
 
-    embeddings = [{int(k): tuple([v]) for k, v in emb.items()} for emb in model_embeddings]
+    embeddings = [{int(k): tuple(v) for k, v in emb.items()} for emb in model_embeddings]
 
     qpu = DWaveSampler(solver=qpu_name)
 
@@ -352,10 +363,9 @@ def submit_job(
     Output("sample-v-theory-graph", "figure"),
     Output("job-submit-state", "children"),
     Input("current-results", "data"),
-    State("model-selection", "value"),
     State("qpu-selection", "value"),
 )
-def update_main_graph(measurement_data: dict, model_val: str, qpu_name: str) -> tuple[go.Figure, str]:
+def update_main_graph(measurement_data: dict, qpu_name: str) -> tuple[go.Figure, str]:
     """Updates the main graph showing the excited state probability as a function of annealing
     time. This callback triggers whenever a new measurement is added to the current-results
     data store: it updates the graph with the new data point and returns the updated figure.
@@ -363,7 +373,8 @@ def update_main_graph(measurement_data: dict, model_val: str, qpu_name: str) -> 
 
     Args:
         measurement_data: A dictionary containing the current measurement results.
-        model_val: The currently selected model value as a string.
+        qpu_name: The name of the currently selected QPU, used for rescaling the 
+            results plot to the QPU-specific energy scale.
 
     Returns:
         A tuple containing:
@@ -377,4 +388,3 @@ def update_main_graph(measurement_data: dict, model_val: str, qpu_name: str) -> 
     return fig, JobState.COMPLETED.label
 
 
-# ==========================================================================================================

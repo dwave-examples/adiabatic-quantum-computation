@@ -23,7 +23,7 @@ from dash import dcc, html
 from demo_configs import DEFAULT_MODEL, DEFAULT_QPU, DESCRIPTION, MAIN_HEADER, THUMBNAIL
 from src.demo_enums import JobState, ModelType, ProblemType
 from src.model_loading import ProblemModel
-from src.qpu_resources import get_init_job_status, get_qpu_ids, get_solvers
+from src.qpu_resources import get_qpu_ids
 
 THEME_COLOR = "#2d4376"
 
@@ -35,6 +35,10 @@ def dropdown(label: str, id: str, options: list, value: str | None = None) -> ht
         label: The title that goes above the dropdown.
         id: A unique selector for this element.
         options: A list of dictionaries of labels and values.
+        value: The initial value for the dropdown. If None, the first option will be used.
+
+    Returns:
+        A Div containing the dropdown element.
     """
     return html.Div(
         className="dropdown-wrapper",
@@ -99,7 +103,7 @@ def generate_settings_form() -> html.Div:
                 "Model",
                 "model-selection",
                 model_options,
-                value=DEFAULT_MODEL.name,
+                value=f"{DEFAULT_MODEL.value}",
             ),
         ],
     )
@@ -146,11 +150,16 @@ def default_graph(title: str, id: str) -> html.Div:
 
 
 def generate_new_results_dict(problem_type: str = ProblemType.DEFAULT.name) -> dict:
-    """Generates a new standardized dictionary for storing measurement results. At present there
-    is only one problem type and no functionality to change or reset existing results, so this will
-    be called once at initialization and never again. If the demo is expanded to include more problem
-    types or other options that would make clearing and resetting results useful, this function will
-    make it easy to prepare the current-results store for a fresh batch of measurements."""
+    """Generates a new standardized dictionary for storing measurement results. Result sets
+    should be specific to a given QPU, so this function is called whenever a new QPU is selected
+    to replace the current-results data store with a new, empty results dictionary.
+    
+    Args:
+        problem_type: The type of problem for which to generate the results dictionary.
+        
+    Returns:
+        A dictionary with keys for each model type and an empty list for storing results.
+    """
 
     results_dict = {m.name: [] for m in ModelType}  # TODO use more durable keys
     results_dict["problem_type"] = problem_type
@@ -167,7 +176,9 @@ def show_status() -> html.Div:
     It should probably be added back later, but it's much lower priority than the functional pieces.
     """
 
-    init_job_status = get_init_job_status()
+    no_solver = get_qpu_ids() == {}
+    init_job_status = JobState.NO_SOLVER if no_solver else JobState.READY
+
     job_status_style = {"color": "#AA3A3C"} if init_job_status == JobState.NO_SOLVER else {}
 
     return html.Div(
@@ -293,8 +304,8 @@ def create_interface() -> html.Div:
                                         children=[
                                             html.Div(
                                                 [
-                                                    html.H1(MAIN_HEADER, id="main-header"),
-                                                    html.P(DESCRIPTION, id="main-description"),
+                                                    html.H1(MAIN_HEADER, id=MAIN_HEADER),
+                                                    html.P(DESCRIPTION, id=DESCRIPTION),
                                                 ],
                                                 className="title-section",
                                             ),

@@ -19,6 +19,16 @@ from src.demo_enums import ModelType, ProblemType
 from src.model_loading import ProblemModel
 from src.values import ENERGY_TIME_RESCALING, Y_AXIS_RESCALING
 
+PLOT_LAYOUT = dict(
+    margin=dict(l=60, r=10, t=10, b=50),
+    legend=dict(
+        xanchor="left",
+        x=0.01,
+        yanchor="bottom",
+        y=0.01,
+        bgcolor="rgba(255, 255, 255, 0.7)",
+    ),
+)
 
 def get_spectrum_plot(problem_type: ProblemType, model_type: ModelType) -> go.Figure:
     """Generates a plot of the energy spectrum for a given problem and model type.
@@ -55,6 +65,7 @@ def get_spectrum_plot(problem_type: ProblemType, model_type: ModelType) -> go.Fi
     fig.update_layout(
         xaxis_title="Anneal Progress",
         yaxis_title="Excitation Energy (GHz)",
+        **PLOT_LAYOUT
     )
 
     return fig
@@ -119,6 +130,7 @@ def get_results_plot(job_results: dict, problem_type: ProblemType, qpu_name: str
     fig.update_layout(
         xaxis_title="Annealing Time (ns)",
         yaxis_title="Excited State Probability",
+        **PLOT_LAYOUT
     )
 
     fig.update_xaxes(range=[0, 21])

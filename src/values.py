@@ -12,18 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
+import pathlib
+
+REPO_PATH = pathlib.Path(__file__).parent.parent.resolve()
+STATIC_PATH = pathlib.Path(REPO_PATH) / "static"
+EMBEDDINGS_PATH = pathlib.Path(REPO_PATH) / "embeddings"
+MODELS_PATH = pathlib.Path(STATIC_PATH) / "models"
+SCHEDULES_PATH = pathlib.Path(STATIC_PATH) / "annealing_schedules"
 
 ENERGY_THRESHOLD = 1e-8  # Relative to ground state energy
 
-REPO_PATH = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-STATIC_PATH = os.path.join(REPO_PATH, "static")
-EMBEDDINGS_PATH = os.path.join("embeddings")
-MODELS_PATH = os.path.join(STATIC_PATH, "models")
-SCHEDULES_PATH = os.path.join(STATIC_PATH, "annealing_schedules")
-
-if not os.path.exists(EMBEDDINGS_PATH):
-    os.makedirs(EMBEDDINGS_PATH)
+pathlib.Path(EMBEDDINGS_PATH).mkdir(exist_ok=True)
 
 ENERGY_TIME_RESCALING = {  # Used to rescale energy axis for plotting samples from
     "Advantage2_system5": 2.48,  # processors that have different energy scales.

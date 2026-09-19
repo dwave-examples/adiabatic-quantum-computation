@@ -33,11 +33,12 @@ DESCRIPTION_NM = """
     """
 
 ANNEALING_TIME_SERIES = [5, 7, 10, 14, 20]
-NUM_PARALLEL_EMBEDDINGS = 10
+NUM_PARALLEL_EMBEDDINGS = 10 # Number of parallel embeddings for the model. More embeddings mean more accurate results
+                             # but they'll take longer to find if they're not already saved.
 
 # TODO link to enums
 DEFAULT_QPU = "Advantage_system4"  # If not available, the first returned will be default
-DEFAULT_MODEL = ModelType.LARGE_GAP
+DEFAULT_MODEL = ModelType.INTERMEDIATE_GAP
 
 MODEL_COLORS_THEORY = {
     ModelType.LARGE_GAP: "#1f77b4",
@@ -49,17 +50,4 @@ MODEL_COLORS_RESULTS = {
     ModelType.LARGE_GAP: "#299ef1",
     ModelType.INTERMEDIATE_GAP: "#1cf21c",
     ModelType.SMALL_GAP: "#9F520E",
-}
-
-JOB_BAR_DISPLAY = {  # TODO make enum for this
-    "READY": [0, "#737373"],
-    "EMBEDDING": [20, "#FF7006"],
-    "NO SOLVER": [100, "#AA3A3C"],
-    "SUBMITTED": [40, "#03B8FF"],
-    "PENDING": [60, "#2A7DE1"],
-    "IN_PROGRESS": [85, "#2A7DE1"],
-    "COMPLETED": [100, "#17BEBB"],
-    "CANCELLED": [100, "#737373"],
-    "FAILED": [100, "#AA3A3C"],
-    "ERROR": [100, "#AA3A3C"],
 }

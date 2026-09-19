@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 import json
 import os
 
@@ -76,50 +75,68 @@ class EmbeddingSet:
         if none are saved or they are invalid or incomplete, finds new embeddings and saves
         them to file before returning them.
 
-        Args:
-            qpu_name (str): The name of the QPU.
-            embeddings_dict (dict): A dictionary containing embeddings for different QPUs.
-
         Returns:
             A list of embeddings, each a dict mapping source node to target qubit.
         """
 
-        valid_embeddings = False
+        valid_embeddings = []
 
         if os.path.exists(self.embeddings_path):
-            embeddings = self.load_from_json_file()
-            if len(embeddings) >= NUM_PARALLEL_EMBEDDINGS:
-                for emb in embeddings:
+            print("Loading saved embeddings from file...")
+            loaded_embeddings = self.load_from_json_file()
+            if len(loaded_embeddings) >= NUM_PARALLEL_EMBEDDINGS:
+                for emb in loaded_embeddings:
+                    emb = {int(k): (v,) for k, v in emb.items()} 
                     try:
                         verify_embedding(emb, self.source_graph, self.target_graph)
-                    except:
+                        valid_embeddings.append(emb)
+                    except Exception:
                         print(f"Invalid embedding found: {emb}")
-                        break
-
-                valid_embeddings = True
 
         else:
             print("No saved embeddings found. Finding embeddings now...")
 
-        if not valid_embeddings:
+        if len(valid_embeddings) < NUM_PARALLEL_EMBEDDINGS:
+            num_needed = NUM_PARALLEL_EMBEDDINGS - len(valid_embeddings)
+            print(f"Finding {num_needed} new embeddings...")
             # Find an embedding the hard way. If we find one, save it to file so we can re-use it later.
 
-            embeddings = find_multiple_embeddings(
+            new_embeddings = find_multiple_embeddings(
                 self.source_graph,
                 self.target_graph,
-                max_num_emb=NUM_PARALLEL_EMBEDDINGS,
+                max_num_emb=num_needed,
                 timeout=30,
             )
 
-            self.save_to_json_file(embeddings)
+            valid_embeddings.extend(new_embeddings)
 
-        return embeddings
+            self.save_to_json_file(valid_embeddings)
+
+        if len(valid_embeddings) < NUM_PARALLEL_EMBEDDINGS:
+            raise RuntimeError(
+                f"Could not find enough valid embeddings. Needed {NUM_PARALLEL_EMBEDDINGS}, but only found {len(valid_embeddings)}."
+            )
+
+        return valid_embeddings
 
     def save_to_json_file(self, embeddings: dict):
+        """ Save the embeddings to a JSON file for later re-used.
+        
+        Args:
+            embeddings (dict): A dictionary containing the embeddings to save.
+        """
+
         with open(self.embeddings_path, "w") as f:
             json.dump(embeddings, f)
 
     def load_from_json_file(self):
+        """ Load saved embeddings from file. This is used to retrieve previously-found embeddings
+        and avoid having to find them again.
+        
+        Returns:
+            A list of embeddings, each a dict mapping source node to target qubit.
+        """
+
         with open(self.embeddings_path, "r") as f:
             embedding_list = json.load(f)
         return embedding_list

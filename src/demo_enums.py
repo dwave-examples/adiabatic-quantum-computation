@@ -14,28 +14,6 @@
 
 from enum import Enum
 
-
-class SolverType(Enum):
-    """Add a list of solver options here. If this demo only requires 1 solver,
-    this functionality can be removed.
-
-    """
-
-    SOLVER_1 = 0
-    SOLVER_2 = 1
-
-    @property
-    def label(self):
-        return {
-            SolverType.SOLVER_1: "Advantage2_system1",
-            SolverType.SOLVER_2: "Advantage_system4",
-        }[self]
-
-
-### If any settings or variables are being used repeatedly, throughout the code, create a new
-### Enum for the setting here to avoid string comparisons or other fragile code practices.
-
-
 class ProblemType(Enum):
     """Future proofing for when we want to add problems with other graph structures to the demo.
     We'll need a consistent way to refer to them programmatically, and an Enum is easier than
