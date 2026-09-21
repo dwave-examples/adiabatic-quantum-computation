@@ -86,7 +86,7 @@ class EmbeddingSet:
             loaded_embeddings = self.load_from_json_file()
             if len(loaded_embeddings) >= NUM_PARALLEL_EMBEDDINGS:
                 for emb in loaded_embeddings:
-                    emb = {int(k): (v,) for k, v in emb.items()} 
+                    emb = {int(k): tuple(v) for k, v in emb.items()} 
                     try:
                         verify_embedding(emb, self.source_graph, self.target_graph)
                         valid_embeddings.append(emb)
