@@ -68,6 +68,7 @@ class ProblemModel:
 
     @property
     def problem_definition_json_filename(self) -> str:
+        """File name of the JSON problem definition for this model."""
         return f"{self.lookup_key}{ProblemModel.DEFINITION_FILE_SUFFIX}"
 
     @property
