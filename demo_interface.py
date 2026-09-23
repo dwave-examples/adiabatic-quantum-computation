@@ -126,15 +126,14 @@ def generate_run_buttons() -> html.Div:
 
 
 def default_graph(title: str, id: str) -> html.Div:
-    """Default graph element with a title and optional radio buttons for graph selection.
+    """Default graph element with a title.
 
     Args:
         title: The title that goes above the graph.
         id: A unique selector for this graph element.
-        load_radio: Whether to create radio buttons for graph selection or not.
 
     Returns:
-        A Div containing the graph and optional radio buttons.
+        A Div containing the title and the graph.
     """
 
     return html.Div(

@@ -1,4 +1,4 @@
-# Copyright 2024 D-Wave
+# Copyright 2026 D-Wave
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -70,7 +70,7 @@ class EmbeddingSet:
 
         return source_graph
 
-    def get_embeddings(self) -> dict:
+    def get_embeddings(self) -> list[dict]:
         """Get the embeddings for the selected QPU. Checks for saved embeddings in file first,
         if none are saved or they are invalid or incomplete, finds new embeddings and saves
         them to file before returning them.
@@ -120,17 +120,17 @@ class EmbeddingSet:
         return valid_embeddings
 
     def save_to_json_file(self, embeddings: dict):
-        """ Save the embeddings to a JSON file for later re-used.
+        """Save the embeddings to a JSON file for later re-use.
         
         Args:
-            embeddings (dict): A dictionary containing the embeddings to save.
+            embeddings: A list of embeddings, each a dict mapping source node to target chain.
         """
 
         with open(self.embeddings_path, "w") as f:
             json.dump(embeddings, f)
 
-    def load_from_json_file(self):
-        """ Load saved embeddings from file. This is used to retrieve previously-found embeddings
+    def load_from_json_file(self) -> list[dict]:
+        """Load saved embeddings from file. This is used to retrieve previously-found embeddings
         and avoid having to find them again.
         
         Returns:

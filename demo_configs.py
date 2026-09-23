@@ -24,17 +24,10 @@ Demonstration of adiabatic quantum computation in frustrated 25-qubit Ising mode
 
 THUMBNAIL = "static/dwave_logo.svg"
 
-# config settings for ZNE tab
-MAIN_HEADER_NM = "Zero-Noise Extrapolation"
-DESCRIPTION_NM = """
-    The statistics of a target J chain can be inferred using weaker coupling and longer quench
-    durations, though this increases noise. By collecting data at multiple noise levels, it is
-    possible to extrapolate to a denoised result.
-    """
-
 ANNEALING_TIME_SERIES = [5, 7, 10, 14, 20]
-NUM_PARALLEL_EMBEDDINGS = 10 # Number of parallel embeddings for the model. More embeddings mean more accurate results
-                             # but they'll take longer to find if they're not already saved.
+# Number of parallel embeddings for the model. More embeddings mean more accurate results
+# but they'll take longer to find if they're not already saved.
+NUM_PARALLEL_EMBEDDINGS = 10
 
 # TODO link to enums
 DEFAULT_QPU = "Advantage_system4"  # If not available, the first returned will be default

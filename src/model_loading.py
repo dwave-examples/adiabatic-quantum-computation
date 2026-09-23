@@ -1,4 +1,4 @@
-# Copyright 2024 D-Wave
+# Copyright 2026 D-Wave
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+from __future__ import annotations
 
 import json
 import os
@@ -70,27 +72,38 @@ class ProblemModel:
 
     @property
     def spectrum_scatter_filename(self) -> str:
+        """File name of the CSV energy spectrum data for this model."""
         return f"{self.lookup_key}_SCATTER.csv"
 
     @property
     def theory_data_filename(self) -> str:
+        """File name of the theoretical excited state probability curve for this model."""
         return f"{self.lookup_key}_THEORY.txt"
 
     @property
-    def graph_nodes(self):
+    def graph_nodes(self) -> set:
+        """All nodes of the problem graph."""
         edge_nodes = {n for edge in self.J.keys() for n in edge}
         return set(self.h.keys()).union(edge_nodes)
 
     @property
-    def graph_edges(self):
+    def graph_edges(self) -> set:
+        """All edges of the problem graph."""
         return set(self.J.keys())
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
+        """JSON-serializable dict of h, J, and EGS."""
         model_dict = {"h": self.h, "J": {str(n): v for n, v in self.J.items()}, "EGS": self.EGS}
 
         return model_dict
 
     def problem_to_json_file(self, overwrite_existing: bool = False):
+        """Save this model to its JSON problem definition file in MODELS_PATH.
+
+        Args:
+            overwrite_existing: If False, raise ValueError when a different model is already saved
+                under the same lookup key.
+        """
         model_dict = self.to_dict()
 
         if not overwrite_existing:
@@ -108,7 +121,8 @@ class ProblemModel:
             json.dump(model_dict, f)
 
     @staticmethod
-    def from_dict(lookup_key: str, props_dict: dict):
+    def from_dict(lookup_key: str, props_dict: dict) -> ProblemModel:
+        """Build a ProblemModel from a lookup key and a dict."""
         problem_type_name, model_type_name = lookup_key.split(
             "_", 1
         )  # TODO replace with more durable method
@@ -128,7 +142,12 @@ class ProblemModel:
         return ProblemModel.from_dict(lookup_key, model_dict)
 
     @staticmethod
-    def load_all_models_from_file(as_dicts: bool = False):
+    def load_all_models_from_file(as_dicts: bool = False) -> dict:
+        """Load every saved problem definition, keyed by lookup key.
+
+        Args:
+            as_dicts: If True, values are JSON-safe dicts instead of ProblemModels.
+        """
         models_dict = {}
         for model_filename in os.listdir(MODELS_PATH):
             if model_filename.endswith(ProblemModel.DEFINITION_FILE_SUFFIX):
@@ -141,7 +160,7 @@ class ProblemModel:
         return models_dict
 
     @staticmethod
-    def load_spectrum_scatter_from_file(problem_type: ProblemType, model_type: ModelType):
+    def load_spectrum_scatter_from_file(problem_type: ProblemType, model_type: ModelType) -> np.ndarray:
         """Loads the data to create a scatter plot of the energy spectrum for a given problem instance."""
         scatter_path = os.path.join(
             MODELS_PATH, ProblemModel(problem_type, model_type).spectrum_scatter_filename
@@ -152,7 +171,7 @@ class ProblemModel:
         return filedata
 
     @staticmethod
-    def load_theory_data_from_file(problem_type: ProblemType, model_type: ModelType):
+    def load_theory_data_from_file(problem_type: ProblemType, model_type: ModelType) -> tuple[list[float], list[float]]:
         """Loads the data for the theoretical predictions of ground state probability as a
         function of annealing time for a given problem instance."""
         theory_data_path = os.path.join(

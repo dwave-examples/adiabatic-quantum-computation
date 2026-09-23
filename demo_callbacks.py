@@ -272,7 +272,7 @@ def preprocess_job(
     job_kwargs = model_data.copy()
     current_job_results = measurement_data[ModelType(int(model_val)).name]
     measurement_number = len(current_job_results)
-    ta = ANNEALING_TIME_SERIES[(measurement_number) % len(ANNEALING_TIME_SERIES)] / 1000
+    ta = ANNEALING_TIME_SERIES[measurement_number % len(ANNEALING_TIME_SERIES)] / 1000
     job_kwargs.update({"annealing_time": ta})
 
     return job_kwargs, JobState.RUNNING.label
@@ -297,8 +297,8 @@ def submit_job(
     job_submit_args: dict,
     job_submit_state: str,
     qpu_name: str,
-    model_val: int,
-    model_embeddings: dict,
+    model_val: str,
+    model_embeddings: list[dict],
 ) -> float:
     """Submit job and provide job ID. Returns the updated results to be stored
     in the current-results data store. Re-enables the run button (disabled by run_button_click)
@@ -310,10 +310,10 @@ def submit_job(
         job_submit_state: current job state. Used to ensure that the demo is in a state 
             compatible with job submission.
         qpu_name: The name of the QPU to which the job is being submitted.
-        model_val: The currently selected model value as an integer.
-        model_embeddings: A dictionary containing embeddings for the model. There should
-            be multiple parallel embeddings for the model, as determined by the 
-            NUM_PARALLEL_EMBEDDINGS constant in demo_configs.py.
+        model_val: The currently selected model value as a string.
+        model_embeddings: A list of embeddings for the model, each a dict mapping source node to
+            a chain of target qubits. There should be multiple parallel embeddings for the model,
+            as determined by the NUM_PARALLEL_EMBEDDINGS constant in demo_configs.py.
 
     Returns:
         A tuple containing:

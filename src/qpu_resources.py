@@ -22,6 +22,7 @@ from dwave.cloud import Client
 from src.demo_enums import JobState
 
 class QPUResources(NamedTuple):
+    """The Leap client and the QPU solvers it can access."""
     client: Client | None
     solvers: dict
     init_job_status: JobState
@@ -46,5 +47,6 @@ def get_qpus() -> QPUResources:
 
 
 def get_qpu_ids() -> dict:
+    """Get the available QPU names mapped to their graph ids."""
     available_qpus = get_qpus().solvers
     return {qpu.name: qpu.graph_id for qpu in available_qpus.values()}

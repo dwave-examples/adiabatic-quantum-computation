@@ -1,4 +1,4 @@
-# Copyright 2024 D-Wave
+# Copyright 2026 D-Wave
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -32,8 +32,7 @@ PLOT_LAYOUT = dict(
 
 def get_spectrum_plot(problem_type: ProblemType, model_type: ModelType) -> go.Figure:
     """Generates a plot of the energy spectrum for a given problem and model type.
-    Currently uses pre-computed data from CSV files, though we may want to change
-    this later.
+    Uses pre-computed data from CSV files.
     
     Args:
         problem_type: The type of problem for which the spectrum is being plotted.
