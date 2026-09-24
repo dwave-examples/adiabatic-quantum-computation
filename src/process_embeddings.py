@@ -84,19 +84,24 @@ class EmbeddingSet:
         if os.path.exists(self.embeddings_path):
             print("Loading saved embeddings from file...")
             loaded_embeddings = self.load_from_json_file()
-            if len(loaded_embeddings) >= NUM_PARALLEL_EMBEDDINGS:
-                for emb in loaded_embeddings:
-                    emb = {int(k): tuple(v) for k, v in emb.items()} 
-                    try:
-                        verify_embedding(emb, self.source_graph, self.target_graph)
-                        valid_embeddings.append(emb)
-                    except Exception:
-                        print(f"Invalid embedding found: {emb}")
+
+            for emb in loaded_embeddings:
+                emb = {int(k): tuple(v) for k, v in emb.items()} 
+                try:
+                    verify_embedding(emb, self.source_graph, self.target_graph)
+                    valid_embeddings.append(emb)
+                except Exception:
+                    print(f"Invalid embedding found: {emb}")
+
+            if len(valid_embeddings) > 0:
+                print(f"Loaded {len(valid_embeddings)} embeddings from file.")
 
         else:
-            print("No saved embeddings found. Finding embeddings now...")
+            print("No saved embeddings found.")
 
         if len(valid_embeddings) < NUM_PARALLEL_EMBEDDINGS:
+            print(f"Require {NUM_PARALLEL_EMBEDDINGS - len(valid_embeddings)} embeddings for full embedding set.")
+            print("Finding embeddings now...")
             num_needed = NUM_PARALLEL_EMBEDDINGS - len(valid_embeddings)
             print(f"Finding {num_needed} new embeddings...")
             # Find an embedding the hard way. If we find one, save it to file so we can re-use it later.

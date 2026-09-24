@@ -43,7 +43,10 @@ class JobState(Enum):
     to display as user feedback and to check the state of a job to control which callbacks
     can execute."""
 
-    FINDING_EMBEDDING = 0
+    # TODO check JobStates are being tracked an updated accurately, and consider revising
+    # list with a 'failed' state and/or removing unused states.
+
+    FINDING_EMBEDDING = 0 
     READY = 1
     PREPROCESSING = 2
     CONNECTING = 3

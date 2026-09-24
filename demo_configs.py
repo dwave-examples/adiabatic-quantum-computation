@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from src.demo_enums import ModelType
-
 """This file stores input parameters for the app."""
+
+from src.demo_enums import ModelType
 
 APP_TITLE = "Adiabatic Quantum Computation"
 MAIN_HEADER = "Adiabatic Quantum Computation"

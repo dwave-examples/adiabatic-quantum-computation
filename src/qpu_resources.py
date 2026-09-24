@@ -14,39 +14,13 @@
 
 from __future__ import annotations
 
-from functools import lru_cache
-from typing import NamedTuple
-
 from dwave.cloud import Client
 
-from src.demo_enums import JobState
-
-class QPUResources(NamedTuple):
-    """The Leap client and the QPU solvers it can access."""
-    client: Client | None
-    solvers: dict
-    init_job_status: JobState
-
-
-@lru_cache(maxsize=1)
-def get_qpus() -> QPUResources: 
-    """Get QPU resources, including client and solvers. Results are cached."""
-    try:
-        client = Client.from_config(client="qpu")
-        solver_opts = client.get_solvers()
-        print(f"Available solvers: {[s.name for s in solver_opts]}")
-        solvers = {s.name: s for s in solver_opts}
-
-        if not solvers:
-            raise Exception
-
-        return QPUResources(client=client, solvers=solvers, init_job_status=JobState.READY)
-
-    except Exception:
-        return QPUResources(client=None, solvers={}, init_job_status=JobState.NO_SOLVER)
-
-
-def get_qpu_ids() -> dict:
+def get_qpu_ids(print_available: bool = False) -> dict:
     """Get the available QPU names mapped to their graph ids."""
-    available_qpus = get_qpus().solvers
-    return {qpu.name: qpu.graph_id for qpu in available_qpus.values()}
+    client = Client.from_config(client="qpu")
+    solver_opts = client.get_solvers()
+    solver_list = sorted({qpu.name for qpu in solver_opts})
+    if print_available:
+        print(f"Available solvers: {solver_list}")
+    return solver_list

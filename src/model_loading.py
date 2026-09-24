@@ -123,7 +123,15 @@ class ProblemModel:
 
     @staticmethod
     def from_dict(lookup_key: str, props_dict: dict) -> ProblemModel:
-        """Build a ProblemModel from a lookup key and a dict."""
+        """Build a ProblemModel from a lookup key and a dict.
+        
+        Args:
+            lookup_key: The lookup key identifying the problem and model type.
+            props_dict: A dictionary containing the properties of the problem model.
+
+        Returns:
+            A ProblemModel instance built from the lookup key and properties dictionary.
+        """
         problem_type_name, model_type_name = lookup_key.split(
             "_", 1
         )  # TODO replace with more durable method
@@ -135,7 +143,15 @@ class ProblemModel:
         return ProblemModel(problem_type, model_type, h, J, EGS)
 
     @staticmethod
-    def problem_from_json_file(json_filename: str):
+    def problem_from_json_file(json_filename: str) -> ProblemModel:
+        """ Loads a problem from its JSON definition file.
+
+        Args:
+            json_filename: The name of the JSON file containing the problem definition.
+
+        Returns:
+            A ProblemModel instance built from the JSON file.
+        """
         model_path = os.path.join(MODELS_PATH, json_filename)
         with open(model_path, "r") as f:
             model_dict = json.load(f)
@@ -162,7 +178,16 @@ class ProblemModel:
 
     @staticmethod
     def load_spectrum_scatter_from_file(problem_type: ProblemType, model_type: ModelType) -> np.ndarray:
-        """Loads the data to create a scatter plot of the energy spectrum for a given problem instance."""
+        """Loads the data to create a scatter plot of the energy spectrum for a given problem instance.
+        
+        Args:
+            problem_type: The type of the problem instance.
+            model_type: The type of the model instance.
+
+        Returns:
+            A numpy ndarray containing the scatter plot data.
+        """
+
         scatter_path = os.path.join(
             MODELS_PATH, ProblemModel(problem_type, model_type).spectrum_scatter_filename
         )
@@ -174,7 +199,16 @@ class ProblemModel:
     @staticmethod
     def load_theory_data_from_file(problem_type: ProblemType, model_type: ModelType) -> tuple[list[float], list[float]]:
         """Loads the data for the theoretical predictions of ground state probability as a
-        function of annealing time for a given problem instance."""
+        function of annealing time for a given problem instance.
+
+        Args:
+            problem_type: The type of the problem instance.
+            model_type: The type of the model instance.
+
+        Returns:
+            A tuple containing two lists of floats: the annealing times and the corresponding 
+            ground state probabilities as predicted by the theoretical model.
+        """
         theory_data_path = os.path.join(
             MODELS_PATH, ProblemModel(problem_type, model_type).theory_data_filename
         )

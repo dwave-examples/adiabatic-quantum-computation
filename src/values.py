@@ -20,9 +20,9 @@ EMBEDDINGS_PATH = pathlib.Path(REPO_PATH) / "embeddings"
 MODELS_PATH = pathlib.Path(STATIC_PATH) / "models"
 SCHEDULES_PATH = pathlib.Path(STATIC_PATH) / "annealing_schedules"
 
-ENERGY_THRESHOLD = 1e-8  # Relative to ground state energy
-
 pathlib.Path(EMBEDDINGS_PATH).mkdir(exist_ok=True)
+
+ENERGY_THRESHOLD = 1e-8  # Relative to ground state energy
 
 ENERGY_TIME_RESCALING = {  # Used to rescale energy axis for plotting samples from
     "Advantage2_system5": 2.48,  # processors that have different energy scales.

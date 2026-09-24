@@ -78,7 +78,7 @@ def generate_settings_form() -> html.Div:
     Returns:
         A Div containing the settings for selecting the scenario, model, and solver.
     """
-    solvers = [s for s in get_qpu_ids().keys()]  # TODO link to specific solver list
+    solvers = get_qpu_ids() #[s for s in get_qpu_ids().keys()]  # TODO link to specific solver list
     qpu_options = generate_options(solvers)
 
     model_options = generate_options(ModelType)
@@ -86,7 +86,7 @@ def generate_settings_form() -> html.Div:
     if DEFAULT_QPU in solvers:
         default_solver = DEFAULT_QPU
     elif len(solvers):
-        default_solver = list(solvers.keys())[0]
+        default_solver = solvers[0]
     else:
         default_solver = "No Leap Access"
 
@@ -96,7 +96,7 @@ def generate_settings_form() -> html.Div:
             dropdown(
                 "QPU",
                 "qpu-selection",
-                sorted(qpu_options, key=lambda op: op["value"]),
+                qpu_options,
                 value=default_solver,
             ),
             dropdown(
@@ -115,12 +115,6 @@ def generate_run_buttons() -> html.Div:
         id="button-group",
         children=[
             html.Button("Run Simulation", id="run-button", className="button", disabled=True),
-            html.Button(
-                "Cancel Simulation",
-                id="cancel-button",
-                className="button",
-                style={"display": "none"},
-            ),
         ],
     )
 
@@ -267,7 +261,7 @@ def create_interface() -> html.Div:
                 className="skip-link",
                 tabIndex=1,
             ),
-            dcc.Store(id="available-solvers", data=get_qpu_ids()),
+            dcc.Store(id="available-solvers", data=get_qpu_ids(print_available=True)),
             dcc.Store(id="qpu-select-time", data=0.0),
             dcc.Store(id="modal-trigger", data=False),
             dcc.Store(id="job-submit-time", data=0.0),
@@ -303,8 +297,8 @@ def create_interface() -> html.Div:
                                         children=[
                                             html.Div(
                                                 [
-                                                    html.H1(MAIN_HEADER, id=MAIN_HEADER),
-                                                    html.P(DESCRIPTION, id=DESCRIPTION),
+                                                    html.H1(MAIN_HEADER),
+                                                    html.P(DESCRIPTION),
                                                 ],
                                                 className="title-section",
                                             ),
