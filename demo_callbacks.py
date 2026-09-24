@@ -112,7 +112,7 @@ def process_qpu_select(qpu_name: str) -> tuple[list[dict], bool, str, float, dic
 def set_current_embeddings(
     qpu_select_time: float,
     qpu_name: str,
-) -> list[dict]:
+) -> tuple[list[dict], list[str]]:
     """Finds and sets the current embeddings for the selected QPU and problem type. Checks 
     embeddings saved in files first; if they are absent or unusable, finds new embeddings and 
     saves them to file. Re-checks the list of available solvers to ensure selected QPU is
@@ -125,8 +125,9 @@ def set_current_embeddings(
 
     Returns:
         A tuple containing:
-        - dict: The embeddings for the selected QPU, or an empty list if none could be found.
-        - list: The list of available solvers.
+
+        - list[dict]: The embeddings for the selected QPU, or an empty list if none could be found.
+        - list[str]: The list of available solvers.
     """
 
     available_solvers = get_qpu_ids()
@@ -318,7 +319,7 @@ def submit_job(
     qpu_name: str,
     model_val: str,
     model_embeddings: list[dict],
-) -> float:
+) -> tuple[Patch, bool, list[str]]:
     """Submit job and provide job ID. Returns the updated results to be stored
     in the current-results data store. Re-enables the run button (disabled by run_button_click)
     after the job is complete. Re-checks the list of available solvers to ensure the selected QPU 
@@ -338,7 +339,7 @@ def submit_job(
     Returns:
         A tuple containing:
 
-        - dict: The updated results dictionary with the new measurement appended. If the selected
+        - Patch: The updated results dictionary with the new measurement appended. If the selected
             solver was unavailable, this dictionary will be returned unchanged.
         - bool: False indicating that the run button should not be disabled.
         - list: The list of available solvers.

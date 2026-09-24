@@ -85,7 +85,7 @@ def generate_settings_form() -> html.Div:
 
     if DEFAULT_QPU in solvers:
         default_solver = DEFAULT_QPU
-    elif len(solvers):
+    elif solvers:
         default_solver = solvers[0]
     else:
         default_solver = "No Leap Access"

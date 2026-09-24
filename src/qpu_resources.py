@@ -16,8 +16,15 @@ from __future__ import annotations
 
 from dwave.cloud import Client
 
-def get_qpu_ids(print_available: bool = False) -> dict:
-    """Get the available QPU names mapped to their graph ids."""
+def get_qpu_ids(print_available: bool = False) -> list[str]:
+    """Get the available QPU names mapped to their graph ids.
+
+    Args:
+        print_available: If True, print the result to the console (used once at startup).
+
+    Returns:
+        The sorted QPU names.
+    """
     client = Client.from_config(client="qpu")
     solver_opts = client.get_solvers()
     solver_list = sorted({qpu.name for qpu in solver_opts})

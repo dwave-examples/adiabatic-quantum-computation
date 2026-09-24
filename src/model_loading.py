@@ -144,7 +144,7 @@ class ProblemModel:
 
     @staticmethod
     def problem_from_json_file(json_filename: str) -> ProblemModel:
-        """ Loads a problem from its JSON definition file.
+        """Loads a problem from its JSON definition file.
 
         Args:
             json_filename: The name of the JSON file containing the problem definition.

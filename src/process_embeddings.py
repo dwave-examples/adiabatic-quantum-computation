@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
+
 import json
 import os
 
@@ -104,7 +106,7 @@ class EmbeddingSet:
             print("Finding embeddings now...")
             num_needed = NUM_PARALLEL_EMBEDDINGS - len(valid_embeddings)
             print(f"Finding {num_needed} new embeddings...")
-            # Find an embedding the hard way. If we find one, save it to file so we can re-use it later.
+            # Find embeddings the hard way, then save them to file so we can re-use them later.
 
             new_embeddings = find_multiple_embeddings(
                 self.source_graph,
@@ -124,7 +126,7 @@ class EmbeddingSet:
 
         return valid_embeddings
 
-    def save_to_json_file(self, embeddings: dict):
+    def save_to_json_file(self, embeddings: list[dict]):
         """Save the embeddings to a JSON file for later re-use.
         
         Args:
