@@ -35,7 +35,7 @@ class ProblemModel:
     def __init__(
         self,
         model_type: ModelType,
-        problem_type: ProblemType=ProblemType.DEFAULT,
+        problem_type: ProblemType = ProblemType.DEFAULT,
         h: dict | None = None,
         J: dict | None = None,
         EGS: float | None = None,
@@ -181,7 +181,7 @@ class ProblemModel:
 
     @staticmethod
     def load_spectrum_scatter_from_file(
-        model_type: ModelType, problem_type: ProblemType=ProblemType.DEFAULT
+        model_type: ModelType, problem_type: ProblemType = ProblemType.DEFAULT
     ) -> np.ndarray:
         """Loads the data to create a scatter plot of the energy spectrum for a given problem instance.
 

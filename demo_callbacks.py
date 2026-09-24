@@ -25,7 +25,7 @@ from dwave.system import DWaveSampler, ParallelEmbeddingComposite
 
 from demo_configs import ANNEALING_TIME_SERIES
 from demo_interface import generate_new_results_dict
-from src.demo_enums import JobState, ModelType, ProblemType
+from src.demo_enums import JobState, ModelType
 from src.model_loading import ProblemModel
 from src.plotting import get_results_plot, get_spectrum_plot
 from src.process_embeddings import EmbeddingSet
@@ -192,9 +192,7 @@ def set_state_to_ready(
     Input("model-selection", "value"),
     State("cached-models", "data"),
 )
-def set_current_model(
-    model_val: str, cached_models: dict
-) -> tuple[dict, go.Figure]:
+def set_current_model(model_val: str, cached_models: dict) -> tuple[dict, go.Figure]:
     """Sets the data and the spectrum plot for the currently selected model. Triggers whenever the
     model selection dropdown is changed. The spectrum plot is currently generated from a CSV file
     that is loaded from disk. The model data is retrieved from the cached models dictionary.
@@ -211,9 +209,7 @@ def set_current_model(
         - go.Figure: A plotly figure of the spectrum of energies for the selected model.
     """
     spectrum_plot = get_spectrum_plot(ModelType(int(model_val)))
-    model_data = cached_models[
-        ProblemModel(ModelType(int(model_val))).lookup_key
-    ]
+    model_data = cached_models[ProblemModel(ModelType(int(model_val))).lookup_key]
     return model_data, spectrum_plot
 
 

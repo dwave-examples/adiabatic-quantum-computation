@@ -31,7 +31,9 @@ PLOT_LAYOUT = dict(
 )
 
 
-def get_spectrum_plot(model_type: ModelType, problem_type: ProblemType=ProblemType.DEFAULT) -> go.Figure:
+def get_spectrum_plot(
+    model_type: ModelType, problem_type: ProblemType = ProblemType.DEFAULT
+) -> go.Figure:
     """Generates a plot of the energy spectrum for a given problem and model type.
     Uses pre-computed data from CSV files.
 
@@ -70,7 +72,9 @@ def get_spectrum_plot(model_type: ModelType, problem_type: ProblemType=ProblemTy
     return fig
 
 
-def get_results_plot(job_results: dict, qpu_name: str, problem_type: ProblemType=ProblemType.DEFAULT) -> go.Figure:
+def get_results_plot(
+    job_results: dict, qpu_name: str, problem_type: ProblemType = ProblemType.DEFAULT
+) -> go.Figure:
     """Generates a plot of the results for a given problem type and QPU. Plots the
     theoretical results as lines so that the experimental results can be compared to them.
 
