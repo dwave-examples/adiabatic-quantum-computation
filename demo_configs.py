@@ -14,39 +14,33 @@
 
 """This file stores input parameters for the app."""
 
-THUMBNAIL = "static/dwave_logo.svg"
+from src.demo_enums import ModelType
 
-APP_TITLE = "Demo Name"
-MAIN_HEADER = "Demo Name"
+APP_TITLE = "Adiabatic Quantum Computation"
+MAIN_HEADER = "Adiabatic Quantum Computation"
 DESCRIPTION = """\
-This is a Dash template for new examples. It includes some basic settings, tabs, and styling.
+Demonstration of adiabatic quantum computation in frustrated 25-qubit Ising models, compared with exact modeling.
 """
 
-#######################################
-# Sliders, buttons and option entries #
-#######################################
+THUMBNAIL = "static/dwave_logo.svg"
 
-# an example slider
-SLIDER = {
-    "min": 1,
-    "max": 10,
-    "step": 1,
-    "value": 5,
+ANNEALING_TIME_SERIES = [5, 7, 10, 14, 20]
+# Number of parallel embeddings for the model. More embeddings mean more accurate results
+# but they'll take longer to find if they're not already saved.
+NUM_PARALLEL_EMBEDDINGS = 10
+
+# TODO link to enums
+DEFAULT_QPU = "Advantage_system4"  # If not available, the first returned will be default
+DEFAULT_MODEL = ModelType.INTERMEDIATE_GAP
+
+MODEL_COLORS_THEORY = {
+    ModelType.LARGE_GAP: "#1f77b4",
+    ModelType.INTERMEDIATE_GAP: "#2ca02c",
+    ModelType.SMALL_GAP: "#ff7f0e",
 }
 
-# an example dropdown
-DROPDOWN = ["Option 1", "Option 2"]
-
-# an example checklist
-CHECKLIST = ["Option 1", "Option 2"]
-
-# an example radio list
-RADIO = ["Option 1", "Option 2"]
-
-# solver time limits in seconds (value means default)
-SOLVER_TIME = {
-    "min": 10,
-    "max": 300,
-    "step": 5,
-    "value": 10,
+MODEL_COLORS_RESULTS = {
+    ModelType.LARGE_GAP: "#299ef1",
+    ModelType.INTERMEDIATE_GAP: "#1cf21c",
+    ModelType.SMALL_GAP: "#9F520E",
 }

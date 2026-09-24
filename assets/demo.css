@@ -20,25 +20,17 @@ The following style rules can be altered or removed and any additional
 custom CSS can be added below.
 *******************************************************************/
 
-.tab-content-wrapper {
+.content-wrapper {
     padding: 2rem 2rem 0;
+}
+
+.plots-wrapper {
     display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    height: 100%;
+    gap: 2rem;
 }
 
-.input, .results {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100%;
+.graph-wrapper {
+    height: calc(50vw - var(--left-col-width) / 2 - 3rem);
+    width: calc(50vw - var(--left-col-width) / 2 - 3rem);
+    position: relative;
 }
-
-.problem-details-table {
-    width: 15.5rem;
-}
-
-  /****************************/
- /*** CUSTOM CSS GOES HERE ***/
-/****************************/

@@ -15,21 +15,47 @@
 from enum import Enum
 
 
-class SolverType(Enum):
-    """Add a list of solver options here. If this demo only requires 1 solver,
-    this functionality can be removed.
-    """
+class ProblemType(Enum):
+    """TODO: Future proofing for when we want to add problems with other graph structures to the demo.
+    We'll need a consistent way to refer to them programmatically, and an Enum is easier than
+    trying to distill the graph structure itself into a unique identifier. The intent is that
+    every graph structure should get a unique Enum name, but different models (i.e. different
+    sets of weights on the same graph structure) can share the same Enum name. When we need
+    to recover the actual graph structure, it can be inferred from any file of model weights
+    that matches the Enum name."""
 
-    SOLVER_1 = 0
-    SOLVER_2 = 1
+    DEFAULT = 0
+
+
+class ModelType(Enum):
+    """Encapsulates options for different models--i.e. different sets of weights on the same problem
+    graph. The demo depends on showing the differences in behavior between the different models."""
+
+    SMALL_GAP = 0
+    INTERMEDIATE_GAP = 1
+    LARGE_GAP = 2
 
     @property
     def label(self):
-        return {
-            SolverType.SOLVER_1: "Solver 1",
-            SolverType.SOLVER_2: "Solver 2",
-        }[self]
+        return self.name.replace("_", " ").title()
 
 
-### If any settings or variables are being used repeatedly, throughout the code, create a new
-### Enum for the setting here to avoid string comparisons or other fragile code practices.
+class JobState(Enum):
+    """Represents the possible states of a job on the QPU. The demo uses this both to
+    to display as user feedback and to check the state of a job to control which callbacks
+    can execute."""
+
+    # TODO check JobStates are being tracked an updated accurately, and consider revising
+    # list with a 'failed' state and/or removing unused states.
+
+    FINDING_EMBEDDING = 0
+    READY = 1
+    PREPROCESSING = 2
+    CONNECTING = 3
+    RUNNING = 4
+    COMPLETED = 5
+    NO_SOLVER = 6
+
+    @property
+    def label(self):
+        return self.name.replace("_", " ").title()
