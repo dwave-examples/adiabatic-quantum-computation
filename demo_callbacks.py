@@ -140,7 +140,7 @@ def set_current_embeddings(
         sampler = DWaveSampler(solver=qpu_name)
         target_graph = sampler.to_networkx_graph()
     except Exception as exc:
-        print(f"connecting to solver {qpu_name}: {exc}")
+        print(f"Error connecting to solver {qpu_name}: {exc}")
         return [], available_solvers
 
     try:
@@ -433,7 +433,7 @@ def update_main_graph(measurement_data: dict, qpu_name: str) -> tuple[go.Figure,
     Output("no-solver-modal", "opened"),
     Input("available-solvers", "data"),
 )
-def alert_no_solver(available_solvers: dict) -> bool:
+def alert_no_solver(available_solvers: list) -> bool:
     """Show the no-solver modal on load if no quantum computer is accessible.
 
     Args:

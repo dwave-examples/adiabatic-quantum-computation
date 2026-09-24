@@ -13,6 +13,7 @@
 # limitations under the License.
 
 """This file stores the Dash HTML layout for the app."""
+
 from __future__ import annotations
 
 from enum import EnumMeta
@@ -24,8 +25,6 @@ from demo_configs import DEFAULT_MODEL, DEFAULT_QPU, DESCRIPTION, MAIN_HEADER, T
 from src.demo_enums import JobState, ModelType, ProblemType
 from src.model_loading import ProblemModel
 from src.qpu_resources import get_qpu_ids
-
-THEME_COLOR = "#2d4376"
 
 
 def dropdown(label: str, id: str, options: list, value: str | None = None) -> html.Div:
@@ -139,7 +138,7 @@ def default_graph(title: str, id: str) -> html.Div:
                 responsive=True,
                 config={"displayModeBar": False},
             ),
-        ]
+        ],
     )
 
 
