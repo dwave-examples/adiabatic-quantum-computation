@@ -234,20 +234,6 @@ def no_solver_modal() -> dmc.Modal:
     )
 
 
-def error_modal() -> dmc.Modal:
-    """Modal to alert users that an error occurred creating a graph."""
-    return dmc.Modal(
-        title="Error",
-        id="error-modal",
-        centered=True,
-        children=[
-            html.P(
-                "Fitting function failed likely due to ill conditioned data, please collect more."
-            )
-        ],
-    )
-
-
 def create_interface() -> html.Div:
     """Create the main application interface."""
 
@@ -265,7 +251,6 @@ def create_interface() -> html.Div:
             ),
             dcc.Store(id="available-solvers", data=solvers),
             dcc.Store(id="qpu-select-time", data=0.0),
-            dcc.Store(id="modal-trigger", data=False),
             dcc.Store(id="job-submit-time", data=0.0),
             dcc.Store(id="job-submit-args", data={}),
             dcc.Store(id="current-embeddings", data=[]),
@@ -275,7 +260,6 @@ def create_interface() -> html.Div:
             dcc.Store(id="current-model", data={}),
             dcc.Store(id="current-results", data=generate_new_results_dict()),
             no_solver_modal(),
-            error_modal(),
             # Settings and results columns
             html.Main(
                 className="columns-main",
