@@ -72,13 +72,13 @@ def generate_options(options: list | EnumMeta | dict) -> list[dict]:
     return [{"label": f"{option}", "value": f"{option}"} for option in options]
 
 
-def generate_settings_form() -> html.Div:
+def generate_settings_form(solvers: list[str]) -> html.Div:
     """Generate settings for selecting the scenario, model, and solver.
 
     Returns:
         A Div containing the settings for selecting the scenario, model, and solver.
     """
-    solvers = get_qpu_ids() #[s for s in get_qpu_ids().keys()]  # TODO link to specific solver list
+    # TODO link to specific solver list
     qpu_options = generate_options(solvers)
 
     model_options = generate_options(ModelType)
@@ -110,11 +110,11 @@ def generate_settings_form() -> html.Div:
 
 
 def generate_run_buttons() -> html.Div:
-    """Generate run and cancel buttons to run the optimization."""
+    """Generate run button to run the experiment"""
     return html.Div(
         id="button-group",
         children=[
-            html.Button("Run Simulation", id="run-button", className="button", disabled=True),
+            html.Button("Run Experiment", id="run-button", className="button", disabled=True),
         ],
     )
 
@@ -159,7 +159,7 @@ def generate_new_results_dict(problem_type: str = ProblemType.DEFAULT.name) -> d
     return results_dict
 
 
-def show_status() -> html.Div:
+def show_status(solvers: list[str]) -> html.Div:
     """Show job submission state.
 
     Returns:
@@ -169,8 +169,7 @@ def show_status() -> html.Div:
     It should probably be added back later, but it's much lower priority than the functional pieces.
     """
 
-    no_solver = get_qpu_ids() == {}
-    init_job_status = JobState.NO_SOLVER if no_solver else JobState.READY
+    init_job_status = JobState.NO_SOLVER if not solvers else JobState.READY
 
     job_status_style = {"color": "#AA3A3C"} if init_job_status == JobState.NO_SOLVER else {}
 
@@ -251,6 +250,9 @@ def error_modal() -> dmc.Modal:
 
 def create_interface() -> html.Div:
     """Create the main application interface."""
+
+    solvers = get_qpu_ids(print_available=True)
+
     return html.Div(
         id="app-container",
         children=[
@@ -261,7 +263,8 @@ def create_interface() -> html.Div:
                 className="skip-link",
                 tabIndex=1,
             ),
-            dcc.Store(id="available-solvers", data=get_qpu_ids(print_available=True)),
+
+            dcc.Store(id="available-solvers", data=solvers),
             dcc.Store(id="qpu-select-time", data=0.0),
             dcc.Store(id="modal-trigger", data=False),
             dcc.Store(id="job-submit-time", data=0.0),
@@ -307,9 +310,9 @@ def create_interface() -> html.Div:
                                                     html.Div(
                                                         html.Div(
                                                             [
-                                                                generate_settings_form(),
+                                                                generate_settings_form(solvers),
                                                                 generate_run_buttons(),
-                                                                show_status(),
+                                                                show_status(solvers),
                                                             ],
                                                             className="settings-and-buttons",
                                                         ),
@@ -343,53 +346,40 @@ def create_interface() -> html.Div:
                     html.Div(
                         className="right-column",
                         children=[
-                            dmc.Tabs(
-                                id="tabs",
-                                value=f"tab-{ProblemType.DEFAULT.value + 1}",
-                                color="white",
+                            html.Header(
+                                className="banner",
+                                    children=[
+                                        html.Img(src=THUMBNAIL, alt="D-Wave logo"),
+                                    ],
+                            ),
+                            html.Div(
+                                id = "right-column-main-content",
                                 children=[
-                                    html.Header(
-                                        className="banner",
-                                        children=[
-                                            html.Img(src=THUMBNAIL, alt="D-Wave logo"),
-                                        ],
-                                    ),
-                                    dmc.TabsPanel(
-                                        value=f"tab-{ProblemType.DEFAULT.value + 1}",
-                                        tabIndex="12",
+                                    html.Div(
+                                        className="plots-wrapper",
                                         children=[
                                             html.Div(
-                                                className="tab-content-wrapper",
+                                                className="graph-wrapper",
                                                 children=[
-                                                    html.Div(
-                                                        className="plots-wrapper",
-                                                        children=[
-                                                            html.Div(
-                                                                className="graph-wrapper",
-                                                                children=[
-                                                                    default_graph(
-                                                                        "Experiment vs Theory",
-                                                                        "sample-v-theory",
-                                                                    ),
-                                                                ],
-                                                            ),
-                                                            html.Div(
-                                                                className="spectrum-plot-wrapper",
-                                                                children=[
-                                                                    default_graph(
-                                                                        "Energy Spectrum",
-                                                                        "spectrum",
-                                                                    ),
-                                                                ],
-                                                            ),
-                                                        ],
-                                                    )
+                                                    default_graph(
+                                                        "Experiment vs Theory",
+                                                        "sample-v-theory",
+                                                    ),
                                                 ],
-                                            )
+                                            ),
+                                            html.Div(
+                                                className="spectrum-plot-wrapper",
+                                                children=[
+                                                    default_graph(
+                                                        "Energy Spectrum",
+                                                        "spectrum",
+                                                    ),
+                                                ],
+                                            ),
                                         ],
-                                    ),
+                                    )
                                 ],
-                            )
+                            ),
                         ],
                     ),
                 ],

@@ -164,6 +164,9 @@ class ProblemModel:
 
         Args:
             as_dicts: If True, values are JSON-safe dicts instead of ProblemModels.
+
+        Returns:
+            A dictionary containing all loaded problem models, keyed by their lookup keys.
         """
         models_dict = {}
         for model_filename in os.listdir(MODELS_PATH):

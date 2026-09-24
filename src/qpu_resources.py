@@ -25,8 +25,13 @@ def get_qpu_ids(print_available: bool = False) -> list[str]:
     Returns:
         The sorted QPU names.
     """
-    client = Client.from_config(client="qpu")
-    solver_opts = client.get_solvers()
+    try:
+        client = Client.from_config(client="qpu")
+        solver_opts = client.get_solvers()
+    except Exception as exc:
+        if print_available:
+            print(f"Could not connect to the Leap quantum cloud service: {exc}")
+        return []
     solver_list = sorted({qpu.name for qpu in solver_opts})
     if print_available:
         print(f"Available solvers: {solver_list}")

@@ -135,10 +135,19 @@ def set_current_embeddings(
     if qpu_name not in available_solvers:
         return [], available_solvers
 
-    sampler = DWaveSampler(solver=qpu_name)
-    target_graph = sampler.to_networkx_graph()
-    emb_set = EmbeddingSet(qpu_name, target_graph)
-    problem_embeddings = emb_set.get_embeddings()
+    try:
+        sampler = DWaveSampler(solver=qpu_name)
+        target_graph = sampler.to_networkx_graph()
+    except Exception as exc:
+        print(f"connecting to solver {qpu_name}: {exc}")
+        return [], available_solvers
+
+    try:
+        emb_set = EmbeddingSet(qpu_name, target_graph)
+        problem_embeddings = emb_set.get_embeddings()
+    except Exception as exc:
+        print(f"Error finding embeddings: {exc}")
+        problem_embeddings = []
 
     return problem_embeddings, available_solvers
 
