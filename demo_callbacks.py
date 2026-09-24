@@ -190,11 +190,10 @@ def set_state_to_ready(
     Output("current-model", "data"),
     Output("spectrum-graph", "figure"),
     Input("model-selection", "value"),
-    State("current-problem-type", "data"),
     State("cached-models", "data"),
 )
 def set_current_model(
-    model_val: str, problem_type: str, cached_models: dict
+    model_val: str, cached_models: dict
 ) -> tuple[dict, go.Figure]:
     """Sets the data and the spectrum plot for the currently selected model. Triggers whenever the
     model selection dropdown is changed. The spectrum plot is currently generated from a CSV file
@@ -202,7 +201,6 @@ def set_current_model(
 
     Args:
         model_val: The value of the currently selected model from the dropdown.
-        problem_type: The currently selected problem type.
         cached_models: A dictionary of cached models, keyed by their lookup keys.
 
     Returns:
@@ -212,9 +210,9 @@ def set_current_model(
           ground state energy (EGS).
         - go.Figure: A plotly figure of the spectrum of energies for the selected model.
     """
-    spectrum_plot = get_spectrum_plot(ProblemType[problem_type], ModelType(int(model_val)))
+    spectrum_plot = get_spectrum_plot(ModelType(int(model_val)))
     model_data = cached_models[
-        ProblemModel(ProblemType[problem_type], ModelType(int(model_val))).lookup_key
+        ProblemModel(ModelType(int(model_val))).lookup_key
     ]
     return model_data, spectrum_plot
 
@@ -421,7 +419,7 @@ def update_main_graph(measurement_data: dict, qpu_name: str) -> tuple[go.Figure,
         - str: The new state of the job submission process, set to COMPLETED.
     """
 
-    fig = get_results_plot(measurement_data, ProblemType.DEFAULT, qpu_name)
+    fig = get_results_plot(measurement_data, qpu_name)
 
     return fig, JobState.COMPLETED.label
 

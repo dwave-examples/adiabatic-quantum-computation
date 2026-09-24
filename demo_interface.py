@@ -274,11 +274,6 @@ def create_interface() -> html.Div:
             ),
             dcc.Store(id="current-model", data={}),
             dcc.Store(id="current-results", data=generate_new_results_dict()),
-            dcc.Store(
-                id="current-problem-type", data=ProblemType.DEFAULT.name
-            ),  # Currently no functionality for
-            # changing this as we only have one problem type. But it's a lot easier to design around having
-            # more problem types from the start than it is to add that in later.
             no_solver_modal(),
             error_modal(),
             # Settings and results columns

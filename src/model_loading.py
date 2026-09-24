@@ -34,8 +34,8 @@ class ProblemModel:
 
     def __init__(
         self,
-        problem_type: ProblemType,
         model_type: ModelType,
+        problem_type: ProblemType=ProblemType.DEFAULT,
         h: dict | None = None,
         J: dict | None = None,
         EGS: float | None = None,
@@ -140,7 +140,7 @@ class ProblemModel:
         h = {int(u): v for u, v in props_dict["h"].items()}
         J = {tuple(map(int, k.strip("()").split(","))): v for k, v in props_dict["J"].items()}
         EGS = props_dict["EGS"]
-        return ProblemModel(problem_type, model_type, h, J, EGS)
+        return ProblemModel(model_type, problem_type, h, J, EGS)
 
     @staticmethod
     def problem_from_json_file(json_filename: str) -> ProblemModel:
@@ -181,7 +181,7 @@ class ProblemModel:
 
     @staticmethod
     def load_spectrum_scatter_from_file(
-        problem_type: ProblemType, model_type: ModelType
+        model_type: ModelType, problem_type: ProblemType=ProblemType.DEFAULT
     ) -> np.ndarray:
         """Loads the data to create a scatter plot of the energy spectrum for a given problem instance.
 
@@ -194,7 +194,7 @@ class ProblemModel:
         """
 
         scatter_path = os.path.join(
-            MODELS_PATH, ProblemModel(problem_type, model_type).spectrum_scatter_filename
+            MODELS_PATH, ProblemModel(model_type, problem_type).spectrum_scatter_filename
         )
         if not os.path.exists(scatter_path):
             raise FileNotFoundError(f"Scatter CSV file not found at {scatter_path}.")
@@ -217,7 +217,7 @@ class ProblemModel:
             ground state probabilities as predicted by the theoretical model.
         """
         theory_data_path = os.path.join(
-            MODELS_PATH, ProblemModel(problem_type, model_type).theory_data_filename
+            MODELS_PATH, ProblemModel(model_type, problem_type).theory_data_filename
         )
         if not os.path.exists(theory_data_path):
             raise FileNotFoundError(f"Theory data file not found at {theory_data_path}.")

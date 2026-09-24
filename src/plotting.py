@@ -31,18 +31,19 @@ PLOT_LAYOUT = dict(
 )
 
 
-def get_spectrum_plot(problem_type: ProblemType, model_type: ModelType) -> go.Figure:
+def get_spectrum_plot(model_type: ModelType, problem_type: ProblemType=ProblemType.DEFAULT) -> go.Figure:
     """Generates a plot of the energy spectrum for a given problem and model type.
     Uses pre-computed data from CSV files.
 
     Args:
-        problem_type: The type of problem for which the spectrum is being plotted.
+        problem_type: The type of problem for which the spectrum is being plotted. Currently
+            only the default problem type is supported, but more can be added in the future.
         model_type: The type of model for which the spectrum is being plotted.
 
     Returns:
         A Plotly figure object containing the spectrum plot."""
 
-    filedata = ProblemModel.load_spectrum_scatter_from_file(problem_type, model_type)
+    filedata = ProblemModel.load_spectrum_scatter_from_file(model_type, problem_type)
     fig = go.Figure()
 
     rows = filedata[:, 2:]
@@ -69,13 +70,14 @@ def get_spectrum_plot(problem_type: ProblemType, model_type: ModelType) -> go.Fi
     return fig
 
 
-def get_results_plot(job_results: dict, problem_type: ProblemType, qpu_name: str) -> go.Figure:
+def get_results_plot(job_results: dict, qpu_name: str, problem_type: ProblemType=ProblemType.DEFAULT) -> go.Figure:
     """Generates a plot of the results for a given problem type and QPU. Plots the
     theoretical results as lines so that the experimental results can be compared to them.
 
     Args:
         job_results: A dictionary containing the results of the jobs for each model type.
-        problem_type: The type of problem for which the results are being plotted.
+        problem_type: The type of problem for which the results are being plotted. Currently
+            only the default problem type is supported, but more can be added in the future.
         qpu_name: The name of the QPU for which the results are being plotted.
 
     Returns:
