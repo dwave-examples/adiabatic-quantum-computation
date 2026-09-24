@@ -131,7 +131,8 @@ def default_graph(title: str, id: str) -> html.Div:
     """
 
     return html.Div(
-        [
+        className="graph-wrapper",
+        children=[
             html.H3(title),
             dcc.Graph(
                 id=f"{id}-graph",
@@ -352,28 +353,18 @@ def create_interface() -> html.Div:
                                 ],
                             ),
                             html.Div(
-                                id="right-column-main-content",
+                                className="content-wrapper",
                                 children=[
                                     html.Div(
                                         className="plots-wrapper",
                                         children=[
-                                            html.Div(
-                                                className="graph-wrapper",
-                                                children=[
-                                                    default_graph(
-                                                        "Experiment vs Theory",
-                                                        "sample-v-theory",
-                                                    ),
-                                                ],
+                                            default_graph(
+                                                "Experiment vs Theory",
+                                                "sample-v-theory",
                                             ),
-                                            html.Div(
-                                                className="spectrum-plot-wrapper",
-                                                children=[
-                                                    default_graph(
-                                                        "Energy Spectrum",
-                                                        "spectrum",
-                                                    ),
-                                                ],
+                                            default_graph(
+                                                "Energy Spectrum",
+                                                "spectrum",
                                             ),
                                         ],
                                     )
