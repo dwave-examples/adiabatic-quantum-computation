@@ -146,10 +146,10 @@ def generate_new_results_dict(problem_type: str = ProblemType.DEFAULT.name) -> d
     """Generates a new standardized dictionary for storing measurement results. Result sets
     should be specific to a given QPU, so this function is called whenever a new QPU is selected
     to replace the current-results data store with a new, empty results dictionary.
-    
+
     Args:
         problem_type: The type of problem for which to generate the results dictionary.
-        
+
     Returns:
         A dictionary with keys for each model type and an empty list for storing results.
     """
@@ -263,7 +263,6 @@ def create_interface() -> html.Div:
                 className="skip-link",
                 tabIndex=1,
             ),
-
             dcc.Store(id="available-solvers", data=solvers),
             dcc.Store(id="qpu-select-time", data=0.0),
             dcc.Store(id="modal-trigger", data=False),
@@ -348,12 +347,12 @@ def create_interface() -> html.Div:
                         children=[
                             html.Header(
                                 className="banner",
-                                    children=[
-                                        html.Img(src=THUMBNAIL, alt="D-Wave logo"),
-                                    ],
+                                children=[
+                                    html.Img(src=THUMBNAIL, alt="D-Wave logo"),
+                                ],
                             ),
                             html.Div(
-                                id = "right-column-main-content",
+                                id="right-column-main-content",
                                 children=[
                                     html.Div(
                                         className="plots-wrapper",

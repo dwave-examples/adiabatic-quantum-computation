@@ -124,7 +124,7 @@ class ProblemModel:
     @staticmethod
     def from_dict(lookup_key: str, props_dict: dict) -> ProblemModel:
         """Build a ProblemModel from a lookup key and a dict.
-        
+
         Args:
             lookup_key: The lookup key identifying the problem and model type.
             props_dict: A dictionary containing the properties of the problem model.
@@ -180,9 +180,11 @@ class ProblemModel:
         return models_dict
 
     @staticmethod
-    def load_spectrum_scatter_from_file(problem_type: ProblemType, model_type: ModelType) -> np.ndarray:
+    def load_spectrum_scatter_from_file(
+        problem_type: ProblemType, model_type: ModelType
+    ) -> np.ndarray:
         """Loads the data to create a scatter plot of the energy spectrum for a given problem instance.
-        
+
         Args:
             problem_type: The type of the problem instance.
             model_type: The type of the model instance.
@@ -200,7 +202,9 @@ class ProblemModel:
         return filedata
 
     @staticmethod
-    def load_theory_data_from_file(problem_type: ProblemType, model_type: ModelType) -> tuple[list[float], list[float]]:
+    def load_theory_data_from_file(
+        problem_type: ProblemType, model_type: ModelType
+    ) -> tuple[list[float], list[float]]:
         """Loads the data for the theoretical predictions of ground state probability as a
         function of annealing time for a given problem instance.
 
@@ -209,7 +213,7 @@ class ProblemModel:
             model_type: The type of the model instance.
 
         Returns:
-            A tuple containing two lists of floats: the annealing times and the corresponding 
+            A tuple containing two lists of floats: the annealing times and the corresponding
             ground state probabilities as predicted by the theoretical model.
         """
         theory_data_path = os.path.join(

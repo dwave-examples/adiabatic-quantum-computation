@@ -14,6 +14,7 @@
 
 from enum import Enum
 
+
 class ProblemType(Enum):
     """TODO: Future proofing for when we want to add problems with other graph structures to the demo.
     We'll need a consistent way to refer to them programmatically, and an Enum is easier than
@@ -24,6 +25,7 @@ class ProblemType(Enum):
     that matches the Enum name."""
 
     DEFAULT = 0
+
 
 class ModelType(Enum):
     """Encapsulates options for different models--i.e. different sets of weights on the same problem
@@ -46,7 +48,7 @@ class JobState(Enum):
     # TODO check JobStates are being tracked an updated accurately, and consider revising
     # list with a 'failed' state and/or removing unused states.
 
-    FINDING_EMBEDDING = 0 
+    FINDING_EMBEDDING = 0
     READY = 1
     PREPROCESSING = 2
     CONNECTING = 3

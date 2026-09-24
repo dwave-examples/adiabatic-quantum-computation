@@ -30,14 +30,15 @@ PLOT_LAYOUT = dict(
     ),
 )
 
+
 def get_spectrum_plot(problem_type: ProblemType, model_type: ModelType) -> go.Figure:
     """Generates a plot of the energy spectrum for a given problem and model type.
     Uses pre-computed data from CSV files.
-    
+
     Args:
         problem_type: The type of problem for which the spectrum is being plotted.
         model_type: The type of model for which the spectrum is being plotted.
-        
+
     Returns:
         A Plotly figure object containing the spectrum plot."""
 
@@ -62,9 +63,7 @@ def get_spectrum_plot(problem_type: ProblemType, model_type: ModelType) -> go.Fi
     fig.update_yaxes(type="log", range=[-1, 0.6])
 
     fig.update_layout(
-        xaxis_title="Anneal Progress",
-        yaxis_title="Excitation Energy (GHz)",
-        **PLOT_LAYOUT
+        xaxis_title="Anneal Progress", yaxis_title="Excitation Energy (GHz)", **PLOT_LAYOUT
     )
 
     return fig
@@ -127,9 +126,7 @@ def get_results_plot(job_results: dict, problem_type: ProblemType, qpu_name: str
             )
 
     fig.update_layout(
-        xaxis_title="Annealing Time (ns)",
-        yaxis_title="Excited State Probability",
-        **PLOT_LAYOUT
+        xaxis_title="Annealing Time (ns)", yaxis_title="Excited State Probability", **PLOT_LAYOUT
     )
 
     fig.update_xaxes(range=[0, 21])

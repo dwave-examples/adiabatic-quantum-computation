@@ -88,7 +88,7 @@ class EmbeddingSet:
             loaded_embeddings = self.load_from_json_file()
 
             for emb in loaded_embeddings:
-                emb = {int(k): tuple(v) for k, v in emb.items()} 
+                emb = {int(k): tuple(v) for k, v in emb.items()}
                 try:
                     verify_embedding(emb, self.source_graph, self.target_graph)
                     valid_embeddings.append(emb)
@@ -102,7 +102,9 @@ class EmbeddingSet:
             print("No saved embeddings found.")
 
         if len(valid_embeddings) < NUM_PARALLEL_EMBEDDINGS:
-            print(f"Require {NUM_PARALLEL_EMBEDDINGS - len(valid_embeddings)} embeddings for full embedding set.")
+            print(
+                f"Require {NUM_PARALLEL_EMBEDDINGS - len(valid_embeddings)} embeddings for full embedding set."
+            )
             print("Finding embeddings now...")
             num_needed = NUM_PARALLEL_EMBEDDINGS - len(valid_embeddings)
             print(f"Finding {num_needed} new embeddings...")
@@ -115,7 +117,9 @@ class EmbeddingSet:
                 timeout=30,
             )
 
-            valid_embeddings.extend([{int(k): (v,) for k, v in emb.items()} for emb in new_embeddings])
+            valid_embeddings.extend(
+                [{int(k): (v,) for k, v in emb.items()} for emb in new_embeddings]
+            )
 
             self.save_to_json_file(valid_embeddings)
 
@@ -128,7 +132,7 @@ class EmbeddingSet:
 
     def save_to_json_file(self, embeddings: list[dict]):
         """Save the embeddings to a JSON file for later re-use.
-        
+
         Args:
             embeddings: A list of embeddings, each a dict mapping source node to target chain.
         """
@@ -139,7 +143,7 @@ class EmbeddingSet:
     def load_from_json_file(self) -> list[dict]:
         """Load saved embeddings from file. This is used to retrieve previously-found embeddings
         and avoid having to find them again.
-        
+
         Returns:
             A list of embeddings, each a dict mapping source node to target qubit.
         """

@@ -34,4 +34,3 @@ Y_AXIS_RESCALING = {
     "Advantage2_system5": -1.9,
     "Advantage2_system1": -1.9,
 }
-

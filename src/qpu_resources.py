@@ -16,6 +16,7 @@ from __future__ import annotations
 
 from dwave.cloud import Client
 
+
 def get_qpu_ids(print_available: bool = False) -> list[str]:
     """Get the available QPU names mapped to their graph ids.
 

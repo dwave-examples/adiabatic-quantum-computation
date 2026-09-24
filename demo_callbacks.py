@@ -29,8 +29,9 @@ from src.demo_enums import JobState, ModelType, ProblemType
 from src.model_loading import ProblemModel
 from src.plotting import get_results_plot, get_spectrum_plot
 from src.process_embeddings import EmbeddingSet
-from src.values import ENERGY_THRESHOLD
 from src.qpu_resources import get_qpu_ids
+from src.values import ENERGY_THRESHOLD
+
 
 @dash.callback(
     Output({"type": "to-collapse-class", "index": MATCH}, "className"),
@@ -88,7 +89,7 @@ def process_qpu_select(qpu_name: str) -> tuple[list[dict], bool, str, float, dic
     Returns:
         A tuple containing:
 
-        - list[dict]: Clears the ``current-embeddings`` store and triggers QPU-specific 
+        - list[dict]: Clears the ``current-embeddings`` store and triggers QPU-specific
             embeddings to be cached for the newly-selected QPU
         - bool: True, to disable the run button until new embeddings have been cached.
         - str: The FINDING_EMBEDDING label for the job-submit-state field.
@@ -113,8 +114,8 @@ def set_current_embeddings(
     qpu_select_time: float,
     qpu_name: str,
 ) -> tuple[list[dict], list[str]]:
-    """Finds and sets the current embeddings for the selected QPU and problem type. Checks 
-    embeddings saved in files first; if they are absent or unusable, finds new embeddings and 
+    """Finds and sets the current embeddings for the selected QPU and problem type. Checks
+    embeddings saved in files first; if they are absent or unusable, finds new embeddings and
     saves them to file. Re-checks the list of available solvers to ensure selected QPU is
     still available: returns the current list in either event.
 
@@ -193,10 +194,8 @@ def set_state_to_ready(
     State("cached-models", "data"),
 )
 def set_current_model(
-    model_val: str, 
-    problem_type: str, 
-    cached_models: dict
-    ) -> tuple[dict, go.Figure]:
+    model_val: str, problem_type: str, cached_models: dict
+) -> tuple[dict, go.Figure]:
     """Sets the data and the spectrum plot for the currently selected model. Triggers whenever the
     model selection dropdown is changed. The spectrum plot is currently generated from a CSV file
     that is loaded from disk. The model data is retrieved from the cached models dictionary.
@@ -331,13 +330,13 @@ def submit_job(
 ) -> tuple[Patch, bool, list[str]]:
     """Submit job and provide job ID. Returns the updated results to be stored
     in the current-results data store. Re-enables the run button (disabled by run_button_click)
-    after the job is complete. Re-checks the list of available solvers to ensure the selected QPU 
+    after the job is complete. Re-checks the list of available solvers to ensure the selected QPU
     is still available, returning the current list in either event.
 
     Args:
         job_submit_args: A dictionary containing the job submission arguments including the
             problem Hamiltonian and the annealing time.
-        job_submit_state: current job state. Used to ensure that the demo is in a state 
+        job_submit_state: current job state. Used to ensure that the demo is in a state
             compatible with job submission.
         qpu_name: The name of the QPU to which the job is being submitted.
         model_val: The currently selected model value as a string.
@@ -352,7 +351,7 @@ def submit_job(
             solver was unavailable, this dictionary will be returned unchanged.
         - bool: False indicating that the run button should not be disabled.
         - list: The list of available solvers.
-        """
+    """
 
     results_dict = Patch()
 
@@ -411,13 +410,13 @@ def update_main_graph(measurement_data: dict, qpu_name: str) -> tuple[go.Figure,
 
     Args:
         measurement_data: A dictionary containing the current measurement results.
-        qpu_name: The name of the currently selected QPU, used for rescaling the 
+        qpu_name: The name of the currently selected QPU, used for rescaling the
             results plot to the QPU-specific energy scale.
 
     Returns:
         A tuple containing:
 
-        - go.Figure: A plotly figure of the excited state probability as a function of the 
+        - go.Figure: A plotly figure of the excited state probability as a function of the
             annealing time.
         - str: The new state of the job submission process, set to COMPLETED.
     """
@@ -425,6 +424,7 @@ def update_main_graph(measurement_data: dict, qpu_name: str) -> tuple[go.Figure,
     fig = get_results_plot(measurement_data, ProblemType.DEFAULT, qpu_name)
 
     return fig, JobState.COMPLETED.label
+
 
 # ==================================================================================================
 
@@ -443,4 +443,3 @@ def alert_no_solver(available_solvers: dict) -> bool:
         True if the modal should be opened, False otherwise.
     """
     return not available_solvers
-
