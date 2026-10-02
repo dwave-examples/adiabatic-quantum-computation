@@ -15,15 +15,17 @@
 from __future__ import annotations
 
 import time
+import bisect
 
 import dash
 import numpy as np
 import plotly.graph_objects as go
-from dash import MATCH, Input, Output, Patch, State
+from dash import MATCH, Input, Output, Patch, State, ctx
 from dash.exceptions import PreventUpdate
 from dwave.system import DWaveSampler, ParallelEmbeddingComposite
+import dimod
 
-from demo_configs import ANNEALING_TIME_SERIES
+from demo_configs import DEFAULT_ANNEALING_TIMES, NUM_READS, NUM_PARALLEL_EMBEDDINGS, ANNEAL_TIME_STATIC_MARKS, MODEL_COLORS_RESULTS
 from demo_interface import generate_new_results_dict
 from src.demo_enums import JobState, ModelType
 from src.model_loading import ProblemModel
@@ -31,6 +33,7 @@ from src.plotting import get_results_plot, get_spectrum_plot
 from src.process_embeddings import EmbeddingSet
 from src.qpu_resources import get_qpu_ids
 from src.values import ENERGY_THRESHOLD
+from src.sample_stats import process_results
 
 
 @dash.callback(
@@ -68,13 +71,8 @@ def toggle_left_column(collapse_trigger: int, to_collapse_class: str) -> tuple[s
 
 
 @dash.callback(
-    Output("current-embeddings", "data", allow_duplicate=True),
-    Output("run-button", "disabled", allow_duplicate=True),
-    Output("job-submit-state", "children", allow_duplicate=True),
     Output("qpu-select-time", "data"),
-    Output("current-results", "data", allow_duplicate=True),
     Input("qpu-selection", "value"),
-    prevent_initial_call=True,
 )
 def process_qpu_select(qpu_name: str) -> tuple[list[dict], bool, str, float, dict]:
     """Removes stored value for current embedding and disables run button.
@@ -98,20 +96,56 @@ def process_qpu_select(qpu_name: str) -> tuple[list[dict], bool, str, float, dic
         clears all the old results.
     """
 
-    return [], True, JobState.FINDING_EMBEDDING.label, time.time(), generate_new_results_dict()
-
+    return time.time()
 
 # =================================================================================================
 
 
 @dash.callback(
+    Output("current-embeddings", "data", allow_duplicate=True),
+    Output("run-button", "disabled", allow_duplicate=True),
+    Output("job-submit-state", "children", allow_duplicate=True),
+    Output("current-results", "data", allow_duplicate=True),
+    Input("qpu-select-time", "data"),
+    prevent_initial_call=True,
+)
+def reset_embeddings_and_results(qpu_name: str) -> tuple[list[dict], bool, str, float, dict]:
+    """Removes stored value for current embedding and disables run button.
+    This will trigger the set_current_embeddings callback to run. If an appropriate
+    embedding is already cached, it will be used and the run button will be re-enabled
+    almost immediately. If not, the run button will remain disabled until the embedding
+    is found and cached.
+
+    Args:
+        qpu_name: Name of the selected QPU
+
+    Returns:
+        A tuple containing:
+
+        - list[dict]: Clears the ``current-embeddings`` store and triggers QPU-specific
+            embeddings to be cached for the newly-selected QPU
+        - bool: True, to disable the run button until new embeddings have been cached.
+        - str: The FINDING_EMBEDDING label for the job-submit-state field.
+        - float: The current time, stored in qpu-select-time to trigger set_current_embeddings.
+        - dict: A new, empty results dictionary. Results are QPU-specific, so changing the QPU
+        clears all the old results.
+    """
+
+    return [], True, JobState.FINDING_EMBEDDING.label, generate_new_results_dict()
+
+@dash.callback(
     Output("current-embeddings", "data"),
     Output("available-solvers", "data"),
-    Input("qpu-select-time", "data"),
+    Output("run-button", "disabled", allow_duplicate=True),
+    Output("job-submit-state", "children", allow_duplicate=True),
+    Input("current-results", "data"),
+    State("job-submit-state", "children"),
     State("qpu-selection", "value"),
+    prevent_initial_call=True
 )
 def set_current_embeddings(
-    qpu_select_time: float,
+    results_dict: dict,
+    job_submit_state: str,
     qpu_name: str,
 ) -> tuple[list[dict], list[str]]:
     """Finds and sets the current embeddings for the selected QPU and problem type. Checks
@@ -131,17 +165,25 @@ def set_current_embeddings(
         - list[str]: The list of available solvers.
     """
 
+    if job_submit_state != JobState.FINDING_EMBEDDING.label:
+        raise PreventUpdate
+
     available_solvers = get_qpu_ids()
 
+    if not available_solvers:
+        print("No available solvers")
+        return [], available_solvers, True, JobState.NO_SOLVER.label
+
     if qpu_name not in available_solvers:
-        return [], available_solvers
+        print(f"Selected QPU {qpu_name} is not available")
+        return [], available_solvers, True, JobState.CONNECTING.label # TODO consider job state label for this case
 
     try:
         sampler = DWaveSampler(solver=qpu_name)
         target_graph = sampler.to_networkx_graph()
     except Exception as exc:
         print(f"Error connecting to solver {qpu_name}: {exc}")
-        return [], available_solvers
+        return [], available_solvers, False, JobState.FAILED.label
 
     try:
         emb_set = EmbeddingSet(qpu_name, target_graph)
@@ -150,37 +192,7 @@ def set_current_embeddings(
         print(f"Error finding embeddings: {exc}")
         problem_embeddings = []
 
-    return problem_embeddings, available_solvers
-
-
-# =================================================================================================
-
-
-@dash.callback(
-    Output("run-button", "disabled", allow_duplicate=True),
-    Output("job-submit-state", "children", allow_duplicate=True),
-    Input("current-embeddings", "data"),
-    prevent_initial_call=True,
-)
-def set_state_to_ready(
-    current_embeddings: list[dict],
-) -> tuple[bool, str]:
-    """Resets the job state and enables the run button after embeddings are found.
-
-    Args:
-        current_embeddings: The embeddings for the selected QPU.
-
-    Returns:
-        A tuple containing:
-
-        - bool: Whether the run button should be disabled.
-        - str: The READY label for the job-submit-state field.
-    """
-
-    if not current_embeddings:
-        raise PreventUpdate
-
-    return False, JobState.READY.label
+    return problem_embeddings, available_solvers, False, JobState.READY.label
 
 
 # =================================================================================================
@@ -190,9 +202,11 @@ def set_state_to_ready(
     Output("current-model", "data"),
     Output("spectrum-graph", "figure"),
     Input("model-selection", "value"),
+    Input("energy-rescaling", "value"),
+    Input("job-submit-time", "data"),
     State("cached-models", "data"),
 )
-def set_current_model(model_val: str, cached_models: dict) -> tuple[dict, go.Figure]:
+def set_current_model(model_val: str, energy_rescaling: float, job_submit_time: float, cached_models: dict) -> tuple[dict, go.Figure]:
     """Sets the data and the spectrum plot for the currently selected model. Triggers whenever the
     model selection dropdown is changed. The spectrum plot is currently generated from a CSV file
     that is loaded from disk. The model data is retrieved from the cached models dictionary.
@@ -208,21 +222,21 @@ def set_current_model(model_val: str, cached_models: dict) -> tuple[dict, go.Fig
           ground state energy (EGS).
         - go.Figure: A plotly figure of the spectrum of energies for the selected model.
     """
-    spectrum_plot = get_spectrum_plot(ModelType(int(model_val)))
-    model_data = cached_models[ProblemModel(ModelType(int(model_val))).lookup_key]
+    spectrum_plot = get_spectrum_plot(ModelType(int(model_val)), energy_rescaling=energy_rescaling)
+    if ctx.triggered_id == "energy-rescaling":
+        model_data = dash.no_update
+    else:
+        model_data = cached_models[ProblemModel(ModelType(int(model_val))).lookup_key]
     return model_data, spectrum_plot
 
-
 # =================================================================================================
-
 
 @dash.callback(
     Output("run-button", "disabled", allow_duplicate=True),
     Output("job-submit-state", "children", allow_duplicate=True),
     Output("job-submit-time", "data"),
-    inputs=[
-        Input("run-button", "n_clicks"),
-    ],
+    Output("energy-rescaling", "disabled"),
+    Input("run-button", "n_clicks"),
     prevent_initial_call=True,
 )
 def run_button_click(
@@ -241,7 +255,7 @@ def run_button_click(
         - float: The current time, stored in job-submit-time to trigger preprocess_job.
     """
 
-    return True, JobState.PREPROCESSING.label, time.time()
+    return True, JobState.PREPROCESSING.label, time.time(), True
 
 
 # =================================================================================================
@@ -251,11 +265,12 @@ def run_button_click(
     Output("job-submit-args", "data"),
     Output("job-submit-state", "children", allow_duplicate=True),
     inputs=[
-        Input("job-submit-time", "data"),
+        Input("current-model", "data"),
         State("job-submit-state", "children"),
         State("current-model", "data"),
         State("model-selection", "value"),
-        State("current-results", "data"),
+        State("annealing-time", "value"),
+        State("energy-rescaling", "value"),
     ],
     prevent_initial_call=True,
 )
@@ -264,7 +279,8 @@ def preprocess_job(
     job_submit_state: str,
     model_data: dict,
     model_val: str,
-    measurement_data: dict,
+    annealing_time: float,
+    energy_rescaling: float,
 ) -> tuple[dict, str]:
     """Sets the annealing time and changes the job state to RUNNING.
 
@@ -290,14 +306,21 @@ def preprocess_job(
     if job_submit_state != JobState.PREPROCESSING.label:
         raise PreventUpdate
 
-    job_kwargs = model_data.copy()
-    current_job_results = measurement_data[ModelType(int(model_val)).name]
-    measurement_number = len(current_job_results)
-    ta = ANNEALING_TIME_SERIES[measurement_number % len(ANNEALING_TIME_SERIES)] / 1000
-    job_kwargs.update({"annealing_time": ta})
+    try:
+        job_kwargs = model_data.copy()
+        print(job_kwargs)
+        ta = annealing_time / 1000
+        job_kwargs.update({"annealing_time": ta})
+        print(f"Energy Rescaling: {energy_rescaling}")
+        print(f"Job kwargs before energy rescaling: {job_kwargs}")
+        job_kwargs['h'] = {k: v*energy_rescaling for k, v in job_kwargs['h'].items()}
+        job_kwargs['J'] = {k: v*energy_rescaling for k, v in job_kwargs['J'].items()}
+        job_kwargs['EGS'] *= energy_rescaling
+        print(f"Job kwargs after energy rescaling: {job_kwargs}")
+    except:
+        return dash.no_update, JobState.FAILED.label
 
     return job_kwargs, JobState.RUNNING.label
-
 
 # =================================================================================================
 
@@ -306,6 +329,8 @@ def preprocess_job(
     Output("current-results", "data"),
     Output("run-button", "disabled", allow_duplicate=True),
     Output("available-solvers", "data", allow_duplicate=True),
+    Output("job-submit-state", "children", allow_duplicate=True),
+    Output("energy-rescaling", "disabled", allow_duplicate=True),
     inputs=[
         Input("job-submit-args", "data"),
         State("job-submit-state", "children"),
@@ -351,40 +376,49 @@ def submit_job(
 
     available_solvers = get_qpu_ids()
     if qpu_name not in available_solvers:
-        return results_dict, False, available_solvers
+        return results_dict, False, available_solvers, JobState.FAILED.label, False
 
     if job_submit_state != JobState.RUNNING.label:
         raise PreventUpdate
 
-    EGS = job_submit_args.pop("EGS")
-    job_submit_args["h"] = {int(k): v for k, v in job_submit_args["h"].items()}
-    job_submit_args["J"] = {
-        tuple(map(int, k.strip("()").split(","))): v for k, v in job_submit_args["J"].items()
-    }
 
-    embeddings = [{int(k): tuple(v) for k, v in emb.items()} for emb in model_embeddings]
+    try:
+        EGS = job_submit_args["EGS"]
+        h = {int(k): v for k, v in job_submit_args["h"].items()}
+        J = {tuple(map(int, k.strip("()").split(","))): v for k, v in job_submit_args["J"].items()}
+        bqm = dimod.BinaryQuadraticModel(dimod.SPIN).from_ising(h=h, J=J)
+        parallel_bqms = [bqm]*NUM_PARALLEL_EMBEDDINGS
 
-    qpu = DWaveSampler(solver=qpu_name)
+        ta = job_submit_args['annealing_time']
+        embeddings = [{int(k): tuple(v) for k, v in emb.items()} for emb in model_embeddings]
 
-    sampler = ParallelEmbeddingComposite(
-        qpu,
-        embeddings=embeddings,
-    )
+        qpu = DWaveSampler(solver=qpu_name)
 
-    qpu_kwargs = dict(
-        num_reads=100,
-        answer_mode="raw",
-        fast_anneal=True,
-        auto_scale=False,
-        label="Example - Adiabatic Quantum Computation",
-    )
+        sampler = ParallelEmbeddingComposite(
+            qpu,
+            embeddings=embeddings,
+        )
 
-    qpu_kwargs.update(job_submit_args)
-    ss = sampler.sample_ising(**qpu_kwargs)
-    stats = 1 - np.mean(ss.record.energy <= EGS + ENERGY_THRESHOLD)  # Excited state probability
-    results_dict[ModelType(int(model_val)).name].append(stats)
+        qpu_kwargs = dict(
+            num_reads=NUM_READS,
+            answer_mode="raw",
+            fast_anneal=True,
+            auto_scale=False,
+            label="Example - Adiabatic Quantum Computation",
+            annealing_time=ta
+        )
 
-    return results_dict, False, available_solvers
+        sample_sets, _ = sampler.sample_multiple(**qpu_kwargs, bqms = parallel_bqms)
+        stats = []
+        for s_set in sample_sets:
+            set_df = s_set.to_pandas_dataframe()
+            set_energies = set_df["energy"].to_numpy()
+            stats.append(1 - np.mean(set_energies <= EGS + ENERGY_THRESHOLD))  # Excited state probability
+        results_dict[ModelType(int(model_val)).name].update({ta*1000: stats})
+    except:
+        return results_dict, False, available_solvers, JobState.FAILED.label, False
+
+    return results_dict, False, available_solvers, JobState.READY.label, False
 
 
 # =================================================================================================
@@ -392,11 +426,14 @@ def submit_job(
 
 @dash.callback(
     Output("sample-v-theory-graph", "figure"),
-    Output("job-submit-state", "children"),
+    Output("annealing-time", "value"),
+    Output("annealing-time", "marks"),
     Input("current-results", "data"),
+    Input("model-selection", "value"),
+    Input("energy-rescaling", "value"),
     State("qpu-selection", "value"),
 )
-def update_main_graph(measurement_data: dict, qpu_name: str) -> tuple[go.Figure, str]:
+def update_main_graph(measurement_data: dict, model_val: str, energy_rescaling: float, qpu_name: str) -> tuple[go.Figure, str, float]:
     """Updates the main graph showing the excited state probability as a function of annealing
     time. This callback triggers whenever a new measurement is added to the current-results
     data store: it updates the graph with the new data point and returns the updated figure.
@@ -415,9 +452,35 @@ def update_main_graph(measurement_data: dict, qpu_name: str) -> tuple[go.Figure,
         - str: The new state of the job submission process, set to COMPLETED.
     """
 
+    static_marks = [{"value": ta, "label": f"{ta}"} for ta in ANNEAL_TIME_STATIC_MARKS]
+
+    if ctx.triggered_id == "model-selection":
+        return dash.no_update, DEFAULT_ANNEALING_TIMES[0], static_marks
+
     fig = get_results_plot(measurement_data, qpu_name)
 
-    return fig, JobState.COMPLETED.label
+    results_dict = measurement_data[ModelType(int(model_val)).name]
+
+    if results_dict:
+        sample_annealing_times = list(map(float, results_dict.keys()))
+        largest_ta = max(sample_annealing_times) if results_dict else 0
+        static_marks = [
+            {"value": ta, "label": f"{ta}"} 
+            for ta in ANNEAL_TIME_STATIC_MARKS 
+            if ta not in sample_annealing_times
+            ]
+        sample_color = MODEL_COLORS_RESULTS[ModelType(int(model_val))]
+        sample_marks = [{"value": ta, "label": f"{ta}", "style": {"color":"#1cf21c"}} for ta in sample_annealing_times]
+        annealing_time_marks = static_marks + sample_marks
+    else:
+        largest_ta = 0
+        annealing_time_marks = static_marks
+
+    next_ta_index = bisect.bisect_right(DEFAULT_ANNEALING_TIMES, largest_ta)
+
+    next_ta = DEFAULT_ANNEALING_TIMES[min(next_ta_index, len(DEFAULT_ANNEALING_TIMES) - 1)]
+
+    return fig, next_ta, annealing_time_marks
 
 
 # ==================================================================================================

@@ -21,7 +21,7 @@ from enum import EnumMeta
 import dash_mantine_components as dmc
 from dash import dcc, html
 
-from demo_configs import DEFAULT_MODEL, DEFAULT_QPU, DESCRIPTION, MAIN_HEADER, THUMBNAIL
+from demo_configs import DEFAULT_MODEL, DEFAULT_QPU, DESCRIPTION, MAIN_HEADER, THUMBNAIL, COUPLING_STRENGTH_SLIDER_MARKS, DEFAULT_ANNEALING_TIMES, MIN_ANNEALING_TIME, MAX_ANNEALING_TIME, ANNEAL_TIME_STATIC_MARKS
 from src.demo_enums import JobState, ModelType, ProblemType
 from src.model_loading import ProblemModel
 from src.qpu_resources import get_qpu_ids
@@ -48,6 +48,37 @@ def dropdown(label: str, id: str, options: list, value: str | None = None) -> ht
                 data=options,
                 value=value if value else options[0]["value"],
                 allowDeselect=False,
+            ),
+        ],
+    )
+
+def slider(label: str, id: str, config: dict, marks: list | None = None) -> html.Div:
+    """Slider element for value selection.
+
+    Args:
+        label: The title that goes above the slider.
+        id: A unique selector for this element.
+        config: A dictionary of slider configurations, see dmc.Slider Dash Mantine docs.
+        marks: A list of values that should be marked on the slider.
+    """
+    return html.Div(
+        className="slider-wrapper",
+        children=[
+            html.Label(label, htmlFor=id),
+            dmc.Slider(
+                id=id,
+                className="slider",
+                **config,
+                marks=(
+                    marks
+                    if marks
+                    else [
+                        {"value": config["min"], "label": f'{config["min"]}'},
+                        {"value": config["max"], "label": f'{config["max"]}'},
+                    ]
+                ),
+                labelAlwaysOn=True,
+                thumbLabel=f"{label} slider",
             ),
         ],
     )
@@ -89,6 +120,11 @@ def generate_settings_form(solvers: list[str]) -> html.Div:
     else:
         default_solver = "No Leap Access"
 
+    coupling_strength_marks = [{"value": mark, "label": f"{mark}"} for mark in COUPLING_STRENGTH_SLIDER_MARKS]
+    coupling_strength_value = 1.0 # TODO add to configs
+
+    anneal_time_marks = [{"value": mark, "label": f"{mark}"} for mark in ANNEAL_TIME_STATIC_MARKS]
+
     return html.Div(
         className="settings",
         children=[
@@ -103,6 +139,36 @@ def generate_settings_form(solvers: list[str]) -> html.Div:
                 "model-selection",
                 model_options,
                 value=f"{DEFAULT_MODEL.value}",
+            ),
+            html.Div(
+                slider(
+                    "Annealing Time (ns)",
+                    "annealing-time",
+                    {
+                        "value": DEFAULT_ANNEALING_TIMES[0],
+                        "min": MIN_ANNEALING_TIME,
+                        "max": MAX_ANNEALING_TIME,
+                        "step": 1.0,
+                        "restrictToMarks": False,
+                    },
+                    marks=anneal_time_marks,
+                ),
+                id="annealing-time-wrapper",
+            ),
+            html.Div(
+                slider(
+                    "Energy Rescaling",
+                    "energy-rescaling",
+                    {
+                        "value": coupling_strength_value,
+                        "min": coupling_strength_marks[0]["value"],
+                        "max": coupling_strength_marks[-1]["value"],
+                        "step": 0.1,
+                        "restrictToMarks": True,
+                    },
+                    marks=coupling_strength_marks,
+                ),
+                id="coupling-strength-wrapper",
             ),
         ],
     )
@@ -154,7 +220,7 @@ def generate_new_results_dict(problem_type: str = ProblemType.DEFAULT.name) -> d
         A dictionary with keys for each model type and an empty list for storing results.
     """
 
-    results_dict = {m.name: [] for m in ModelType}  # TODO use more durable keys
+    results_dict = {m.name: {} for m in ModelType}  # TODO use more durable keys
     results_dict["problem_type"] = problem_type
     return results_dict
 

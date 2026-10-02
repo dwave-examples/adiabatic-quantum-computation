@@ -53,8 +53,8 @@ class JobState(Enum):
     PREPROCESSING = 2
     CONNECTING = 3
     RUNNING = 4
-    COMPLETED = 5
-    NO_SOLVER = 6
+    NO_SOLVER = 5
+    FAILED = 6
 
     @property
     def label(self):

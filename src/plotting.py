@@ -13,8 +13,9 @@
 # limitations under the License.
 
 import plotly.graph_objects as go
+import numpy as np
 
-from demo_configs import ANNEALING_TIME_SERIES, MODEL_COLORS_RESULTS, MODEL_COLORS_THEORY
+from demo_configs import MODEL_COLORS_RESULTS, MODEL_COLORS_THEORY, SHOW_PARALLEL_SAMPLES
 from src.demo_enums import ModelType, ProblemType
 from src.model_loading import ProblemModel
 from src.values import ENERGY_TIME_RESCALING, Y_AXIS_RESCALING
@@ -32,7 +33,9 @@ PLOT_LAYOUT = dict(
 
 
 def get_spectrum_plot(
-    model_type: ModelType, problem_type: ProblemType = ProblemType.DEFAULT
+    model_type: ModelType, 
+    problem_type: ProblemType = ProblemType.DEFAULT,
+    energy_rescaling: float = 1.0,
 ) -> go.Figure:
     """Generates a plot of the energy spectrum for a given problem and model type.
     Uses pre-computed data from CSV files.
@@ -53,18 +56,32 @@ def get_spectrum_plot(
 
     series_labels = ["1st", "2nd", "3rd", "4th", "5th"]
 
+    min_gap = min(columns[0] - filedata[:,1])*energy_rescaling
+    min_gap_idx = np.argmin(columns[0] - filedata[:,1])
+    min_gap_x = filedata[min_gap_idx, 0]
+
     for idx, column in enumerate(columns):
         fig.add_trace(
             go.Scatter(
                 x=filedata[:, 0],
-                y=column - filedata[:, 1],
+                y=(column - filedata[:, 1])*energy_rescaling,
                 mode="lines",
                 name=series_labels[idx] + " Excited State",
             )
         )
 
-    fig.update_yaxes(type="log", range=[-1, 0.6])
+    fig.add_trace(
+        go.Scatter(
+            x=[min_gap_x, min_gap_x],
+            y=[0, min_gap],
+            mode="lines",
+            name=f"Energy Gap {round(min_gap, 2)} GHz",
+            line=dict(color="black"),
+        )
+    )
 
+    fig.update_yaxes(type="log", range=[-1.6, 0.6]) 
+    
     fig.update_layout(
         xaxis_title="Anneal Progress", yaxis_title="Excitation Energy (GHz)", **PLOT_LAYOUT
     )
@@ -116,17 +133,24 @@ def get_results_plot(
         if len(job_results[model.name]) > 0:
             anneal_times = []
             egs_probs = []
+            y_errs = []
 
-            for idx, stat in enumerate(job_results[model.name]):
-                anneal_times.append(ANNEALING_TIME_SERIES[(idx) % len(ANNEALING_TIME_SERIES)])
-                egs_probs.append(stat)
+            for ta, stat_set in job_results[model.name].items():
+                if not SHOW_PARALLEL_SAMPLES:
+                    anneal_times.append(ta)
+                    egs_probs.append(np.mean(stat_set))
+                    y_errs.append(np.std(stat_set))
+                else:
+                    anneal_times.extend([ta]*len(stat_set))
+                    egs_probs.extend(stat_set)
 
             fig.add_trace(
                 go.Scatter(
                     x=anneal_times,
                     y=egs_probs,
+                    error_y=dict(type="data", array=y_errs, visible=True),
                     mode="markers",
-                    marker=dict(symbol="x", size=8, color=MODEL_COLORS_RESULTS[model]),
+                    marker=dict(symbol="diamond-wide", size=6, color=MODEL_COLORS_RESULTS[model]),
                     name=f"{model.label} Samples",
                 )
             )
