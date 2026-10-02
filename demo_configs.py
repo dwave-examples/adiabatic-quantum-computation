@@ -27,13 +27,15 @@ THUMBNAIL = "static/dwave_logo.svg"
 DEFAULT_ANNEALING_TIMES = [5, 7, 10, 14, 20]
 MIN_ANNEALING_TIME = 5.0
 MAX_ANNEALING_TIME = 30.0
-ANNEAL_TIME_STATIC_MARKS = [5.0,10.0,20.0,30.0]
+ANNEAL_TIME_STATIC_MARKS = [5.0, 10.0, 20.0, 30.0]
 
 # Number of parallel embeddings for the model. More embeddings mean more accurate results
 # but they'll take longer to find if they're not already saved.
 NUM_PARALLEL_EMBEDDINGS = 20
-SHOW_PARALLEL_SAMPLES = False # Mostly for calibration, but can make for an interesting visual as well
-NUM_READS = 400
+SHOW_PARALLEL_SAMPLES = (
+    False  # Mostly for calibration, but can make for an interesting visual as well
+)
+NUM_READS = 100
 
 COUPLING_STRENGTH_SLIDER_MARKS = [0.2, 0.4, 0.6, 0.8, 1.0]
 
@@ -41,6 +43,10 @@ COUPLING_STRENGTH_SLIDER_MARKS = [0.2, 0.4, 0.6, 0.8, 1.0]
 DEFAULT_QPU = "Advantage_system4"  # If not available, the first returned will be default
 DEFAULT_MODEL = ModelType.INTERMEDIATE_GAP
 
+
+SAMPLE_POINT_SIZE = 6
+DEFAULT_PLOT_WIDTH = 21
+MAX_PLOT_WIDTH = 31
 MODEL_COLORS_THEORY = {
     ModelType.LARGE_GAP: "#1f77b4",
     ModelType.INTERMEDIATE_GAP: "#2ca02c",

@@ -21,7 +21,18 @@ from enum import EnumMeta
 import dash_mantine_components as dmc
 from dash import dcc, html
 
-from demo_configs import DEFAULT_MODEL, DEFAULT_QPU, DESCRIPTION, MAIN_HEADER, THUMBNAIL, COUPLING_STRENGTH_SLIDER_MARKS, DEFAULT_ANNEALING_TIMES, MIN_ANNEALING_TIME, MAX_ANNEALING_TIME, ANNEAL_TIME_STATIC_MARKS
+from demo_configs import (
+    ANNEAL_TIME_STATIC_MARKS,
+    COUPLING_STRENGTH_SLIDER_MARKS,
+    DEFAULT_ANNEALING_TIMES,
+    DEFAULT_MODEL,
+    DEFAULT_QPU,
+    DESCRIPTION,
+    MAIN_HEADER,
+    MAX_ANNEALING_TIME,
+    MIN_ANNEALING_TIME,
+    THUMBNAIL,
+)
 from src.demo_enums import JobState, ModelType, ProblemType
 from src.model_loading import ProblemModel
 from src.qpu_resources import get_qpu_ids
@@ -51,6 +62,7 @@ def dropdown(label: str, id: str, options: list, value: str | None = None) -> ht
             ),
         ],
     )
+
 
 def slider(label: str, id: str, config: dict, marks: list | None = None) -> html.Div:
     """Slider element for value selection.
@@ -120,8 +132,10 @@ def generate_settings_form(solvers: list[str]) -> html.Div:
     else:
         default_solver = "No Leap Access"
 
-    coupling_strength_marks = [{"value": mark, "label": f"{mark}"} for mark in COUPLING_STRENGTH_SLIDER_MARKS]
-    coupling_strength_value = 1.0 # TODO add to configs
+    coupling_strength_marks = [
+        {"value": mark, "label": f"{mark}"} for mark in COUPLING_STRENGTH_SLIDER_MARKS
+    ]
+    coupling_strength_value = COUPLING_STRENGTH_SLIDER_MARKS[-1]
 
     anneal_time_marks = [{"value": mark, "label": f"{mark}"} for mark in ANNEAL_TIME_STATIC_MARKS]
 
