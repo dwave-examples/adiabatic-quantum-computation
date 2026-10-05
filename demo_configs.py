@@ -32,9 +32,8 @@ ANNEAL_TIME_STATIC_MARKS = [5.0, 10.0, 20.0, 30.0]
 # Number of parallel embeddings for the model. More embeddings mean more accurate results
 # but they'll take longer to find if they're not already saved.
 NUM_PARALLEL_EMBEDDINGS = 20
-SHOW_PARALLEL_SAMPLES = (
-    False  # Mostly for calibration, but can make for an interesting visual as well
-)
+# Mostly for calibration, but can make for an interesting visual as well
+SHOW_PARALLEL_SAMPLES = False
 NUM_READS = 100
 
 COUPLING_STRENGTH_SLIDER_MARKS = [0.2, 0.4, 0.6, 0.8, 1.0]

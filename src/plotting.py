@@ -108,9 +108,9 @@ def get_results_plot(
 
     Args:
         job_results: A dictionary containing the results of the jobs for each model type.
-        problem_type: The type of problem for which the results are being plotted. Currently
-            only the default problem type is supported, but more can be added in the future.
-        qpu_name: The name of the QPU for which the results are being plotted.
+       qpu_name: The name of the QPU for which the results are being plotted.
+       problem_type: The type of problem for which the results are being plotted. Currently
+           only the default problem type is supported, but more can be added in the future.
         show_parallel_samples: When this is set to True, the mean of the samples from
             each parallel embedding will be plotted on the graph as well as the overall
             mean of all samples. This is mostly intended for calibration--it shows the

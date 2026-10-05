@@ -73,7 +73,7 @@ def toggle_left_column(collapse_trigger: int, to_collapse_class: str) -> tuple[s
     Output("qpu-select-time", "data"),
     Input("qpu-selection", "value"),
 )
-def process_qpu_select(qpu_name: str) -> tuple[list[dict], bool, str, float, dict]:
+def process_qpu_select(qpu_name: str) -> float:
     """Triggers when the selected QPU is altered, writing the selection time to the
     relevant store. This callback exists only to trigger the
     reset_embeddings_and_results callback, as a workaround to allow it to trigger
@@ -100,11 +100,11 @@ def process_qpu_select(qpu_name: str) -> tuple[list[dict], bool, str, float, dic
     Input("qpu-select-time", "data"),
     prevent_initial_call=True,
 )
-def reset_embeddings_and_results(qpu_name: str) -> tuple[list[dict], bool, str, float, dict]:
-    """Removes stored values for current embedding and resul
+def reset_embeddings_and_results(qpu_select_time: float) -> tuple[list, bool, str, dict]:
+    """Removes stored values for current embedding and result.
 
     Args:
-        qpu_name: Name of the selected QPU
+        qpu_select_time: The time at which the QPU was selected, used as a callback trigger.
 
     Returns:
         A tuple containing:
@@ -135,7 +135,7 @@ def set_current_embeddings(
     results_dict: dict,
     job_submit_state: str,
     qpu_name: str,
-) -> tuple[list[dict], list[str]]:
+) -> tuple[list[dict], list[str], bool, str]:
     """Finds and sets the current embeddings for the selected QPU and problem type. Checks
     embeddings saved in files first; if they are absent or unusable, finds new embeddings and
     saves them to file. Re-checks the list of available solvers to ensure selected QPU is
@@ -275,7 +275,7 @@ def run_button_click(
     prevent_initial_call=True,
 )
 def preprocess_job(
-    model_data: float,
+    model_data: dict,
     job_submit_state: str,
     annealing_time: float,
     energy_rescaling: float,
@@ -288,7 +288,7 @@ def preprocess_job(
             will use.
         job_submit_state: Current job state. Used to check that the job is in the proper
             state before proceeding.
-        annealing-time: The selected annealing time for the simulation, in nanoseconds.
+        annealing_time: The selected annealing time for the simulation, in nanoseconds.
         energy_rescaling: The factor by which to rescale the energy terms in the model data.
 
     Returns:
@@ -429,11 +429,11 @@ def submit_job(
 )
 def update_main_graph(
     measurement_data: dict, model_val: str, qpu_name: str
-) -> tuple[go.Figure, str, float]:
+) -> tuple[go.Figure, float]:
     """Updates the main graph showing the excited state probability as a function of annealing
     time. This callback triggers whenever a new measurement is added to the current-results
     data store: it updates the graph with the new data point and returns the updated figure.
-    It also updates value of the annealing time slider to the next-largest value in the
+    It also updates value of the annealing time slider to the next largest value in the
     predefined default annealing times; this allows a user to easily run the default time series,
     while still giving complete freedom to manually set annealing times as they desire.
 
