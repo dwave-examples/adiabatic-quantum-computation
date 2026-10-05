@@ -25,9 +25,9 @@ Demonstration of adiabatic quantum computation in frustrated 16-qubit Ising mode
 THUMBNAIL = "static/dwave_logo.svg"
 
 DEFAULT_ANNEALING_TIMES = [5, 7, 10, 14, 20]
-MIN_ANNEALING_TIME = 5.0
-MAX_ANNEALING_TIME = 30.0
-ANNEAL_TIME_STATIC_MARKS = [5.0, 10.0, 20.0, 30.0]
+MIN_ANNEALING_TIME = 5
+MAX_ANNEALING_TIME = 30
+ANNEAL_TIME_STATIC_MARKS = [5, 10, 20, 30]
 
 # Number of parallel embeddings for the model. More embeddings mean more accurate results
 # but they'll take longer to find if they're not already saved.
