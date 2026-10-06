@@ -199,7 +199,7 @@ def get_results_plot(
                 )
             )
 
-            if max([float(t) for t in anneal_times]) > DEFAULT_PLOT_WIDTH - 1:
+            if max(anneal_times) > DEFAULT_PLOT_WIDTH - 1:
                 x_range = MAX_PLOT_WIDTH
 
     fig.update_layout(

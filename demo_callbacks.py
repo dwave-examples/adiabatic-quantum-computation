@@ -113,7 +113,6 @@ def reset_embeddings_and_results(qpu_select_time: float) -> tuple[list, bool, st
             embeddings to be cached for the newly-selected QPU
         - bool: True, to disable the run button until new embeddings have been cached.
         - str: The FINDING_EMBEDDING label for the job-submit-state field.
-        - float: The current time, stored in qpu-select-time to trigger set_current_embeddings.
         - dict: A new, empty results dictionary. Results are QPU-specific, so changing the QPU
         clears all the old results.
     """
@@ -153,6 +152,10 @@ def set_current_embeddings(
 
         - list[dict]: The embeddings for the selected QPU, or an empty list if none could be found.
         - list[str]: The list of available solvers.
+        - bool: Returns False to re-enable the run button once embeddings have been set. If there is
+            an error finding embeddings, returns True, keeping the run button disabled.
+        - str: The current job state label, which will be 'READY' if embeddings are successfully set, 
+            or an appropriate error state otherwise.
     """
 
     if job_submit_state != JobState.FINDING_EMBEDDING.label:
@@ -178,7 +181,7 @@ def set_current_embeddings(
         target_graph = sampler.to_networkx_graph()
     except Exception as exc:
         print(f"Error connecting to solver {qpu_name}: {exc}")
-        return [], available_solvers, False, JobState.FAILED.label
+        return [], available_solvers, True, JobState.FAILED.label
 
     try:
         emb_set = EmbeddingSet(qpu_name, target_graph)
@@ -255,6 +258,7 @@ def run_button_click(
         - bool: True, to disable the run button while the job runs.
         - str: The PREPROCESSING label for the job-submit-state field.
         - float: The current time, stored in job-submit-time to trigger preprocess_job.
+        - bool: True to disable the energy rescaling input while the job runs.
     """
 
     return True, JobState.PREPROCESSING.label, time.time(), True
@@ -309,7 +313,8 @@ def preprocess_job(
         job_kwargs["h"] = {k: v * energy_rescaling for k, v in job_kwargs["h"].items()}
         job_kwargs["J"] = {k: v * energy_rescaling for k, v in job_kwargs["J"].items()}
         job_kwargs["EGS"] *= energy_rescaling
-    except:
+    except Exception as exc:
+        print(f"Error preparing job: {exc}")
         return dash.no_update, JobState.FAILED.label
 
     return job_kwargs, JobState.RUNNING.label
@@ -339,7 +344,7 @@ def submit_job(
     qpu_name: str,
     model_val: str,
     model_embeddings: list[dict],
-) -> tuple[Patch, bool, list[str]]:
+) -> tuple[Patch, bool, list[str], str, bool]:
     """Submit job and provide job ID. Returns the updated results to be stored
     in the current-results data store. Re-enables the run button (disabled by run_button_click)
     after the job is complete. Re-checks the list of available solvers to ensure the selected QPU
@@ -405,13 +410,13 @@ def submit_job(
         sample_sets, _ = sampler.sample_multiple(**qpu_kwargs, bqms=parallel_bqms)
         stats = []
         for s_set in sample_sets:
-            set_df = s_set.to_pandas_dataframe()
-            set_energies = set_df["energy"].to_numpy()
+            set_energies = s_set.record.energy
             stats.append(
                 1 - np.mean(set_energies <= EGS + ENERGY_THRESHOLD)
             )  # Excited state probability
         results_dict[ModelType(int(model_val)).name].update({ta * 1000: stats})
-    except:
+    except Exception as exc:
+        print(f"Error submitting job to {qpu_name}: {exc}")
         return results_dict, False, available_solvers, JobState.FAILED.label, False
 
     return results_dict, False, available_solvers, JobState.READY.label, False
@@ -455,11 +460,16 @@ def update_main_graph(
     if ctx.triggered_id == "model-selection":
         return dash.no_update, DEFAULT_ANNEALING_TIMES[0]
 
-    fig = get_results_plot(measurement_data, qpu_name)
+    results = {}
+    largest_ta = 0.0
+    for k, v in measurement_data.items():
+        if k in [m.name for m in ModelType]:
+            results[k] = {float(ta): stat_set for ta, stat_set in v.items()}
+            if results[k] and k == ModelType(int(model_val)).name:
+                largest_ta = max(list(results[k].keys()))
 
-    results_dict = measurement_data[ModelType(int(model_val)).name]
-    sample_annealing_times = list(map(float, results_dict.keys()))
-    largest_ta = max(sample_annealing_times) if results_dict else 0
+    fig = get_results_plot(results, qpu_name)
+
     next_ta_index = bisect.bisect_right(DEFAULT_ANNEALING_TIMES, largest_ta)
     next_ta = DEFAULT_ANNEALING_TIMES[min(next_ta_index, len(DEFAULT_ANNEALING_TIMES) - 1)]
 
