@@ -24,17 +24,27 @@ Demonstration of adiabatic quantum computation in frustrated 16-qubit Ising mode
 
 THUMBNAIL = "static/dwave_logo.svg"
 
-DEFAULT_ANNEALING_TIMES = [5.0, 7.0, 10.0, 14.0, 20.0]
 MIN_ANNEALING_TIME = 5
 MAX_ANNEALING_TIME = 30
 ANNEAL_TIME_STATIC_MARKS = [5, 10, 20, 30]
 
+# If this option is enabled, after each run the slider will automatically jump to the next
+# annealing time in the list below, allowing the user to quickly run a pre-set series of annealing
+# times without manually adjusting the slider each time
+AUTO_SUGGEST_NEXT_ANNEALING_TIME = False
+SUGGESTED_ANNEALING_TIMES = [MIN_ANNEALING_TIME, 7.0, 10.0, 14.0, 20.0]
+
 # Number of parallel embeddings for the model. More embeddings mean more accurate results
-# but they'll take longer to find if they're not already saved.
-NUM_PARALLEL_EMBEDDINGS = 20
-# Mostly for calibration, but can make for an interesting visual as well
+# but they'll take longer to find if they're not already saved. Leaving it at the default None
+# will result in finding the maximum number of embeddings possible within the allotted time.
+NUM_PARALLEL_EMBEDDINGS = None
+EMBEDDING_TIMEOUT = 25
+
+# When set to True, instead of error bars, this will show the full spread of mean results
+# from each parallel embedding, highlighting the variability between embeddings. This is
+# mostly for calibration, but it could provide a nice visual for presenting as well.
 SHOW_PARALLEL_SAMPLES = False
-NUM_READS = 100
+NUM_READS = 400
 
 COUPLING_STRENGTH_SLIDER_MARKS = [0.2, 0.4, 0.6, 0.8, 1.0]
 

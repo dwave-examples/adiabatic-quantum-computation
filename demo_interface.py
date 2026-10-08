@@ -24,13 +24,13 @@ from dash import dcc, html
 from demo_configs import (
     ANNEAL_TIME_STATIC_MARKS,
     COUPLING_STRENGTH_SLIDER_MARKS,
-    DEFAULT_ANNEALING_TIMES,
     DEFAULT_MODEL,
     DEFAULT_QPU,
     DESCRIPTION,
     MAIN_HEADER,
     MAX_ANNEALING_TIME,
     MIN_ANNEALING_TIME,
+    SUGGESTED_ANNEALING_TIMES,
     THUMBNAIL,
 )
 from src.demo_enums import JobState, ModelType, ProblemType
@@ -159,7 +159,7 @@ def generate_settings_form(solvers: list[str]) -> html.Div:
                     "Annealing Time (ns)",
                     "annealing-time",
                     {
-                        "value": DEFAULT_ANNEALING_TIMES[0],
+                        "value": SUGGESTED_ANNEALING_TIMES[0],
                         "min": MIN_ANNEALING_TIME,
                         "max": MAX_ANNEALING_TIME,
                         "step": 1.0,

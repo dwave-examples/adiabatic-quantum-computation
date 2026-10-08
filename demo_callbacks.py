@@ -25,7 +25,12 @@ from dash import MATCH, Input, Output, Patch, State, ctx
 from dash.exceptions import PreventUpdate
 from dwave.system import DWaveSampler, ParallelEmbeddingComposite
 
-from demo_configs import DEFAULT_ANNEALING_TIMES, NUM_PARALLEL_EMBEDDINGS, NUM_READS
+from demo_configs import (
+    AUTO_SUGGEST_NEXT_ANNEALING_TIME,
+    MIN_ANNEALING_TIME,
+    NUM_READS,
+    SUGGESTED_ANNEALING_TIMES,
+)
 from demo_interface import generate_new_results_dict
 from src.demo_enums import JobState, ModelType
 from src.model_loading import ProblemModel
@@ -154,7 +159,7 @@ def set_current_embeddings(
         - list[str]: The list of available solvers.
         - bool: Returns False to re-enable the run button once embeddings have been set. If there is
             an error finding embeddings, returns True, keeping the run button disabled.
-        - str: The current job state label, which will be 'READY' if embeddings are successfully set, 
+        - str: The current job state label, which will be 'READY' if embeddings are successfully set,
             or an appropriate error state otherwise.
     """
 
@@ -386,7 +391,7 @@ def submit_job(
         h = {int(k): v for k, v in job_submit_args["h"].items()}
         J = {tuple(map(int, k.strip("()").split(","))): v for k, v in job_submit_args["J"].items()}
         bqm = dimod.BinaryQuadraticModel(dimod.SPIN).from_ising(h=h, J=J)
-        parallel_bqms = [bqm] * NUM_PARALLEL_EMBEDDINGS
+        parallel_bqms = [bqm] * len(model_embeddings)
 
         ta = job_submit_args["annealing_time"]
         embeddings = [{int(k): tuple(v) for k, v in emb.items()} for emb in model_embeddings]
@@ -438,9 +443,10 @@ def update_main_graph(
     """Updates the main graph showing the excited state probability as a function of annealing
     time. This callback triggers whenever a new measurement is added to the current-results
     data store: it updates the graph with the new data point and returns the updated figure.
-    It also updates value of the annealing time slider to the next largest value in the
-    predefined default annealing times; this allows a user to easily run the default time series,
-    while still giving complete freedom to manually set annealing times as they desire.
+    If the correct config option is enabled, it will also updates value of the annealing time
+    slider to the next largest value in the predefined default annealing times; this allows a
+    user to easily run the default time series, while still giving complete freedom to manually
+    set annealing times as they desire.
 
     Args:
         measurement_data: A dictionary containing the current measurement results.
@@ -453,12 +459,14 @@ def update_main_graph(
 
         - go.Figure: A plotly figure of the excited state probability as a function of the
             annealing time.
-        - float: The next suggested annealing time, as determined by the previous annealing
-            time and the predefined default annealing times.
+        - float: The next suggested annealing time. Will reset to the minimum value when
+            the model or QPU is changed. If the auto-suggest option is enabled, it will
+            set the slider to the next time in sequence. Otherwise it will leave the slider
+            value where it is.
     """
 
     if ctx.triggered_id == "model-selection":
-        return dash.no_update, DEFAULT_ANNEALING_TIMES[0]
+        return dash.no_update, MIN_ANNEALING_TIME
 
     results = {}
     largest_ta = 0.0
@@ -470,8 +478,13 @@ def update_main_graph(
 
     fig = get_results_plot(results, qpu_name)
 
-    next_ta_index = bisect.bisect_right(DEFAULT_ANNEALING_TIMES, largest_ta)
-    next_ta = DEFAULT_ANNEALING_TIMES[min(next_ta_index, len(DEFAULT_ANNEALING_TIMES) - 1)]
+    if AUTO_SUGGEST_NEXT_ANNEALING_TIME:
+        next_ta_index = bisect.bisect_right(SUGGESTED_ANNEALING_TIMES, largest_ta)
+        next_ta = SUGGESTED_ANNEALING_TIMES[min(next_ta_index, len(SUGGESTED_ANNEALING_TIMES) - 1)]
+    elif largest_ta < MIN_ANNEALING_TIME:
+        next_ta = MIN_ANNEALING_TIME
+    else:
+        next_ta = dash.no_update
 
     return fig, next_ta
 
