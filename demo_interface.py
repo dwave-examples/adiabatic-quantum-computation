@@ -37,6 +37,24 @@ from src.demo_enums import JobState, ModelType, ProblemType
 from src.model_loading import ProblemModel
 from src.qpu_resources import get_qpu_ids
 
+def checkbox(label: str, id: str, checked: bool) -> html.Div:
+    """Checkbox element.
+
+    Args:
+        label: The title that goes above the checkbox.
+        id: A unique selector for this element.
+        checked: Whether the checkbox is checked or not.
+    """
+    return html.Div(
+        className="checkbox-wrapper",
+        children=[
+            dmc.Checkbox(
+                id=id,
+                label=label,
+                checked=checked,
+            )
+        ],
+    )
 
 def dropdown(label: str, id: str, options: list, value: str | None = None) -> html.Div:
     """Dropdown element for option selection.
@@ -168,6 +186,14 @@ def generate_settings_form(solvers: list[str]) -> html.Div:
                     marks=anneal_time_marks,
                 ),
                 id="annealing-time-wrapper",
+            ),
+            html.Div(
+                checkbox(
+                    "Auto-Suggest Next Annealing Time",
+                    "annealing-time-suggest",
+                    checked=False
+                ),
+                id="annealing-time-suggest-wrapper"
             ),
             html.Div(
                 slider(

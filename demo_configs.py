@@ -28,10 +28,9 @@ MIN_ANNEALING_TIME = 5
 MAX_ANNEALING_TIME = 30
 ANNEAL_TIME_STATIC_MARKS = [5, 10, 20, 30]
 
-# If this option is enabled, after each run the slider will automatically jump to the next
-# annealing time in the list below, allowing the user to quickly run a pre-set series of annealing
-# times without manually adjusting the slider each time
-AUTO_SUGGEST_NEXT_ANNEALING_TIME = False
+# Suggested annealing times for the auto-suggest feature. When that feature is enabled,
+# repeatedly clicking 'run' will step through these annealing times automatically, without
+# needing to manually adjust the slider for each sample.
 SUGGESTED_ANNEALING_TIMES = [MIN_ANNEALING_TIME, 7.0, 10.0, 14.0, 20.0]
 
 # Number of parallel embeddings for the model. More embeddings mean more accurate results

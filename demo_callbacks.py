@@ -26,7 +26,6 @@ from dash.exceptions import PreventUpdate
 from dwave.system import DWaveSampler, ParallelEmbeddingComposite
 
 from demo_configs import (
-    AUTO_SUGGEST_NEXT_ANNEALING_TIME,
     MIN_ANNEALING_TIME,
     NUM_READS,
     SUGGESTED_ANNEALING_TIMES,
@@ -436,9 +435,10 @@ def submit_job(
     Input("current-results", "data"),
     Input("model-selection", "value"),
     State("qpu-selection", "value"),
+    State("annealing-time-suggest", "checked"),
 )
 def update_main_graph(
-    measurement_data: dict, model_val: str, qpu_name: str
+    measurement_data: dict, model_val: str, qpu_name: str, auto_suggest: bool
 ) -> tuple[go.Figure, float]:
     """Updates the main graph showing the excited state probability as a function of annealing
     time. This callback triggers whenever a new measurement is added to the current-results
@@ -478,7 +478,7 @@ def update_main_graph(
 
     fig = get_results_plot(results, qpu_name)
 
-    if AUTO_SUGGEST_NEXT_ANNEALING_TIME:
+    if auto_suggest:
         next_ta_index = bisect.bisect_right(SUGGESTED_ANNEALING_TIMES, largest_ta)
         next_ta = SUGGESTED_ANNEALING_TIMES[min(next_ta_index, len(SUGGESTED_ANNEALING_TIMES) - 1)]
     elif largest_ta < MIN_ANNEALING_TIME:
