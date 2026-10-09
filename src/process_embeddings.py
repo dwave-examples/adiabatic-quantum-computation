@@ -133,7 +133,7 @@ class EmbeddingSet:
             print("No saved embeddings found.")
 
         if len(embeddings_to_return) < num_embeddings_needed:
-            print(f"Not enough valid embeddings found.")
+            print("Not enough valid embeddings found.")
             print("Finding embeddings now...")
             # Find embeddings the hard way, then save them to file so we can re-use them later.
 
@@ -154,7 +154,8 @@ class EmbeddingSet:
 
         if len(embeddings_to_return) < num_embeddings_needed:
             raise RuntimeError(
-                f"Could not find enough valid embeddings. Needed {num_embeddings_needed}, but only found {len(found_embeddings)}."
+                f"Could not find enough valid embeddings. Needed {num_embeddings_needed}, "
+                f"but only found {len(embeddings_to_return)}."
             )
 
         return embeddings_to_return
@@ -164,7 +165,7 @@ class EmbeddingSet:
 
         Args:
             embeddings: A list of embeddings, each a dict mapping source node to target chain.
-            max_size: Whether to save the embeddings to the max size file. Defaults to False.
+            maximal: Whether to save the embeddings to the max size file. Defaults to False.
         """
 
         filepath = self.max_size_embeddings_path if maximal else self.embeddings_path

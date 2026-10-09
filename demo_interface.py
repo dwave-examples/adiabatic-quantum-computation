@@ -257,7 +257,7 @@ def generate_new_results_dict(problem_type: str = ProblemType.DEFAULT.name) -> d
         problem_type: The type of problem for which to generate the results dictionary.
 
     Returns:
-        A dictionary with keys for each model type and an empty list for storing results.
+        A dictionary with keys for each model type and an empty dict for storing results.
     """
 
     results_dict = {m.name: {} for m in ModelType}  # TODO use more durable keys
