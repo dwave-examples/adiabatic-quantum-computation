@@ -23,6 +23,8 @@ SCHEDULES_PATH = pathlib.Path(STATIC_PATH) / "annealing_schedules"
 pathlib.Path(EMBEDDINGS_PATH).mkdir(exist_ok=True)
 
 ENERGY_THRESHOLD = 1e-8  # Relative to ground state energy
+MIN_ANNEALING_TIME = 5
+MAX_ANNEALING_TIME = 30
 
 ENERGY_TIME_RESCALING = {  # Used to rescale energy axis for plotting samples from
     "Advantage2_system5": 2.48,  # processors that have different energy scales.

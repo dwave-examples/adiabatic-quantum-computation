@@ -15,6 +15,7 @@
 """This file stores input parameters for the app."""
 
 from src.demo_enums import ModelType
+from src.values import MIN_ANNEALING_TIME, MAX_ANNEALING_TIME
 
 APP_TITLE = "Adiabatic Quantum Computation"
 MAIN_HEADER = "Adiabatic Quantum Computation"
@@ -24,18 +25,18 @@ Demonstration of adiabatic quantum computation in frustrated 16-qubit Ising mode
 
 THUMBNAIL = "static/dwave_logo.svg"
 
-MIN_ANNEALING_TIME = 5
-MAX_ANNEALING_TIME = 30
+
 ANNEAL_TIME_STATIC_MARKS = [5, 10, 20, 30]
 
 # Suggested annealing times for the auto-suggest feature. When that feature is enabled,
 # repeatedly clicking 'run' will step through these annealing times automatically, without
 # needing to manually adjust the slider for each sample.
-SUGGESTED_ANNEALING_TIMES = [MIN_ANNEALING_TIME, 7.0, 10.0, 14.0, 20.0]
+SUGGESTED_ANNEALING_TIMES = [MIN_ANNEALING_TIME, 7.0, 10.0, 14.0, 20.0, MAX_ANNEALING_TIME]
 
-# Number of parallel embeddings for the model. More embeddings mean more accurate results
-# but they'll take longer to find if they're not already saved. Leaving it at the default None
-# will result in finding the maximum number of embeddings possible within the allotted time.
+# Together these determine how many parallel embeddings will be used. More embeddings mean more 
+# accurate results but they'll take longer to find if they're not already saved, up to the number
+# of seconds defined by EMBEDDING_TIMEOUT. Leaving NUM_PARALLEL_EMBEDDINGS at the default value of
+# None will result in finding the maximum number of embeddings possible within the allotted time.
 NUM_PARALLEL_EMBEDDINGS = None
 EMBEDDING_TIMEOUT = 25
 
@@ -43,6 +44,8 @@ EMBEDDING_TIMEOUT = 25
 # from each parallel embedding, highlighting the variability between embeddings. This is
 # mostly for calibration, but it could provide a nice visual for presenting as well.
 SHOW_PARALLEL_SAMPLES = False
+
+#The number of reads for each job sent to the QPU. More reads are more accurate, but take longer.
 NUM_READS = 400
 
 COUPLING_STRENGTH_SLIDER_MARKS = [0.2, 0.4, 0.6, 0.8, 1.0]

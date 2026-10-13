@@ -48,9 +48,9 @@ def get_spectrum_plot(
     Uses pre-computed data from CSV files.
 
     Args:
+        model_type: The type of model for which the spectrum is being plotted.
         problem_type: The type of problem for which the spectrum is being plotted. Currently
             only the default problem type is supported, but more can be added in the future.
-        model_type: The type of model for which the spectrum is being plotted.
         energy_rescaling: A factor by which to rescale the energy values for plotting.
 
     Returns:
@@ -64,8 +64,9 @@ def get_spectrum_plot(
 
     series_labels = ["1st", "2nd", "3rd", "4th", "5th"]
 
-    min_gap = min(columns[0] - filedata[:, 1]) * energy_rescaling
-    min_gap_idx = np.argmin(columns[0] - filedata[:, 1])
+    gaps = columns[0] - filedata[:, 1]
+    min_gap_idx = np.argmin(gaps)
+    min_gap = gaps[min_gap_idx] * energy_rescaling
     min_gap_x = filedata[min_gap_idx, 0]
 
     for idx, column in enumerate(columns):
@@ -176,7 +177,7 @@ def get_results_plot(
                         mode="markers",
                         marker=dict(
                             symbol="circle",
-                            size=sample_point_size - 4,
+                            size=max(sample_point_size - 7,1),
                             color=MODEL_COLORS_RESULTS[model],
                         ),
                         name=f"{model.label} {sample_point_label}",

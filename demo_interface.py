@@ -28,14 +28,13 @@ from demo_configs import (
     DEFAULT_QPU,
     DESCRIPTION,
     MAIN_HEADER,
-    MAX_ANNEALING_TIME,
-    MIN_ANNEALING_TIME,
     SUGGESTED_ANNEALING_TIMES,
     THUMBNAIL,
 )
 from src.demo_enums import JobState, ModelType, ProblemType
 from src.model_loading import ProblemModel
 from src.qpu_resources import get_qpu_ids
+from src.values import MIN_ANNEALING_TIME, MAX_ANNEALING_TIME
 
 def checkbox(label: str, id: str, checked: bool) -> html.Div:
     """Checkbox element.
@@ -173,6 +172,14 @@ def generate_settings_form(solvers: list[str]) -> html.Div:
                 value=f"{DEFAULT_MODEL.value}",
             ),
             html.Div(
+                checkbox(
+                    "Auto-Suggest Next Annealing Time",
+                    "annealing-time-suggest",
+                    checked=False
+                ),
+                id="annealing-time-suggest-wrapper"
+            ),
+            html.Div(
                 slider(
                     "Annealing Time (ns)",
                     "annealing-time",
@@ -186,14 +193,6 @@ def generate_settings_form(solvers: list[str]) -> html.Div:
                     marks=anneal_time_marks,
                 ),
                 id="annealing-time-wrapper",
-            ),
-            html.Div(
-                checkbox(
-                    "Auto-Suggest Next Annealing Time",
-                    "annealing-time-suggest",
-                    checked=False
-                ),
-                id="annealing-time-suggest-wrapper"
             ),
             html.Div(
                 slider(

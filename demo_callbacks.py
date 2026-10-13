@@ -438,7 +438,7 @@ def submit_job(
     State("annealing-time-suggest", "checked"),
 )
 def update_main_graph(
-    measurement_data: dict, model_val: str, qpu_name: str, auto_suggest: bool
+    sample_data: dict, model_val: str, qpu_name: str, auto_suggest: bool
 ) -> tuple[go.Figure, float]:
     """Updates the main graph showing the excited state probability as a function of annealing
     time. This callback triggers whenever a new measurement is added to the current-results
@@ -470,11 +470,12 @@ def update_main_graph(
 
     results = {}
     largest_ta = 0.0
-    for k, v in measurement_data.items():
-        if k in [m.name for m in ModelType]:
-            results[k] = {float(ta): stat_set for ta, stat_set in v.items()}
-            if results[k] and k == ModelType(int(model_val)).name:
-                largest_ta = max(list(results[k].keys()))
+
+    current_model = ModelType(int(model_val)).name
+    for model in ModelType:
+        results[model.name] = {float(ta): stats for ta, stats in sample_data[model.name].items()}
+        if results[model.name] and model.name == current_model:
+            largest_ta = max(list(results[model.name].keys()))
 
     fig = get_results_plot(results, qpu_name)
 
