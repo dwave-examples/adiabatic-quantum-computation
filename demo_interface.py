@@ -34,7 +34,8 @@ from demo_configs import (
 from src.demo_enums import JobState, ModelType, ProblemType
 from src.model_loading import ProblemModel
 from src.qpu_resources import get_qpu_ids
-from src.values import MIN_ANNEALING_TIME, MAX_ANNEALING_TIME
+from src.values import MAX_ANNEALING_TIME, MIN_ANNEALING_TIME
+
 
 def checkbox(label: str, id: str, checked: bool) -> html.Div:
     """Checkbox element.
@@ -54,6 +55,7 @@ def checkbox(label: str, id: str, checked: bool) -> html.Div:
             )
         ],
     )
+
 
 def dropdown(label: str, id: str, options: list, value: str | None = None) -> html.Div:
     """Dropdown element for option selection.
@@ -173,11 +175,9 @@ def generate_settings_form(solvers: list[str]) -> html.Div:
             ),
             html.Div(
                 checkbox(
-                    "Auto-Suggest Next Annealing Time",
-                    "annealing-time-suggest",
-                    checked=False
+                    "Auto-Suggest Next Annealing Time", "annealing-time-suggest", checked=False
                 ),
-                id="annealing-time-suggest-wrapper"
+                id="annealing-time-suggest-wrapper",
             ),
             html.Div(
                 slider(

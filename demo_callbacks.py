@@ -25,11 +25,7 @@ from dash import MATCH, Input, Output, Patch, State, ctx
 from dash.exceptions import PreventUpdate
 from dwave.system import DWaveSampler, ParallelEmbeddingComposite
 
-from demo_configs import (
-    MIN_ANNEALING_TIME,
-    NUM_READS,
-    SUGGESTED_ANNEALING_TIMES,
-)
+from demo_configs import MIN_ANNEALING_TIME, NUM_READS, SUGGESTED_ANNEALING_TIMES
 from demo_interface import generate_new_results_dict
 from src.demo_enums import JobState, ModelType
 from src.model_loading import ProblemModel
@@ -250,7 +246,7 @@ def set_current_model(
 )
 def run_button_click(
     run_btn_click: int,
-) -> tuple[bool, str, float]:
+) -> tuple[bool, str, float, bool]:
     """Start simulation run when button is clicked.
 
     Args:

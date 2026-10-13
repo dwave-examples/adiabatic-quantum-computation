@@ -177,7 +177,7 @@ def get_results_plot(
                         mode="markers",
                         marker=dict(
                             symbol="circle",
-                            size=max(sample_point_size - 7,1),
+                            size=max(sample_point_size - 7, 1),
                             color=MODEL_COLORS_RESULTS[model],
                         ),
                         name=f"{model.label} {sample_point_label}",
