@@ -1,34 +1,33 @@
-### Interested in contributing a code example?
+[![Open in GitHub Codespaces](
+  https://img.shields.io/badge/Open%20in%20GitHub%20Codespaces-333?logo=github)](
+  https://codespaces.new/dwave-examples/adiabatic-quantum-computation-notebook?quickstart=1)
 
-Please take a look at our [contribution guidelines](CONTRIBUTING.md) before getting started.
-Thank you!
+### Adiabatic Quantum Computation (with Landau-Zener like scaling)
 
-The Dash template is intended for demos that would benefit from a user interface. This user
-interface could include settings to run and customize the problem, an interactive graphical element,
-or tables/charts to compare different solutions. This template is also useful for demos that are
-intended for a general audience, as it is more approachable for those without a technical background.
+A demonstration of using the
+[fast-anneal protocol](https://docs.dwavequantum.com/en/latest/quantum_research/annealing.html)
+on a quantum computer to determine ground states for frustrated 16-variable Ising models
+compatible with [Adiabatic Quantum Computation](https://en.wikipedia.org/wiki/Adiabatic_quantum_computation).
 
-<!-- Before submitting your code, please delete everything above and including this comment. -->
-<!-- The following is a README template for your new demo. -->
+This example employs quantum annealing in the coherent regime of a D-Wave
+quantum processing unit (QPU), producing ground states at a rate aligned with
+theoretical predictions: in particular gap-dependent scaling based upon the
+[Landau-Zener formula](https://en.wikipedia.org/wiki/Landau%E2%80%93Zener_formula).
 
-# Demo Name
-
-Describe your demo and specify what it is demonstrating. Consider the
-following questions:
-
-* Is it a canonical problem or a real-world application?
-* Does it belong to a particular domain such as material simulation or logistics?
-* What level of Ocean proficiency does it target: beginner, advanced?
-
-A clear description allows us to properly categorize your demo.
-
-Please include a screenshot of your demo below.
+This demo complements the Kibble-Zurek demo, which demonstrates statistical properties in
+the regime with high rates of excitation away from the ground state.
 
 ![Demo Example](static/demo.png "Image of demo interface")
 
-<!-- Below is boilerplate instructions to be included, as is, in the final demo. -->
+* [Installation](#Installation)
+* [Usage](#Usage)
+* [Adiabatic Quantum Computation](#Adiabatic Quantum Computation)
+* [Model Overview](#Model-Overview)
+* [Code](#Code)
+* [License](#License)
 
-## Installation
+## <a name="Installation"></a> Installation
+
 You can run this example without installation in cloud-based IDEs that support the
 [Development Containers Specification](https://containers.dev/supporting) (aka "devcontainers")
 such as GitHub Codespaces.
@@ -42,7 +41,8 @@ pip install -r requirements.txt
 If you are cloning the repo to your local system, working in a
 [virtual environment](https://docs.python.org/3/library/venv.html) is recommended.
 
-## Usage
+## <a name="Usage"></a> Usage
+
 Your development environment should be configured to access the
 [Leap&trade; quantum cloud service](https://docs.dwavequantum.com/en/latest/ocean/sapi_access_basic.html).
 You can see information about supported IDEs and authorizing access to your Leap account
@@ -66,57 +66,76 @@ Configuration options can be found in the [demo_configs.py](demo_configs.py) fil
 with the `--debug` command-line argument for live reloads and easier debugging:
 `python app.py --debug`
 
-<!-- End of boilerplate. -->
+## Adiabatic Quantum Computation
+Adiabatic quantum computation is a canonical theoretical model of quantum computation.
+In simplest formulations, a state is prepared as a ground state of a driver, the driver
+energy term is slowly scaled to zero whilst a problem Hamiltonian is scaled up.
+Adiabatic evolution guarantees that with sufficient isolation from the environment, and
+Hamiltonian evolution at a sufficiently small rate, the system evolves to the ground
+state of the problem Hamiltonian.
 
-## Problem Description
-Give an overview of the problem you are solving in this demo.
+In D-Wave Quantum annealers a transverse-field driver is combined with a diagonal problem
+Hamiltonian. The problem Hamiltonian can be programmed to encode in its ground state
+solutions to an optimization problem.
 
-**Objectives**: define the goal this example attempts to accomplish by minimizing or maximizing
-certain aspects of the problem. For example, a production-line optimization might attempt to
-minimize the time to produce all of the products.
-
-**Constraints**: aspects of the problem, with limited or no flexibility, that must be satisfied for
-solutions to be considered feasible. For example, a production-line optimization might have a
-limitation that Machine A can only bend 10 parts per hour.
+For many optimization problem the spectrum of the Hamiltonian, as it evolves from driver
+dominated to problem dominated, demonstrates a well defined closing gap (or anti-crossing).
+At closing gaps transitions out of the ground state are possible via diabatic transitions.
+Where transitions from the lowest energy state to the 1st excited state at a single
+anti-crossing the limit the success probability (attainment of a ground state) a two state
+(Landau-Zener) process can describe the the exponentially small rates of excitation as
+annealing time increases. 
 
 ## Model Overview
-The clearer your model is presented here, the more useful it will be to others. For a strong example
-of this section, see [here](https://github.com/dwave-examples/3d-bin-packing#model-overview).
 
-### Parameters
-List and define the parameters used in your model.
+As annealing time increases we anticipate decreased rates of excitation.
+Asymptotically this is expected to follow an exponential decay, with the
+decay rate determined by spectral gap properties.
 
-### Variables
-List and define (including type: e.g., "binary" or "integer") the variables solved for in your model.
+### Experiment
 
-### Expressions
-List and define any combinations of variables used for easier representations of the models.
+The problem Hamiltonians studied are 16 qubit, 52 coupler, frustrated Ising models with
+uniform (AFM and FM) absolute coupling strength matched to those presented in [1] Figure 2c.
+These are stored in static/model as json files and selected by the user to study problems with variable gap size.
 
-### Objective
-Mathematical formulation of the objective described in the previous section using the listed
-parameters, variables, etc.
+The problem Hamiltonian can be scaled up or down to modify the gap properties, using a
+slider control. The evolution time is controlled by an annealing time slider.
 
-### Constraints
-Mathematical formulation of the constraints described in the previous section using the listed
-parameters, variables, etc.
+The problem is small enough that its programming can be parallelized across several
+disjoint processor locations. Data is collected from a single programming of 1000 reads.
+Standard error bars are calculated treating each embedding as an independent estimators
+(errors reflect a combination of control error and sampling error). 
+
+### Theoretical models
+
+The evolution of the driver term and problem Hamiltonians is modeled using device-specific
+annealing schedules. The spectrum is calculated via exact diagonalization on the basis of
+the programmed Hamlitonian and schedule. As demo parameters are adjusted it is recalculated.
+
+A theory curve f(t_a) plotted along side the data is an exact match to [1] Figure 2c.
+A Landau-Zener transition rate tau_n can be calculated based on the gap size and the rate at
+which it closes (with a locally linear approximation). Assuming a Landau Zener process to be a good description
+of dynamics we anticipate f(t_a tau_0/tau_n) to describe all experimental conditions.
+tau_0 characterizes the gap properties of the QPU on which experiments [1] were originally performed:
+problem (large gap, medium gap); problem Hamiltonian rescaling; QPU (schedule).
+tau_n characterizes the gap properties of the Hamiltonian on newer generally available devices, the ratio
+tau_n/tau_0 compensates for changes in energy scales.
+
+Uncertainty in the theoretical approximations arise from uncertainty in the schedule, and
+small corrections to the Landau-Zener approximation. Nevertheless, very good agreement is seen across
+models and QPUs, and under rescaling of the problem Hamiltonian.
 
 ## Code Overview
 
-A general overview of how the code works.
-
-Include any notable parts of the code implementation:
-
-* Talk about unusual or potentially difficult parts of the code
-* Explain a code decision
-* Explain how parameters were tuned
-
-Note: there is no need to repeat everything that is already well-documented in
-the code.
+To do: Use KZM as a model.
 
 ## References
 
-A. Person (YEAR), "An Article Title that Helped Formulate the Problem".
-[Link Title](https://example.com/)
+## References
+
+<a name="1">[1]</a> King, A.D., Suzuki, S., Raymond, J. et al.
+Coherent quantum annealing in a programmable 2,000 qubit Ising chain.
+Nat. Phys. 18, 1324–1328 (2022). https://doi.org/10.1038/s41567-022-01741-6
 
 ## License
 
