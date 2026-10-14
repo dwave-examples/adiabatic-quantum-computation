@@ -37,22 +37,38 @@ from src.qpu_resources import get_qpu_ids
 from src.values import MAX_ANNEALING_TIME, MIN_ANNEALING_TIME
 
 
-def checkbox(label: str, id: str, checked: bool) -> html.Div:
-    """Checkbox element.
+THEME_COLOR = "#2d4376"
+
+
+def slider(label: str, id: str, config: dict, marks: list | None = None) -> html.Div:
+    """Slider element for value selection.
 
     Args:
-        label: The title that goes above the checkbox.
+        label: The title that goes above the slider.
         id: A unique selector for this element.
-        checked: Whether the checkbox is checked or not.
+        config: A dictionary of slider configurations, see dmc.Slider Dash Mantine docs.
+        marks: A list of values that should be marked on the slider.
     """
     return html.Div(
-        className="checkbox-wrapper",
+        className="slider-wrapper",
         children=[
-            dmc.Checkbox(
+            html.Label(label, htmlFor=id),
+            dmc.Slider(
                 id=id,
-                label=label,
-                checked=checked,
-            )
+                className="slider",
+                **config,
+                marks=(
+                    marks
+                    if marks
+                    else [
+                        {"value": config["min"], "label": f'{config["min"]}'},
+                        {"value": config["max"], "label": f'{config["max"]}'},
+                    ]
+                ),
+                labelAlwaysOn=True,
+                thumbLabel=f"{label} slider",
+                color=THEME_COLOR,
+            ),
         ],
     )
 
@@ -83,34 +99,23 @@ def dropdown(label: str, id: str, options: list, value: str | None = None) -> ht
     )
 
 
-def slider(label: str, id: str, config: dict, marks: list | None = None) -> html.Div:
-    """Slider element for value selection.
+def checkbox(label: str, id: str, checked: bool) -> html.Div:
+    """Checkbox element.
 
     Args:
-        label: The title that goes above the slider.
+        label: The title that goes above the checkbox.
         id: A unique selector for this element.
-        config: A dictionary of slider configurations, see dmc.Slider Dash Mantine docs.
-        marks: A list of values that should be marked on the slider.
+        checked: Whether the checkbox is checked or not.
     """
     return html.Div(
-        className="slider-wrapper",
+        className="checkbox-wrapper",
         children=[
-            html.Label(label, htmlFor=id),
-            dmc.Slider(
+            dmc.Checkbox(
                 id=id,
-                className="slider",
-                **config,
-                marks=(
-                    marks
-                    if marks
-                    else [
-                        {"value": config["min"], "label": f'{config["min"]}'},
-                        {"value": config["max"], "label": f'{config["max"]}'},
-                    ]
-                ),
-                labelAlwaysOn=True,
-                thumbLabel=f"{label} slider",
-            ),
+                label=label,
+                checked=checked,
+                color=THEME_COLOR,
+            )
         ],
     )
 
@@ -173,41 +178,32 @@ def generate_settings_form(solvers: list[str]) -> html.Div:
                 model_options,
                 value=f"{DEFAULT_MODEL.value}",
             ),
-            html.Div(
-                checkbox(
-                    "Auto-Suggest Next Annealing Time", "annealing-time-suggest", checked=False
-                ),
-                id="annealing-time-suggest-wrapper",
+            checkbox(
+                "Auto-Suggest Next Annealing Time", "annealing-time-suggest", checked=False
             ),
-            html.Div(
-                slider(
-                    "Annealing Time (ns)",
-                    "annealing-time",
-                    {
-                        "value": SUGGESTED_ANNEALING_TIMES[0],
-                        "min": MIN_ANNEALING_TIME,
-                        "max": MAX_ANNEALING_TIME,
-                        "step": 1.0,
-                        "restrictToMarks": False,
-                    },
-                    marks=anneal_time_marks,
-                ),
-                id="annealing-time-wrapper",
+            slider(
+                "Annealing Time (ns)",
+                "annealing-time",
+                {
+                    "value": SUGGESTED_ANNEALING_TIMES[0],
+                    "min": MIN_ANNEALING_TIME,
+                    "max": MAX_ANNEALING_TIME,
+                    "step": 1.0,
+                    "restrictToMarks": False,
+                },
+                marks=anneal_time_marks,
             ),
-            html.Div(
-                slider(
-                    "Energy Rescaling",
-                    "energy-rescaling",
-                    {
-                        "value": coupling_strength_value,
-                        "min": coupling_strength_marks[0]["value"],
-                        "max": coupling_strength_marks[-1]["value"],
-                        "step": 0.1,
-                        "restrictToMarks": True,
-                    },
-                    marks=coupling_strength_marks,
-                ),
-                id="coupling-strength-wrapper",
+            slider(
+                "Energy Rescaling",
+                "energy-rescaling",
+                {
+                    "value": coupling_strength_value,
+                    "min": coupling_strength_marks[0]["value"],
+                    "max": coupling_strength_marks[-1]["value"],
+                    "step": 0.1,
+                    "restrictToMarks": True,
+                },
+                marks=coupling_strength_marks,
             ),
         ],
     )

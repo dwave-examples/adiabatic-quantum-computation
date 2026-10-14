@@ -34,3 +34,17 @@ custom CSS can be added below.
     width: calc(50vw - var(--left-col-width) / 2 - 3rem);
     position: relative;
 }
+
+label.mantine-Checkbox-label {
+    font-weight: 600;
+    font-size: 1.125rem;
+    color: var(--blue-darkest);
+}
+
+.checkbox-wrapper {
+    margin-top: 1.5rem;
+}
+
+.settings {
+    margin-bottom: 3rem;
+}
