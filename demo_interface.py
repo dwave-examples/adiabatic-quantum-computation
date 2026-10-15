@@ -36,7 +36,6 @@ from src.model_loading import ProblemModel
 from src.qpu_resources import get_qpu_ids
 from src.values import MAX_ANNEALING_TIME, MIN_ANNEALING_TIME
 
-
 THEME_COLOR = "#2d4376"
 
 
@@ -178,9 +177,7 @@ def generate_settings_form(solvers: list[str]) -> html.Div:
                 model_options,
                 value=f"{DEFAULT_MODEL.value}",
             ),
-            checkbox(
-                "Auto-Suggest Next Annealing Time", "annealing-time-suggest", checked=False
-            ),
+            checkbox("Auto-Suggest Next Annealing Time", "annealing-time-suggest", checked=False),
             slider(
                 "Annealing Time (ns)",
                 "annealing-time",

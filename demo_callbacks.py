@@ -25,14 +25,14 @@ from dash import MATCH, Input, Output, Patch, State, ctx
 from dash.exceptions import PreventUpdate
 from dwave.system import DWaveSampler, ParallelEmbeddingComposite
 
-from demo_configs import MIN_ANNEALING_TIME, NUM_READS, SUGGESTED_ANNEALING_TIMES
+from demo_configs import NUM_READS, SUGGESTED_ANNEALING_TIMES
 from demo_interface import generate_new_results_dict
 from src.demo_enums import JobState, ModelType
 from src.model_loading import ProblemModel
 from src.plotting import get_results_plot, get_spectrum_plot
 from src.process_embeddings import EmbeddingSet
 from src.qpu_resources import get_qpu_ids
-from src.values import ENERGY_THRESHOLD
+from src.values import ENERGY_THRESHOLD, MIN_ANNEALING_TIME
 
 
 @dash.callback(
@@ -173,8 +173,8 @@ def set_current_embeddings(
             [],
             available_solvers,
             True,
-            JobState.CONNECTING.label,
-        )  # TODO consider job state label for this case
+            JobState.FAILED.label,
+        )
 
     try:
         sampler = DWaveSampler(solver=qpu_name)
@@ -408,12 +408,10 @@ def submit_job(
         )
 
         sample_sets, _ = sampler.sample_multiple(**qpu_kwargs, bqms=parallel_bqms)
-        stats = []
-        for s_set in sample_sets:
-            set_energies = s_set.record.energy
-            stats.append(
-                1 - np.mean(set_energies <= EGS + ENERGY_THRESHOLD)
-            )  # Excited state probability
+        stats = [  # Calculate and record excited state probabilities for each sample set
+            float(1 - np.mean(s_set.record.energy <= EGS + ENERGY_THRESHOLD))
+            for s_set in sample_sets
+        ]
         results_dict[ModelType(int(model_val)).name].update({ta * 1000: stats})
     except Exception as exc:
         print(f"Error submitting job to {qpu_name}: {exc}")
@@ -449,6 +447,7 @@ def update_main_graph(
         model_val: The currently selected model value.
         qpu_name: The name of the currently selected QPU, used for rescaling the
             results plot to the QPU-specific energy scale.
+        auto_suggest: Whether the auto-suggest option for the annealing time slider is enabled.
 
     Returns:
         A tuple containing:
@@ -471,7 +470,7 @@ def update_main_graph(
     for model in ModelType:
         results[model.name] = {float(ta): stats for ta, stats in sample_data[model.name].items()}
         if results[model.name] and model.name == current_model:
-            largest_ta = max(list(results[model.name].keys()))
+            largest_ta = max(results[model.name])
 
     fig = get_results_plot(results, qpu_name)
 

@@ -148,7 +148,8 @@ class EmbeddingSet:
 
             print(f"Found {len(found_embeddings)} new embeddings.")
 
-            self.save_to_json_file(found_embeddings, maximal=get_max_embeddings)
+            if found_embeddings:
+                self.save_to_json_file(found_embeddings, maximal=get_max_embeddings)
 
             embeddings_to_return = found_embeddings
 
@@ -175,6 +176,9 @@ class EmbeddingSet:
     def load_from_json_file(self, maximal: bool = False) -> list[dict]:
         """Load saved embeddings from file. This is used to retrieve previously-found embeddings
         and avoid having to find them again.
+
+        Args:
+            maximal: Whether to load the embeddings from the max size file. Defaults to False.
 
         Returns:
             A list of embeddings, each a dict mapping source node to target qubit.
