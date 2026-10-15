@@ -21,7 +21,7 @@ import networkx as nx
 from dwave.embedding import verify_embedding
 from minorminer.utils.parallel_embeddings import find_multiple_embeddings
 
-from demo_configs import NUM_PARALLEL_EMBEDDINGS
+from demo_configs import EMBEDDING_TIMEOUT, NUM_PARALLEL_EMBEDDINGS
 from src.demo_enums import ProblemType
 from src.model_loading import ProblemModel
 from src.values import EMBEDDINGS_PATH
@@ -54,6 +54,9 @@ class EmbeddingSet:
         self.problem_type = problem_type
         self.embedding_id = f"{qpu_name}_{problem_type.name}"
         self.embeddings_path = os.path.join(embeddings_dir, f"{self.embedding_id}.json")
+        self.max_size_embeddings_path = os.path.join(
+            embeddings_dir, f"{self.embedding_id}_max_size.json"
+        )
         self.source_graph = self.get_source_graph()
         self.target_graph = target_graph
 
@@ -73,82 +76,115 @@ class EmbeddingSet:
 
         return source_graph
 
-    def get_embeddings(self) -> list[dict]:
+    def get_embeddings(
+        self,
+        num_parallel_embeddings: int | None = NUM_PARALLEL_EMBEDDINGS,
+        timeout: int = EMBEDDING_TIMEOUT,
+    ) -> list[dict]:
         """Get the embeddings for the selected QPU. Checks for saved embeddings in file first,
         if none are saved or they are invalid or incomplete, finds new embeddings and saves
         them to file before returning them.
+
+        Args:
+            num_parallel_embeddings: The number of parallel embeddings to find. If None, finds
+                the maximum number of embeddings possible within the allotted time.
+            timeout: The maximum time to wait for embeddings to be found.
 
         Returns:
             A list of embeddings, each a dict mapping source node to target qubit.
         """
 
-        valid_embeddings = []
+        get_max_embeddings = num_parallel_embeddings is None
 
-        if os.path.exists(self.embeddings_path):
+        embeddings_to_return = []
+        valid_loaded_embeddings = []
+        found_embeddings = []
+
+        if get_max_embeddings:
+            loading_path = self.max_size_embeddings_path
+            num_embeddings_needed = self.source_graph.number_of_nodes()
+        else:
+            loading_path = self.embeddings_path
+            num_embeddings_needed = num_parallel_embeddings
+
+        if os.path.exists(loading_path):
             print("Loading saved embeddings from file...")
-            loaded_embeddings = self.load_from_json_file()
+            loaded_embeddings = self.load_from_json_file(maximal=get_max_embeddings)
 
             for emb in loaded_embeddings:
                 emb = {int(k): tuple(v) for k, v in emb.items()}
                 try:
                     verify_embedding(emb, self.source_graph, self.target_graph)
-                    valid_embeddings.append(emb)
+                    valid_loaded_embeddings.append(emb)
                 except Exception:
                     print(f"Invalid embedding found: {emb}")
 
-            if len(valid_embeddings) > 0:
-                print(f"Loaded {len(valid_embeddings)} embeddings from file.")
+            # If we're loading a max-size embedding set, we don't know how many embeddings we
+            # actually need, so checking that a large enough fraction of the loaded embeddings
+            # are valid is the best we can do.
+            if get_max_embeddings:
+                num_embeddings_needed = max(1, int(0.8 * len(loaded_embeddings)))
+
+            if len(valid_loaded_embeddings) > 0:
+                print(f"Loaded {len(valid_loaded_embeddings)} embeddings from file.")
+                embeddings_to_return = valid_loaded_embeddings
 
         else:
             print("No saved embeddings found.")
 
-        if len(valid_embeddings) < NUM_PARALLEL_EMBEDDINGS:
-            print(
-                f"Require {NUM_PARALLEL_EMBEDDINGS - len(valid_embeddings)} embeddings for full embedding set."
-            )
+        if len(embeddings_to_return) < num_embeddings_needed:
+            print("Not enough valid embeddings found.")
             print("Finding embeddings now...")
-            num_needed = NUM_PARALLEL_EMBEDDINGS - len(valid_embeddings)
-            print(f"Finding {num_needed} new embeddings...")
             # Find embeddings the hard way, then save them to file so we can re-use them later.
 
             new_embeddings = find_multiple_embeddings(
                 self.source_graph,
                 self.target_graph,
-                max_num_emb=num_needed,
-                timeout=30,
+                max_num_emb=num_parallel_embeddings,
+                timeout=timeout,
             )
 
-            valid_embeddings.extend(
-                [{int(k): (v,) for k, v in emb.items()} for emb in new_embeddings]
-            )
+            found_embeddings = [{int(k): (v,) for k, v in emb.items()} for emb in new_embeddings]
 
-            self.save_to_json_file(valid_embeddings)
+            print(f"Found {len(found_embeddings)} new embeddings.")
 
-        if len(valid_embeddings) < NUM_PARALLEL_EMBEDDINGS:
+            if found_embeddings:
+                self.save_to_json_file(found_embeddings, maximal=get_max_embeddings)
+
+            embeddings_to_return = found_embeddings
+
+        if len(embeddings_to_return) < num_embeddings_needed:
             raise RuntimeError(
-                f"Could not find enough valid embeddings. Needed {NUM_PARALLEL_EMBEDDINGS}, but only found {len(valid_embeddings)}."
+                f"Could not find enough valid embeddings. Needed {num_embeddings_needed}, "
+                f"but only found {len(embeddings_to_return)}."
             )
 
-        return valid_embeddings
+        return embeddings_to_return
 
-    def save_to_json_file(self, embeddings: list[dict]):
+    def save_to_json_file(self, embeddings: list[dict], maximal: bool = False):
         """Save the embeddings to a JSON file for later re-use.
 
         Args:
             embeddings: A list of embeddings, each a dict mapping source node to target chain.
+            maximal: Whether to save the embeddings to the max size file. Defaults to False.
         """
 
-        with open(self.embeddings_path, "w") as f:
+        filepath = self.max_size_embeddings_path if maximal else self.embeddings_path
+        with open(filepath, "w") as f:
             json.dump(embeddings, f)
 
-    def load_from_json_file(self) -> list[dict]:
+    def load_from_json_file(self, maximal: bool = False) -> list[dict]:
         """Load saved embeddings from file. This is used to retrieve previously-found embeddings
         and avoid having to find them again.
+
+        Args:
+            maximal: Whether to load the embeddings from the max size file. Defaults to False.
 
         Returns:
             A list of embeddings, each a dict mapping source node to target qubit.
         """
 
-        with open(self.embeddings_path, "r") as f:
+        filepath = self.max_size_embeddings_path if maximal else self.embeddings_path
+        with open(filepath, "r") as f:
             embedding_list = json.load(f)
         return embedding_list

@@ -21,10 +21,55 @@ from enum import EnumMeta
 import dash_mantine_components as dmc
 from dash import dcc, html
 
-from demo_configs import DEFAULT_MODEL, DEFAULT_QPU, DESCRIPTION, MAIN_HEADER, THUMBNAIL
+from demo_configs import (
+    ANNEAL_TIME_STATIC_MARKS,
+    COUPLING_STRENGTH_SLIDER_MARKS,
+    DEFAULT_MODEL,
+    DEFAULT_QPU,
+    DESCRIPTION,
+    MAIN_HEADER,
+    SUGGESTED_ANNEALING_TIMES,
+    THUMBNAIL,
+)
 from src.demo_enums import JobState, ModelType, ProblemType
 from src.model_loading import ProblemModel
 from src.qpu_resources import get_qpu_ids
+from src.values import MAX_ANNEALING_TIME, MIN_ANNEALING_TIME
+
+THEME_COLOR = "#2d4376"
+
+
+def slider(label: str, id: str, config: dict, marks: list | None = None) -> html.Div:
+    """Slider element for value selection.
+
+    Args:
+        label: The title that goes above the slider.
+        id: A unique selector for this element.
+        config: A dictionary of slider configurations, see dmc.Slider Dash Mantine docs.
+        marks: A list of values that should be marked on the slider.
+    """
+    return html.Div(
+        className="slider-wrapper",
+        children=[
+            html.Label(label, htmlFor=id),
+            dmc.Slider(
+                id=id,
+                className="slider",
+                **config,
+                marks=(
+                    marks
+                    if marks
+                    else [
+                        {"value": config["min"], "label": f'{config["min"]}'},
+                        {"value": config["max"], "label": f'{config["max"]}'},
+                    ]
+                ),
+                labelAlwaysOn=True,
+                thumbLabel=f"{label} slider",
+                color=THEME_COLOR,
+            ),
+        ],
+    )
 
 
 def dropdown(label: str, id: str, options: list, value: str | None = None) -> html.Div:
@@ -49,6 +94,27 @@ def dropdown(label: str, id: str, options: list, value: str | None = None) -> ht
                 value=value if value else options[0]["value"],
                 allowDeselect=False,
             ),
+        ],
+    )
+
+
+def checkbox(label: str, id: str, checked: bool) -> html.Div:
+    """Checkbox element.
+
+    Args:
+        label: The title that goes above the checkbox.
+        id: A unique selector for this element.
+        checked: Whether the checkbox is checked or not.
+    """
+    return html.Div(
+        className="checkbox-wrapper",
+        children=[
+            dmc.Checkbox(
+                id=id,
+                label=label,
+                checked=checked,
+                color=THEME_COLOR,
+            )
         ],
     )
 
@@ -89,6 +155,13 @@ def generate_settings_form(solvers: list[str]) -> html.Div:
     else:
         default_solver = "No Leap Access"
 
+    coupling_strength_marks = [
+        {"value": mark, "label": f"{mark}"} for mark in COUPLING_STRENGTH_SLIDER_MARKS
+    ]
+    coupling_strength_value = COUPLING_STRENGTH_SLIDER_MARKS[-1]
+
+    anneal_time_marks = [{"value": mark, "label": f"{mark}"} for mark in ANNEAL_TIME_STATIC_MARKS]
+
     return html.Div(
         className="settings",
         children=[
@@ -103,6 +176,31 @@ def generate_settings_form(solvers: list[str]) -> html.Div:
                 "model-selection",
                 model_options,
                 value=f"{DEFAULT_MODEL.value}",
+            ),
+            checkbox("Auto-Suggest Next Annealing Time", "annealing-time-suggest", checked=False),
+            slider(
+                "Annealing Time (ns)",
+                "annealing-time",
+                {
+                    "value": SUGGESTED_ANNEALING_TIMES[0],
+                    "min": MIN_ANNEALING_TIME,
+                    "max": MAX_ANNEALING_TIME,
+                    "step": 1.0,
+                    "restrictToMarks": False,
+                },
+                marks=anneal_time_marks,
+            ),
+            slider(
+                "Energy Rescaling",
+                "energy-rescaling",
+                {
+                    "value": coupling_strength_value,
+                    "min": coupling_strength_marks[0]["value"],
+                    "max": coupling_strength_marks[-1]["value"],
+                    "step": 0.1,
+                    "restrictToMarks": True,
+                },
+                marks=coupling_strength_marks,
             ),
         ],
     )
@@ -151,10 +249,10 @@ def generate_new_results_dict(problem_type: str = ProblemType.DEFAULT.name) -> d
         problem_type: The type of problem for which to generate the results dictionary.
 
     Returns:
-        A dictionary with keys for each model type and an empty list for storing results.
+        A dictionary with keys for each model type and an empty dict for storing results.
     """
 
-    results_dict = {m.name: [] for m in ModelType}  # TODO use more durable keys
+    results_dict = {m.name: {} for m in ModelType}  # TODO use more durable keys
     results_dict["problem_type"] = problem_type
     return results_dict
 
