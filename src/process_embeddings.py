@@ -87,7 +87,7 @@ class EmbeddingSet:
 
         Args:
             num_parallel_embeddings: The number of parallel embeddings to find. If None, finds
-                the maximum number of embeddings possible within the alloted time.
+                the maximum number of embeddings possible within the allotted time.
             timeout: The maximum time to wait for embeddings to be found.
 
         Returns:
