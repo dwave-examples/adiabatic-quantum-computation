@@ -123,7 +123,7 @@ class EmbeddingSet:
             # actually need, so checking that a large enough fraction of the loaded embeddings
             # are valid is the best we can do.
             if get_max_embeddings:
-                num_embeddings_needed = int(0.8 * len(loaded_embeddings))
+                num_embeddings_needed = max(1, int(0.8 * len(loaded_embeddings)))
 
             if len(valid_loaded_embeddings) > 0:
                 print(f"Loaded {len(valid_loaded_embeddings)} embeddings from file.")

@@ -445,7 +445,7 @@ def update_main_graph(
     set annealing times as they desire.
 
     Args:
-        measurement_data: A dictionary containing the current measurement results.
+        sample_data: A dictionary containing the current measurement results.
         model_val: The currently selected model value.
         qpu_name: The name of the currently selected QPU, used for rescaling the
             results plot to the QPU-specific energy scale.
