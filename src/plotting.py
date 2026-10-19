@@ -17,9 +17,10 @@ import plotly.graph_objects as go
 
 from demo_configs import (
     DEFAULT_PLOT_WIDTH,
+    ENERGY_GAP_COLOR,
+    EXCITED_STATE_COLORS,
     MAX_PLOT_WIDTH,
-    MODEL_COLORS_RESULTS,
-    MODEL_COLORS_THEORY,
+    MODEL_COLORS,
     SAMPLE_POINT_SIZE,
     SHOW_PARALLEL_SAMPLES,
 )
@@ -27,7 +28,11 @@ from src.demo_enums import ModelType, ProblemType
 from src.model_loading import ProblemModel
 from src.values import ENERGY_TIME_RESCALING, Y_AXIS_RESCALING
 
+LINE_WIDTH = 2
+MARKER_OUTLINE = dict(color="white", width=1)
+
 PLOT_LAYOUT = dict(
+    template="plotly_white",
     margin=dict(l=60, r=10, t=10, b=50),
     legend=dict(
         xanchor="left",
@@ -76,6 +81,7 @@ def get_spectrum_plot(
                 y=(column - filedata[:, 1]) * energy_rescaling,
                 mode="lines",
                 name=series_labels[idx] + " Excited State",
+                line=dict(color=EXCITED_STATE_COLORS[idx], width=LINE_WIDTH),
             )
         )
 
@@ -85,7 +91,7 @@ def get_spectrum_plot(
             y=[0, min_gap],
             mode="lines",
             name=f"Energy Gap {round(min_gap, 2)} GHz",
-            line=dict(color="black"),
+            line=dict(color=ENERGY_GAP_COLOR, width=LINE_WIDTH, dash="dash"),
         )
     )
 
@@ -142,7 +148,7 @@ def get_results_plot(
                 y=theory_ys[:-1],
                 mode="lines",
                 name=f"{model.label} Theory",
-                line=dict(color=MODEL_COLORS_THEORY[model]),
+                line=dict(color=MODEL_COLORS[model], width=LINE_WIDTH),
             )
         )
 
@@ -178,7 +184,8 @@ def get_results_plot(
                         marker=dict(
                             symbol="circle",
                             size=max(sample_point_size - 7, 1),
-                            color=MODEL_COLORS_RESULTS[model],
+                            color=MODEL_COLORS[model],
+                            line=MARKER_OUTLINE,
                         ),
                         name=f"{model.label} {sample_point_label}",
                     )
@@ -194,7 +201,8 @@ def get_results_plot(
                     marker=dict(
                         symbol="diamond-wide",
                         size=sample_point_size,
-                        color=MODEL_COLORS_RESULTS[model],
+                        color=MODEL_COLORS[model],
+                        line=MARKER_OUTLINE,
                     ),
                     name=f"{model.label} {sample_point_label}",
                 )
