@@ -2,7 +2,7 @@
   https://img.shields.io/badge/Open%20in%20GitHub%20Codespaces-333?logo=github)](
   https://codespaces.new/dwave-examples/adiabatic-quantum-computation-notebook?quickstart=1)
 
-### Adiabatic Quantum Computation (with Landau-Zener like scaling)
+# Adiabatic Quantum Computation with Landau-Zener Scaling
 
 A demonstration of using the
 [fast-anneal protocol](https://docs.dwavequantum.com/en/latest/quantum_research/annealing.html)
