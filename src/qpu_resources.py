@@ -14,7 +14,23 @@
 
 from __future__ import annotations
 
+from functools import lru_cache
+
 from dwave.cloud import Client
+from dwave.system import DWaveSampler
+
+
+@lru_cache
+def get_sampler(qpu_name: str) -> DWaveSampler:
+    """Get a sampler for the named QPU, reusing the connection across callbacks.
+
+    Args:
+        qpu_name: The name of the QPU to connect to.
+
+    Returns:
+        A ``DWaveSampler`` for the QPU.
+    """
+    return DWaveSampler(solver=qpu_name)
 
 
 def get_qpu_ids(print_available: bool = False) -> list[str]:

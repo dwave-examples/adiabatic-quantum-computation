@@ -16,16 +16,19 @@ import numpy as np
 import plotly.graph_objects as go
 
 from demo_configs import (
-    DEFAULT_PLOT_WIDTH,
-    MAX_PLOT_WIDTH,
     MODEL_COLORS_RESULTS,
     MODEL_COLORS_THEORY,
-    SAMPLE_POINT_SIZE,
     SHOW_PARALLEL_SAMPLES,
 )
 from src.demo_enums import ModelType, ProblemType
 from src.model_loading import ProblemModel
-from src.values import ENERGY_TIME_RESCALING, Y_AXIS_RESCALING
+from src.values import (
+    DEFAULT_PLOT_WIDTH,
+    ENERGY_TIME_RESCALING,
+    MAX_PLOT_WIDTH,
+    SAMPLE_POINT_SIZE,
+    Y_AXIS_RESCALING,
+)
 
 PLOT_LAYOUT = dict(
     margin=dict(l=60, r=10, t=10, b=50),

@@ -37,6 +37,7 @@ from src.qpu_resources import get_qpu_ids
 from src.values import MAX_ANNEALING_TIME, MIN_ANNEALING_TIME
 
 THEME_COLOR = "#2d4376"
+NO_LEAP_ACCESS_LABEL = "No Leap Access"
 
 
 def slider(label: str, id: str, config: dict, marks: list | None = None) -> html.Div:
@@ -143,9 +144,6 @@ def generate_settings_form(solvers: list[str]) -> html.Div:
     Returns:
         A Div containing the settings for selecting the scenario, model, and solver.
     """
-    # TODO link to specific solver list
-    qpu_options = generate_options(solvers)
-
     model_options = generate_options(ModelType)
 
     if DEFAULT_QPU in solvers:
@@ -153,7 +151,11 @@ def generate_settings_form(solvers: list[str]) -> html.Div:
     elif solvers:
         default_solver = solvers[0]
     else:
-        default_solver = "No Leap Access"
+        # Show the fallback as the only option so the dropdown is not blank without Leap access.
+        default_solver = NO_LEAP_ACCESS_LABEL
+        solvers = [NO_LEAP_ACCESS_LABEL]
+
+    qpu_options = generate_options(solvers)
 
     coupling_strength_marks = [
         {"value": mark, "label": f"{mark}"} for mark in COUPLING_STRENGTH_SLIDER_MARKS

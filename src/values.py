@@ -15,16 +15,18 @@
 import pathlib
 
 REPO_PATH = pathlib.Path(__file__).parent.parent.resolve()
-STATIC_PATH = pathlib.Path(REPO_PATH) / "static"
-EMBEDDINGS_PATH = pathlib.Path(REPO_PATH) / "embeddings"
-MODELS_PATH = pathlib.Path(STATIC_PATH) / "models"
-SCHEDULES_PATH = pathlib.Path(STATIC_PATH) / "annealing_schedules"
-
-pathlib.Path(EMBEDDINGS_PATH).mkdir(exist_ok=True)
+EMBEDDINGS_PATH = REPO_PATH / "embeddings"
+MODELS_PATH = REPO_PATH / "static" / "models"
 
 ENERGY_THRESHOLD = 1e-8  # Relative to ground state energy
 MIN_ANNEALING_TIME = 5
 MAX_ANNEALING_TIME = 30
+
+# Results plot tuning. The x-axis shows DEFAULT_PLOT_WIDTH ns of annealing time and widens to
+# MAX_PLOT_WIDTH once a sample lands near the right edge.
+SAMPLE_POINT_SIZE = 10
+DEFAULT_PLOT_WIDTH = 21
+MAX_PLOT_WIDTH = 31
 
 ENERGY_TIME_RESCALING = {  # Used to rescale energy axis for plotting samples from
     "Advantage2_system5": 2.48,  # processors that have different energy scales.

@@ -54,10 +54,6 @@ COUPLING_STRENGTH_SLIDER_MARKS = [0.2, 0.4, 0.6, 0.8, 1.0]
 DEFAULT_QPU = "Advantage_system4"  # If not available, the first returned will be default
 DEFAULT_MODEL = ModelType.INTERMEDIATE_GAP
 
-
-SAMPLE_POINT_SIZE = 6
-DEFAULT_PLOT_WIDTH = 21
-MAX_PLOT_WIDTH = 31
 MODEL_COLORS_THEORY = {
     ModelType.LARGE_GAP: "#1f77b4",
     ModelType.INTERMEDIATE_GAP: "#2ca02c",
