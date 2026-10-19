@@ -40,7 +40,7 @@ def get_qpu_ids(print_available: bool = False) -> list[str]:
         print(f"Available solvers: {solver_list}")
     return solver_list
 
-def get_schedule_filename(qpu_name: str) -> str:
+def get_schedule_filepath(qpu_name: str) -> str:
     suffix = "annealing_schedule"
     for file in [x for x in SCHEDULES_AND_EMBEDDINGS_PATH.iterdir() if x.isfile()]:
         if suffix in file.name and qpu_name in file.name:
