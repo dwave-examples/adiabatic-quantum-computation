@@ -105,7 +105,7 @@ The problem Hamiltonian can be scaled up or down to modify the gap properties, u
 *Energy Rescaling* slider. The evolution time is controlled by the *Annealing Time* slider.
 
 The problem is small enough that it can be parallelized across several
-disjoint processor locations. Data is collected from a single programming of 1000 reads.
+disjoint processor locations. Data is collected from a single programming of 400 reads per data point.
 Standard error bars are calculated treating each embedding as an independent estimators
 (errors reflect a combination of control error and sampling error). 
 
