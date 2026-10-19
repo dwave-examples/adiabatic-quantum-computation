@@ -202,10 +202,15 @@ def set_current_embeddings(
     Input("model-selection", "value"),
     Input("energy-rescaling", "value"),
     Input("job-submit-time", "data"),
+    Input("qpu-selection", "value"),
     State("cached-models", "data"),
 )
 def set_current_model(
-    model_val: str, energy_rescaling: float, job_submit_time: float, cached_models: dict
+    model_val: str, 
+    energy_rescaling: float, 
+    job_submit_time: float, 
+    qpu_name: str, 
+    cached_models: dict
 ) -> tuple[dict, go.Figure]:
     """Sets the data and the spectrum plot for the currently selected model. Triggers whenever the
     model selection dropdown is changed or the energy rescaling value is modified. Also triggers
@@ -225,7 +230,7 @@ def set_current_model(
           ground state energy (EGS).
         - go.Figure: A plotly figure of the spectrum of energies for the selected model.
     """
-    spectrum_plot = get_spectrum_plot(ModelType(int(model_val)), energy_rescaling=energy_rescaling)
+    spectrum_plot = get_spectrum_plot(ModelType(int(model_val)), qpu_name, energy_rescaling=energy_rescaling)
     if ctx.triggered_id == "energy-rescaling":
         model_data = dash.no_update
     else:

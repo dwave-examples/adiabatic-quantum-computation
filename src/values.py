@@ -15,8 +15,11 @@
 import pathlib
 
 REPO_PATH = pathlib.Path(__file__).parent.parent.resolve()
-EMBEDDINGS_PATH = REPO_PATH / "embeddings"
-MODELS_PATH = REPO_PATH / "static" / "models"
+STATIC_PATH = pathlib.Path(REPO_PATH) / "static"
+SCHEDULES_AND_EMBEDDINGS_PATH = pathlib.Path(REPO_PATH) / "schedules_and_embeddings"
+MODELS_PATH = pathlib.Path(STATIC_PATH) / "models"
+
+FALLBACK_SCHEDULE_PATH = SCHEDULES_AND_EMBEDDINGS_PATH / "FALLBACK_SCHEDULE.csv"
 
 ENERGY_THRESHOLD = 1e-8  # Relative to ground state energy
 MIN_ANNEALING_TIME = 5

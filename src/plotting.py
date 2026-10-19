@@ -47,9 +47,23 @@ PLOT_LAYOUT = dict(
     ),
 )
 
+def rescale_spectrum(
+        spectrum_data: np.ndarray, 
+        qpu_name: str, 
+        reference_schedule: np.ndarray, 
+        energy_rescaling: float = 1.0
+    ) -> np.ndarray:
+    qpu_schedule = None
+    new_spectrum_data = spectrum_data * energy_rescaling
+    return new_spectrum_data
+
+def rescale_annealing_time(qpu_name: str, energy_rescaling: float = 1.0) -> float:
+    qpu_factor = 1.0 if qpu_name not in ENERGY_TIME_RESCALING else ENERGY_TIME_RESCALING[qpu_name]
+    return energy_rescaling/qpu_factor
 
 def get_spectrum_plot(
     model_type: ModelType,
+    qpu_name: str,
     problem_type: ProblemType = ProblemType.DEFAULT,
     energy_rescaling: float = 1.0,
 ) -> go.Figure:
@@ -68,21 +82,24 @@ def get_spectrum_plot(
     filedata = ProblemModel.load_spectrum_scatter_from_file(model_type, problem_type)
     fig = go.Figure()
 
-    rows = filedata[:, 2:]
-    columns = [rows[:, i] for i in range(len(rows[0]))]
+    t_vals = filedata[:, 0]
+    e_rows = filedata[:, 3:]
+    rescaled_e_rows = rescale_spectrum(qpu_name, e_rows, energy_rescaling)
+    egs_column = rescaled_e_rows[:, 0]
+    excited_columns = [rescaled_e_rows[:, i] for i in range(1,len(rescaled_e_rows[0]))]
 
     series_labels = ["1st", "2nd", "3rd", "4th", "5th"]
 
-    gaps = columns[0] - filedata[:, 1]
+    gaps = excited_columns[0] - egs_column
     min_gap_idx = np.argmin(gaps)
-    min_gap = gaps[min_gap_idx] * energy_rescaling
+    min_gap = gaps[min_gap_idx]
     min_gap_x = filedata[min_gap_idx, 0]
 
-    for idx, column in enumerate(columns):
+    for idx, column in enumerate(excited_columns):
         fig.add_trace(
             go.Scatter(
-                x=filedata[:, 0],
-                y=(column - filedata[:, 1]) * energy_rescaling,
+                x=t_vals,
+                y=column - egs_column,
                 mode="lines",
                 name=series_labels[idx] + " Excited State",
                 line=dict(color=EXCITED_STATE_COLORS[idx], width=LINE_WIDTH),
@@ -99,7 +116,7 @@ def get_spectrum_plot(
         )
     )
 
-    fig.update_yaxes(type="log", range=[-1.6, 0.6])
+    fig.update_yaxes(type="log", range=[-1, 2])
 
     fig.update_layout(
         xaxis_title="Anneal Progress", yaxis_title="Excitation Energy (GHz)", **PLOT_LAYOUT
@@ -138,17 +155,11 @@ def get_results_plot(
 
         y_axis_min = -1.0
 
-        # TODO: Replace with better implementation. Currently a crude patch to rescale theory data for specific QPUs.
-        for qpu_prefix, rescale in ENERGY_TIME_RESCALING.items():
-            if qpu_name.startswith(qpu_prefix):
-                theory_ys = [y**rescale for y in theory_ys]
-                if qpu_prefix in Y_AXIS_RESCALING:
-                    y_axis_min = Y_AXIS_RESCALING[qpu_prefix]  # For Advantage2, rescaling requires
-                    # a larger range in the y-axis to see the data.
+        x_rescale = rescale_annealing_time(qpu_name)
 
         fig.add_trace(
             go.Scatter(
-                x=theory_xs[:-1],
+                x=[x*x_rescale for x in theory_xs[:-1]],
                 y=theory_ys[:-1],
                 mode="lines",
                 name=f"{model.label} Theory",
