@@ -30,6 +30,7 @@ from src.values import ENERGY_TIME_RESCALING, Y_AXIS_RESCALING
 
 LINE_WIDTH = 2
 MARKER_OUTLINE = dict(color="white", width=1)
+ERROR_BAR = dict(thickness=3, width=8)  # Stem thickness and cap width in pixels.
 
 PLOT_LAYOUT = dict(
     template="plotly_white",
@@ -196,7 +197,7 @@ def get_results_plot(
                 go.Scatter(
                     x=anneal_times,
                     y=egs_probs,
-                    error_y=dict(type="data", array=y_errs, visible=True),
+                    error_y=dict(type="data", array=y_errs, visible=True, **ERROR_BAR),
                     mode="markers",
                     marker=dict(
                         symbol="diamond-wide",

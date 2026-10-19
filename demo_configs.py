@@ -55,7 +55,7 @@ DEFAULT_QPU = "Advantage_system4"  # If not available, the first returned will b
 DEFAULT_MODEL = ModelType.INTERMEDIATE_GAP
 
 
-SAMPLE_POINT_SIZE = 10
+SAMPLE_POINT_SIZE = 14
 DEFAULT_PLOT_WIDTH = 21
 MAX_PLOT_WIDTH = 31
 
