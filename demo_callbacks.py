@@ -23,7 +23,7 @@ import numpy as np
 import plotly.graph_objects as go
 from dash import MATCH, Input, Output, Patch, State, ctx
 from dash.exceptions import PreventUpdate
-from dwave.system import ParallelEmbeddingComposite
+from dwave.system import DWaveSampler, ParallelEmbeddingComposite
 
 from demo_configs import NUM_READS, SUGGESTED_ANNEALING_TIMES
 from demo_interface import generate_new_results_dict
@@ -31,7 +31,7 @@ from src.demo_enums import JobState, ModelType
 from src.model_loading import ProblemModel
 from src.plotting import get_results_plot, get_spectrum_plot
 from src.process_embeddings import EmbeddingSet
-from src.qpu_resources import get_qpu_ids, get_sampler
+from src.qpu_resources import get_qpu_ids
 from src.values import ENERGY_THRESHOLD, MIN_ANNEALING_TIME
 
 
@@ -177,7 +177,8 @@ def set_current_embeddings(
         )
 
     try:
-        target_graph = get_sampler(qpu_name).to_networkx_graph()
+        sampler = DWaveSampler(solver=qpu_name)
+        target_graph = sampler.to_networkx_graph()
     except Exception as exc:
         print(f"Error connecting to solver {qpu_name}: {exc}")
         return [], available_solvers, True, JobState.FAILED.label
@@ -390,7 +391,8 @@ def submit_job(
         ta = job_submit_args["annealing_time"]
         embeddings = [{int(k): tuple(v) for k, v in emb.items()} for emb in model_embeddings]
 
-        sampler = ParallelEmbeddingComposite(get_sampler(qpu_name), embeddings=embeddings)
+        qpu = DWaveSampler(solver=qpu_name)
+        sampler = ParallelEmbeddingComposite(qpu, embeddings=embeddings)
 
         qpu_kwargs = dict(
             num_reads=NUM_READS,
