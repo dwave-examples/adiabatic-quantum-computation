@@ -24,7 +24,7 @@ MAX_ANNEALING_TIME = 30
 
 # Results plot tuning. The x-axis shows DEFAULT_PLOT_WIDTH ns of annealing time and widens to
 # MAX_PLOT_WIDTH once a sample lands near the right edge.
-SAMPLE_POINT_SIZE = 10
+SAMPLE_POINT_SIZE = 14
 DEFAULT_PLOT_WIDTH = 21
 MAX_PLOT_WIDTH = 31
 
