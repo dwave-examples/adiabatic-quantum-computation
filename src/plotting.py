@@ -16,8 +16,9 @@ import numpy as np
 import plotly.graph_objects as go
 
 from demo_configs import (
-    MODEL_COLORS_RESULTS,
-    MODEL_COLORS_THEORY,
+    ENERGY_GAP_COLOR,
+    EXCITED_STATE_COLORS,
+    MODEL_COLORS,
     SHOW_PARALLEL_SAMPLES,
 )
 from src.demo_enums import ModelType, ProblemType
@@ -30,7 +31,12 @@ from src.values import (
     Y_AXIS_RESCALING,
 )
 
+LINE_WIDTH = 2
+MARKER_OUTLINE = dict(color="white", width=1)
+ERROR_BAR = dict(thickness=3, width=8)  # Stem thickness and cap width in pixels.
+
 PLOT_LAYOUT = dict(
+    template="plotly_white",
     margin=dict(l=60, r=10, t=10, b=50),
     legend=dict(
         xanchor="left",
@@ -79,6 +85,7 @@ def get_spectrum_plot(
                 y=(column - filedata[:, 1]) * energy_rescaling,
                 mode="lines",
                 name=series_labels[idx] + " Excited State",
+                line=dict(color=EXCITED_STATE_COLORS[idx], width=LINE_WIDTH),
             )
         )
 
@@ -88,7 +95,7 @@ def get_spectrum_plot(
             y=[0, min_gap],
             mode="lines",
             name=f"Energy Gap {round(min_gap, 2)} GHz",
-            line=dict(color="black"),
+            line=dict(color=ENERGY_GAP_COLOR, width=LINE_WIDTH, dash="dash"),
         )
     )
 
@@ -145,7 +152,7 @@ def get_results_plot(
                 y=theory_ys[:-1],
                 mode="lines",
                 name=f"{model.label} Theory",
-                line=dict(color=MODEL_COLORS_THEORY[model]),
+                line=dict(color=MODEL_COLORS[model], width=LINE_WIDTH),
             )
         )
 
@@ -181,7 +188,8 @@ def get_results_plot(
                         marker=dict(
                             symbol="circle",
                             size=max(sample_point_size - 7, 1),
-                            color=MODEL_COLORS_RESULTS[model],
+                            color=MODEL_COLORS[model],
+                            line=MARKER_OUTLINE,
                         ),
                         name=f"{model.label} {sample_point_label}",
                     )
@@ -192,12 +200,13 @@ def get_results_plot(
                 go.Scatter(
                     x=anneal_times,
                     y=egs_probs,
-                    error_y=dict(type="data", array=y_errs, visible=True),
+                    error_y=dict(type="data", array=y_errs, visible=True, **ERROR_BAR),
                     mode="markers",
                     marker=dict(
                         symbol="diamond-wide",
                         size=sample_point_size,
-                        color=MODEL_COLORS_RESULTS[model],
+                        color=MODEL_COLORS[model],
+                        line=MARKER_OUTLINE,
                     ),
                     name=f"{model.label} {sample_point_label}",
                 )
