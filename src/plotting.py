@@ -16,17 +16,20 @@ import numpy as np
 import plotly.graph_objects as go
 
 from demo_configs import (
-    DEFAULT_PLOT_WIDTH,
     ENERGY_GAP_COLOR,
     EXCITED_STATE_COLORS,
-    MAX_PLOT_WIDTH,
     MODEL_COLORS,
-    SAMPLE_POINT_SIZE,
     SHOW_PARALLEL_SAMPLES,
 )
 from src.demo_enums import ModelType, ProblemType
 from src.model_loading import ProblemModel
-from src.values import ENERGY_TIME_RESCALING, Y_AXIS_RESCALING
+from src.values import (
+    DEFAULT_PLOT_WIDTH,
+    ENERGY_TIME_RESCALING,
+    MAX_PLOT_WIDTH,
+    SAMPLE_POINT_SIZE,
+    Y_AXIS_RESCALING,
+)
 
 LINE_WIDTH = 2
 MARKER_OUTLINE = dict(color="white", width=1)

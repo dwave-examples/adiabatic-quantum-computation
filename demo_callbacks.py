@@ -372,14 +372,14 @@ def submit_job(
         - bool: False indicating that the energy rescaling slider should not be disabled.
     """
 
+    if job_submit_state != JobState.RUNNING.label:
+        raise PreventUpdate
+
     results_dict = Patch()
 
     available_solvers = get_qpu_ids()
     if qpu_name not in available_solvers:
         return results_dict, False, available_solvers, JobState.FAILED.label, False
-
-    if job_submit_state != JobState.RUNNING.label:
-        raise PreventUpdate
 
     try:
         EGS = job_submit_args["EGS"]
@@ -392,11 +392,7 @@ def submit_job(
         embeddings = [{int(k): tuple(v) for k, v in emb.items()} for emb in model_embeddings]
 
         qpu = DWaveSampler(solver=qpu_name)
-
-        sampler = ParallelEmbeddingComposite(
-            qpu,
-            embeddings=embeddings,
-        )
+        sampler = ParallelEmbeddingComposite(qpu, embeddings=embeddings)
 
         qpu_kwargs = dict(
             num_reads=NUM_READS,

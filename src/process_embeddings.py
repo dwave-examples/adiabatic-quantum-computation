@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 import json
-import os
+from pathlib import Path
 
 import networkx as nx
 from dwave.embedding import verify_embedding
@@ -35,7 +35,7 @@ class EmbeddingSet:
         qpu_name: str,
         target_graph: nx.Graph,
         problem_type: ProblemType = ProblemType.DEFAULT,
-        embeddings_dir: str = EMBEDDINGS_PATH,
+        embeddings_dir: str | Path = EMBEDDINGS_PATH,
     ):
         """Initializes the EmbeddingSet for a particular QPU. The QPU name and graph must
         both be provided. Currently the demo only supports a single problem graph structure,
@@ -53,10 +53,9 @@ class EmbeddingSet:
         self.qpu_name = qpu_name
         self.problem_type = problem_type
         self.embedding_id = f"{qpu_name}_{problem_type.name}"
-        self.embeddings_path = os.path.join(embeddings_dir, f"{self.embedding_id}.json")
-        self.max_size_embeddings_path = os.path.join(
-            embeddings_dir, f"{self.embedding_id}_max_size.json"
-        )
+        self.embeddings_dir = Path(embeddings_dir)
+        self.embeddings_path = self.embeddings_dir / f"{self.embedding_id}.json"
+        self.max_size_embeddings_path = self.embeddings_dir / f"{self.embedding_id}_max_size.json"
         self.source_graph = self.get_source_graph()
         self.target_graph = target_graph
 
@@ -107,7 +106,7 @@ class EmbeddingSet:
             loading_path = self.embeddings_path
             num_embeddings_needed = num_parallel_embeddings
 
-        if os.path.exists(loading_path):
+        if loading_path.exists():
             print("Loading saved embeddings from file...")
             loaded_embeddings = self.load_from_json_file(maximal=get_max_embeddings)
 
@@ -170,7 +169,8 @@ class EmbeddingSet:
         """
 
         filepath = self.max_size_embeddings_path if maximal else self.embeddings_path
-        with open(filepath, "w") as f:
+        self.embeddings_dir.mkdir(parents=True, exist_ok=True)
+        with filepath.open("w") as f:
             json.dump(embeddings, f)
 
     def load_from_json_file(self, maximal: bool = False) -> list[dict]:
@@ -185,6 +185,5 @@ class EmbeddingSet:
         """
 
         filepath = self.max_size_embeddings_path if maximal else self.embeddings_path
-        with open(filepath, "r") as f:
-            embedding_list = json.load(f)
-        return embedding_list
+        with filepath.open("r") as f:
+            return json.load(f)

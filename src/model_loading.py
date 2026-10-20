@@ -15,7 +15,6 @@
 from __future__ import annotations
 
 import json
-import os
 
 import numpy as np
 
@@ -106,19 +105,16 @@ class ProblemModel:
                 under the same lookup key.
         """
         model_dict = self.to_dict()
+        model_path = MODELS_PATH / self.problem_definition_json_filename
 
-        if not overwrite_existing:
-            pre_saved_models = os.listdir(MODELS_PATH)
-            for model_filename in pre_saved_models:
-                if model_filename == self.problem_definition_json_filename:
-                    existing_model = ProblemModel.problem_from_json_file(model_filename)
-                    if self != existing_model:
-                        raise ValueError(
-                            f"Model {self.lookup_key} already exists with different properties."
-                        )
+        if not overwrite_existing and model_path.exists():
+            existing_model = ProblemModel.problem_from_json_file(model_path.name)
+            if self != existing_model:
+                raise ValueError(
+                    f"Model {self.lookup_key} already exists with different properties."
+                )
 
-        model_path = os.path.join(MODELS_PATH, self.problem_definition_json_filename)
-        with open(model_path, "w") as f:
+        with model_path.open("w") as f:
             json.dump(model_dict, f)
 
     @staticmethod
@@ -152,8 +148,7 @@ class ProblemModel:
         Returns:
             A ProblemModel instance built from the JSON file.
         """
-        model_path = os.path.join(MODELS_PATH, json_filename)
-        with open(model_path, "r") as f:
+        with (MODELS_PATH / json_filename).open("r") as f:
             model_dict = json.load(f)
         lookup_key = json_filename.replace(ProblemModel.DEFINITION_FILE_SUFFIX, "")
         return ProblemModel.from_dict(lookup_key, model_dict)
@@ -169,13 +164,9 @@ class ProblemModel:
             A dictionary containing all loaded problem models, keyed by their lookup keys.
         """
         models_dict = {}
-        for model_filename in os.listdir(MODELS_PATH):
-            if model_filename.endswith(ProblemModel.DEFINITION_FILE_SUFFIX):
-                model = ProblemModel.problem_from_json_file(model_filename)
-                if as_dicts:
-                    models_dict[model.lookup_key] = model.to_dict()
-                else:
-                    models_dict[model.lookup_key] = model
+        for model_path in MODELS_PATH.glob(f"*{ProblemModel.DEFINITION_FILE_SUFFIX}"):
+            model = ProblemModel.problem_from_json_file(model_path.name)
+            models_dict[model.lookup_key] = model.to_dict() if as_dicts else model
 
         return models_dict
 
@@ -193,13 +184,12 @@ class ProblemModel:
             A numpy ndarray containing the scatter plot data.
         """
 
-        scatter_path = os.path.join(
-            MODELS_PATH, ProblemModel(model_type, problem_type).spectrum_scatter_filename
+        scatter_path = (
+            MODELS_PATH / ProblemModel(model_type, problem_type).spectrum_scatter_filename
         )
-        if not os.path.exists(scatter_path):
+        if not scatter_path.exists():
             raise FileNotFoundError(f"Scatter CSV file not found at {scatter_path}.")
-        filedata = np.loadtxt(scatter_path, delimiter=",", skiprows=3)
-        return filedata
+        return np.loadtxt(scatter_path, delimiter=",", skiprows=3)
 
     @staticmethod
     def load_theory_data_from_file(
@@ -216,13 +206,10 @@ class ProblemModel:
             A tuple containing two lists of floats: the annealing times and the corresponding
             ground state probabilities as predicted by the theoretical model.
         """
-        theory_data_path = os.path.join(
-            MODELS_PATH, ProblemModel(model_type, problem_type).theory_data_filename
-        )
-        if not os.path.exists(theory_data_path):
+        theory_data_path = MODELS_PATH / ProblemModel(model_type, problem_type).theory_data_filename
+        if not theory_data_path.exists():
             raise FileNotFoundError(f"Theory data file not found at {theory_data_path}.")
-        with open(theory_data_path, "r") as f:
-            lines = f.readlines()
+        lines = theory_data_path.read_text().splitlines()
         xs = [float(num) for num in lines[0].strip().split(",")]
         ys = [float(num) for num in lines[1].strip().split(",")]
         return xs, ys
