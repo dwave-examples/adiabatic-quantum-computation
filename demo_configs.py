@@ -55,17 +55,22 @@ DEFAULT_QPU = "Advantage_system4"  # If not available, the first returned will b
 DEFAULT_MODEL = ModelType.INTERMEDIATE_GAP
 
 
-SAMPLE_POINT_SIZE = 6
+SAMPLE_POINT_SIZE = 14
 DEFAULT_PLOT_WIDTH = 21
 MAX_PLOT_WIDTH = 31
-MODEL_COLORS_THEORY = {
-    ModelType.LARGE_GAP: "#1f77b4",
-    ModelType.INTERMEDIATE_GAP: "#2ca02c",
-    ModelType.SMALL_GAP: "#ff7f0e",
+
+# One color per model, shared by its theory line and its experimental points so the hue
+# identifies the model and the mark shape (line vs. diamond) identifies theory vs. experiment.
+# Colorblind-safe and >= 3:1 contrast on a white plot background.
+MODEL_COLORS = {
+    ModelType.LARGE_GAP: "#2a78d6",  # blue
+    ModelType.INTERMEDIATE_GAP: "#199e70",  # aqua
+    ModelType.SMALL_GAP: "#eb6834",  # orange
 }
 
-MODEL_COLORS_RESULTS = {
-    ModelType.LARGE_GAP: "#299ef1",
-    ModelType.INTERMEDIATE_GAP: "#1cf21c",
-    ModelType.SMALL_GAP: "#9F520E",
-}
+# Single-hue ramp for the excited states on the spectrum plot, darkest for the 1st excited
+# state (which sets the energy gap) through lightest for the 5th.
+EXCITED_STATE_COLORS = ["#0d366b", "#1c5cab", "#2a78d6", "#5598e7", "#86b6ef"]
+
+# Color of the vertical line marking the minimum energy gap on the spectrum plot.
+ENERGY_GAP_COLOR = "#0b0b0b"
