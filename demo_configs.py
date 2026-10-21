@@ -48,7 +48,7 @@ SHOW_PARALLEL_SAMPLES = False
 # The number of reads for each job sent to the QPU. More reads are more accurate, but take longer.
 NUM_READS = 400
 
-COUPLING_STRENGTH_SLIDER_MARKS = [0.2, 0.4, 0.6, 0.8, 1.0]
+COUPLING_STRENGTH_SLIDER_MARKS = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 
 # TODO link to enums
 DEFAULT_QPU = "Advantage_system4"  # If not available, the first returned will be default

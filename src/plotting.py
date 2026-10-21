@@ -58,7 +58,7 @@ def make_scatter(x, y, type, id, other_args=None):
             x=x,
             y=y,
             mode="lines",
-            name=f"{id.label} Theory [\u03c4(Landau-Zener)={tau:.3g}]",
+            name=f"{id.label} Reference [\u03c4(Landau-Zener)={tau:.3g}]",
             line=dict(color=MODEL_COLORS[id], width=LINE_WIDTH),
         )
 
@@ -252,7 +252,7 @@ def generate_plots(
     # After this point is unlikely to be relevant
 
     spectrum_fig.update_yaxes(type="log", range=[-1, 2])
-    spectrum_fig.update_xaxes(range=[0,0.545])
+    spectrum_fig.update_xaxes(range=[float(np.min(spectrum_s_vals)), float(np.max(spectrum_s_vals))])
 
     spectrum_fig.update_layout(
         xaxis_title="Anneal Progress", yaxis_title="Excitation Energy (GHz)", **PLOT_LAYOUT
@@ -332,7 +332,7 @@ def generate_plots(
                         y=fit_probs,
                         mode="lines",
                         line=dict(color=MODEL_COLORS[model], width=LINE_WIDTH, dash="dash"),
-                        name=f"{model.label} Fit",
+                        name=f"Landau-Zener Theory fit y=A exp(-t/{tau_qpu_by_model[model]:.3g})",
                     )
                 )
 

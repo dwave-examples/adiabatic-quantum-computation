@@ -441,7 +441,7 @@ def create_interface() -> html.Div:
                                                 "sample-v-theory",
                                             ),
                                             default_graph(
-                                                "Energy Spectrum",
+                                                "Energy Spectrum (positive parity sector)",
                                                 "spectrum",
                                             ),
                                         ],

@@ -120,6 +120,30 @@ def reset_embeddings_and_results(qpu_select_time: float) -> tuple[list, bool, st
     return [], True, JobState.FINDING_EMBEDDING.label, generate_new_results_dict()
 
 
+# =================================================================================================
+
+
+@dash.callback(
+    Output("current-results", "data", allow_duplicate=True),
+    Input("energy-rescaling", "value"),
+    prevent_initial_call=True,
+)
+def reset_results_on_energy_rescaling(energy_rescaling: float) -> dict:
+    """Clears stored results when the energy rescaling factor changes.
+
+    Previously measured results were taken at the old energy scale, so they are not
+    comparable to results taken at the new one.
+
+    Args:
+        energy_rescaling: The newly selected energy rescaling factor.
+
+    Returns:
+        A new, empty results dictionary.
+    """
+
+    return generate_new_results_dict()
+
+
 @dash.callback(
     Output("current-embeddings", "data"),
     Output("available-solvers", "data"),
