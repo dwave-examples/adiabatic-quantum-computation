@@ -29,7 +29,7 @@ from demo_configs import NUM_READS, SUGGESTED_ANNEALING_TIMES
 from demo_interface import generate_new_results_dict
 from src.demo_enums import JobState, ModelType
 from src.model_loading import ProblemModel
-from src.plotting import get_results_plot, get_spectrum_plot
+from src.plotting import generate_plots
 from src.process_embeddings import EmbeddingSet
 from src.qpu_resources import get_qpu_ids
 from src.values import ENERGY_THRESHOLD, MIN_ANNEALING_TIME
@@ -198,18 +198,13 @@ def set_current_embeddings(
 
 @dash.callback(
     Output("current-model", "data"),
-    Output("spectrum-graph", "figure"),
     Input("model-selection", "value"),
-    Input("energy-rescaling", "value"),
     Input("job-submit-time", "data"),
-    Input("qpu-selection", "value"),
     State("cached-models", "data"),
 )
 def set_current_model(
     model_val: str, 
-    energy_rescaling: float, 
-    job_submit_time: float, 
-    qpu_name: str, 
+    job_submit_time: float,
     cached_models: dict
 ) -> tuple[dict, go.Figure]:
     """Sets the data and the spectrum plot for the currently selected model. Triggers whenever the
@@ -230,12 +225,9 @@ def set_current_model(
           ground state energy (EGS).
         - go.Figure: A plotly figure of the spectrum of energies for the selected model.
     """
-    spectrum_plot = get_spectrum_plot(ModelType(int(model_val)), qpu_name, energy_rescaling=energy_rescaling)
-    if ctx.triggered_id == "energy-rescaling":
-        model_data = dash.no_update
-    else:
-        model_data = cached_models[ProblemModel(ModelType(int(model_val))).lookup_key]
-    return model_data, spectrum_plot
+
+    model_data = cached_models[ProblemModel(ModelType(int(model_val))).lookup_key]
+    return model_data
 
 
 # =================================================================================================
@@ -426,15 +418,17 @@ def submit_job(
 
 @dash.callback(
     Output("sample-v-theory-graph", "figure"),
+    Output("spectrum-graph", "figure"),
     Output("annealing-time", "value"),
     Input("current-results", "data"),
     Input("model-selection", "value"),
+    Input("energy-rescaling", "value"),
     State("qpu-selection", "value"),
     State("annealing-time-suggest", "checked"),
 )
 def update_main_graph(
-    sample_data: dict, model_val: str, qpu_name: str, auto_suggest: bool
-) -> tuple[go.Figure, float]:
+    sample_data: dict, model_val: str, energy_rescaling: float, qpu_name: str, auto_suggest: bool
+) -> tuple[go.Figure, go.Figure, float]:
     """Updates the main graph showing the excited state probability as a function of annealing
     time. This callback triggers whenever a new measurement is added to the current-results
     data store: it updates the graph with the new data point and returns the updated figure.
@@ -461,9 +455,6 @@ def update_main_graph(
             value where it is.
     """
 
-    if ctx.triggered_id == "model-selection":
-        return dash.no_update, MIN_ANNEALING_TIME
-
     results = {}
     largest_ta = 0.0
 
@@ -473,7 +464,11 @@ def update_main_graph(
         if results[model.name] and model.name == current_model:
             largest_ta = max(results[model.name])
 
-    fig = get_results_plot(results, qpu_name)
+    results_plot, spectrum_plot = generate_plots(
+        job_results=results,
+        qpu_name=qpu_name,
+        model_type=ModelType(int(model_val))
+    )
 
     if auto_suggest:
         next_ta_index = bisect.bisect_right(SUGGESTED_ANNEALING_TIMES, largest_ta)
@@ -483,7 +478,7 @@ def update_main_graph(
     else:
         next_ta = dash.no_update
 
-    return fig, next_ta
+    return results_plot, spectrum_plot, next_ta
 
 
 # ==================================================================================================

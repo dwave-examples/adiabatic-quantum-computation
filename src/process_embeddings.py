@@ -24,7 +24,7 @@ from minorminer.utils.parallel_embeddings import find_multiple_embeddings
 from demo_configs import EMBEDDING_TIMEOUT, NUM_PARALLEL_EMBEDDINGS
 from src.demo_enums import ProblemType
 from src.model_loading import ProblemModel
-from src.values import EMBEDDINGS_PATH
+from src.values import SCHEDULES_AND_EMBEDDINGS_PATH
 
 
 class EmbeddingSet:
@@ -35,7 +35,7 @@ class EmbeddingSet:
         qpu_name: str,
         target_graph: nx.Graph,
         problem_type: ProblemType = ProblemType.DEFAULT,
-        embeddings_dir: str | Path = EMBEDDINGS_PATH,
+        embeddings_dir: str | Path = SCHEDULES_AND_EMBEDDINGS_PATH,
     ):
         """Initializes the EmbeddingSet for a particular QPU. The QPU name and graph must
         both be provided. Currently the demo only supports a single problem graph structure,
@@ -47,7 +47,7 @@ class EmbeddingSet:
             target_graph: The graph structure of the QPU for which embeddings are being managed
             problem_type: The type of problem for which embeddings are being managed. Currently
                 only the default problem type is supported, but more can be added in the future.
-            embeddings_dir: The directory where embeddings are saved. Defaults to EMBEDDINGS_PATH.
+            embeddings_dir: The directory where embeddings are saved. Defaults to SCHEDULES_AND_EMBEDDINGS_PATH.
         """
 
         self.qpu_name = qpu_name

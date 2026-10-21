@@ -42,7 +42,7 @@ def get_qpu_ids(print_available: bool = False) -> list[str]:
 
 def get_schedule_filepath(qpu_name: str) -> str:
     suffix = "annealing_schedule"
-    for file in [x for x in SCHEDULES_AND_EMBEDDINGS_PATH.iterdir() if x.isfile()]:
+    for file in [x for x in SCHEDULES_AND_EMBEDDINGS_PATH.iterdir() if x.is_file()]:
         if suffix in file.name and qpu_name in file.name:
             return file
     return FALLBACK_SCHEDULE_PATH
