@@ -53,11 +53,12 @@ PLOT_LAYOUT = dict(
 def make_scatter(x, y, type, id, other_args=None):
 
     if type == "Theory":
+        tau = other_args["tau"]
         scatter = go.Scatter(
             x=x,
             y=y,
             mode="lines",
-            name=f"{id.label} Theory",
+            name=f"{id.label} Theory [\u03c4(Landau-Zener)={tau:.3g}]",
             line=dict(color=MODEL_COLORS[id], width=LINE_WIDTH),
         )
 
@@ -93,9 +94,16 @@ def make_scatter(x, y, type, id, other_args=None):
     
 
 def get_schedule(qpu_name: str="Advantage2_system1") -> np.ndarray:
+    """Load an annealing schedule, in the convention H/h = -A * sum_i X_i + sum_{i<j} Jij Z_i Z_j.
+
+    Schedule files store A(s), B(s) assuming the convention
+    H/h = -(A/2) * sum_i X_i + (B/2) * sum_{i<j} Jij Z_i Z_j, so the loaded columns
+    are doubled here to match the factor-of-2-free convention used throughout this module.
+    """
     schedule_filepath = get_schedule_filepath(qpu_name)
     with open(schedule_filepath, "r") as f:
         schedule_data = np.loadtxt(f, delimiter=",", skiprows=1)
+    schedule_data[:, 1:3] *= 2
     return schedule_data
 
 def rescale_spectrum(
@@ -110,24 +118,17 @@ def rescale_spectrum(
     S_ref = reference_schedule[:column_length, 0]
 
     A = qpu_schedule[:column_length, 1]
-    B = qpu_schedule[:column_length, 2]
+    B = qpu_schedule[:column_length, 2]*energy_rescaling
 
-    s_vals = np.interp((B*energy_rescaling)/A, B_ref/A_ref, S_ref)
+    s_vals = np.interp(B/A, B_ref/A_ref, S_ref)
 
-    # TODO: Jack, this was the calculation I originally used, based on what you
-    # wrote on the whiteboard. It's the version that produced the plots I sent you.
-    # Below it is a more recent attempt to directly copy the relevant part of your
-    # code file. It seems to produce much worse plots, but might be closer
-    # and only need minor adjustments.
-
-    #E_rescale = np.interp((B*energy_rescaling)/A, B_ref/A_ref, A_ref)
-
-    # I left off the factor of 2 because I'm directly pulling the annealing
-    # schedule, which doesn't include it.
+    # Verified to exactly match diagonalize_AK.py's en_rescaling (= A_to(matched s)/A_native).
     E_rescale = np.interp(s_vals, S_ref, A_ref/A)
 
     multiplier = np.zeros((column_length, column_length))
-    np.fill_diagonal(multiplier, E_rescale/A_ref)
+    # Scaling the spectrum by E_rescale alone matches diagonalize_AK.py's en_rescaling;
+    # at qpu_schedule == reference_schedule this is the identity (E_rescale == 1).
+    np.fill_diagonal(multiplier, E_rescale)
     
     new_spectrum_data = np.matmul(multiplier, spectrum_data)
     return s_vals, new_spectrum_data
@@ -170,6 +171,7 @@ def generate_plots(
     job_results: dict|None,
     qpu_name: str,
     model_type: ModelType,
+    energy_rescaling: float = 1.0,
     problem_type: ProblemType = ProblemType.DEFAULT,
     show_parallel_samples: bool = SHOW_PARALLEL_SAMPLES,
 ) -> tuple[go.Figure, go.Figure]:
@@ -192,14 +194,15 @@ def generate_plots(
     for model in ModelType:
         theory_xs, theory_ys = ProblemModel.load_theory_data_from_file(problem_type, model)
         base_spectrum = ProblemModel.load_spectrum_scatter_from_file(model, problem_type)
-        s_rescaled, spectrum_rescaled = rescale_spectrum(base_spectrum, qpu_schedule, spectrum_ref_schedule)
-
+        s_rescaled, spectrum_rescaled = rescale_spectrum(base_spectrum, qpu_schedule, spectrum_ref_schedule, energy_rescaling=energy_rescaling)
         if model == model_type:
             spectrum_to_plot = spectrum_rescaled
             spectrum_s_vals = s_rescaled
-            
+        # The reference is Advantage_system6 at full bqm sscaling
+        # Advantage_system6 has schedule closest 
         tau_qpu = calculate_tau(spectrum_rescaled, s_rescaled)
-        ref_s_rescaled, ref_spectrum_rescaled = rescale_spectrum(base_spectrum, tau_ref_schedule, spectrum_ref_schedule)
+        # tau_ref is always computed at full (unscaled) bqm strength, regardless of energy_rescaling
+        ref_s_rescaled, ref_spectrum_rescaled = rescale_spectrum(base_spectrum, tau_ref_schedule, spectrum_ref_schedule, energy_rescaling=1.0)
         tau_ref = calculate_tau(ref_spectrum_rescaled, ref_s_rescaled)
         x_multiplier =  tau_ref / tau_qpu
 
@@ -208,7 +211,7 @@ def generate_plots(
         theory_xs = [x * x_multiplier for x in theory_xs[:-1]]
         theory_ys = theory_ys[:-1]
         results_fig.add_trace(
-            make_scatter(theory_xs, theory_ys, "Theory", model)
+            make_scatter(theory_xs, theory_ys, "Theory", model, other_args={"tau": tau_qpu})
         )
 
     egs_column = spectrum_to_plot[:, 3]

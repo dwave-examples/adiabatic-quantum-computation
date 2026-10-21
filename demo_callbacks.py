@@ -423,7 +423,7 @@ def submit_job(
     Input("current-results", "data"),
     Input("model-selection", "value"),
     Input("energy-rescaling", "value"),
-    State("qpu-selection", "value"),
+    Input("qpu-selection", "value"),
     State("annealing-time-suggest", "checked"),
 )
 def update_main_graph(
@@ -467,7 +467,8 @@ def update_main_graph(
     results_plot, spectrum_plot = generate_plots(
         job_results=results,
         qpu_name=qpu_name,
-        model_type=ModelType(int(model_val))
+        model_type=ModelType(int(model_val)),
+        energy_rescaling=energy_rescaling,
     )
 
     if auto_suggest:
