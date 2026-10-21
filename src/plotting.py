@@ -112,22 +112,26 @@ def rescale_spectrum(
         reference_schedule: np.ndarray,  
         energy_rescaling: float = 1.0
     ) -> tuple[np.ndarray, np.ndarray]:
+    """Rescale spectrum_data (computed under reference_schedule, row-aligned) to qpu_schedule.
+
+    For each native (reference) row, find qpu_schedule's s where its B/A ratio matches the
+    native row's B_ref/A_ref ratio, then scale by A_qpu(matched s) / A_ref(native row) --
+    matching diagonalize_AK.py's en_rescaling direction exactly.
+    """
     column_length = len(spectrum_data[:, 0])
     A_ref = reference_schedule[:column_length, 1]
     B_ref = reference_schedule[:column_length, 2]
-    S_ref = reference_schedule[:column_length, 0]
 
     A = qpu_schedule[:column_length, 1]
     B = qpu_schedule[:column_length, 2]*energy_rescaling
+    S_qpu = qpu_schedule[:column_length, 0]
 
-    s_vals = np.interp(B/A, B_ref/A_ref, S_ref)
-
-    # Verified to exactly match diagonalize_AK.py's en_rescaling (= A_to(matched s)/A_native).
-    E_rescale = np.interp(s_vals, S_ref, A_ref/A)
+    s_vals = np.interp(B_ref/A_ref, B/A, S_qpu)
+    A_qpu_at_match = np.interp(s_vals, S_qpu, A)
+    E_rescale = A_qpu_at_match / A_ref
 
     multiplier = np.zeros((column_length, column_length))
-    # Scaling the spectrum by E_rescale alone matches diagonalize_AK.py's en_rescaling;
-    # at qpu_schedule == reference_schedule this is the identity (E_rescale == 1).
+    # At qpu_schedule == reference_schedule this is the identity (E_rescale == 1).
     np.fill_diagonal(multiplier, E_rescale)
     
     new_spectrum_data = np.matmul(multiplier, spectrum_data)
@@ -164,7 +168,27 @@ def calculate_tau(spectra: np.ndarray, c: np.ndarray) -> float:
     t_ad = v / (
         np.pi**2 * gap**2
     )  # gap and v have units h. Need to multiply by dt_by_ds
-    return t_ad
+    return t_ad * 2 * np.pi
+
+
+def fit_exponential_amplitude(
+    anneal_times: np.ndarray, probs: np.ndarray, errs: np.ndarray, tau: float
+) -> float:
+    """Chi-square fit of amplitude A for f(t) = A * exp(-t / tau), tau held fixed.
+
+    Args:
+        anneal_times: Annealing times (ns) at which probs were measured.
+        probs: Measured excited state probabilities.
+        errs: Standard deviation of each measurement, used as chi-square weights.
+        tau: Fixed decay time scale.
+
+    Returns:
+        Best-fit amplitude A.
+    """
+    basis = np.exp(-anneal_times / tau)
+    sigma = np.where(errs > 0, errs, 1.0)  # unweighted fallback for zero-error points
+    weights = 1 / sigma**2
+    return np.sum(weights * probs * basis) / np.sum(weights * basis**2)
 
 
 def generate_plots(
@@ -190,6 +214,7 @@ def generate_plots(
 
     spectrum_to_plot = None
     spectrum_s_vals = None
+    tau_qpu_by_model = {}
 
     for model in ModelType:
         theory_xs, theory_ys = ProblemModel.load_theory_data_from_file(problem_type, model)
@@ -201,6 +226,7 @@ def generate_plots(
         # The reference is Advantage_system6 at full bqm sscaling
         # Advantage_system6 has schedule closest 
         tau_qpu = calculate_tau(spectrum_rescaled, s_rescaled)
+        tau_qpu_by_model[model] = tau_qpu
         # tau_ref is always computed at full (unscaled) bqm strength, regardless of energy_rescaling
         ref_s_rescaled, ref_spectrum_rescaled = rescale_spectrum(base_spectrum, tau_ref_schedule, spectrum_ref_schedule, energy_rescaling=1.0)
         tau_ref = calculate_tau(ref_spectrum_rescaled, ref_s_rescaled)
@@ -208,7 +234,7 @@ def generate_plots(
 
         print(f"Model: {model.label}, QPU{qpu_name}, tau_qpu: {tau_qpu}, tau_ref: {tau_ref}, mult: {x_multiplier}")
 
-        theory_xs = [x * x_multiplier for x in theory_xs[:-1]]
+        theory_xs = [x / x_multiplier for x in theory_xs[:-1]]
         theory_ys = theory_ys[:-1]
         results_fig.add_trace(
             make_scatter(theory_xs, theory_ys, "Theory", model, other_args={"tau": tau_qpu})
@@ -254,6 +280,8 @@ def generate_plots(
                     parallel_times.extend([ta] * len(stat_set))
                     parallel_probs.extend(stat_set)
 
+            fit_errs = list(y_errs)
+
             if show_parallel_samples:
                 sample_point_size += 4
                 y_errs = []
@@ -291,6 +319,22 @@ def generate_plots(
 
             if max(anneal_times) > DEFAULT_PLOT_WIDTH - 1:
                 x_range = MAX_PLOT_WIDTH
+
+            if len(anneal_times) >= 2:
+                fit_amplitude = fit_exponential_amplitude(
+                    np.array(anneal_times), np.array(egs_probs), np.array(fit_errs), tau_qpu_by_model[model]
+                )
+                fit_times = np.linspace(0, max(anneal_times), 100)
+                fit_probs = fit_amplitude * np.exp(-fit_times / tau_qpu_by_model[model])
+                results_fig.add_trace(
+                    go.Scatter(
+                        x=fit_times,
+                        y=fit_probs,
+                        mode="lines",
+                        line=dict(color=MODEL_COLORS[model], width=LINE_WIDTH, dash="dash"),
+                        name=f"{model.label} Fit",
+                    )
+                )
 
     
 
