@@ -180,7 +180,8 @@ def generate_plots(
     # START HERE
 
     qpu_schedule = get_schedule(qpu_name)
-    ref_schedule = get_schedule()
+    spectrum_ref_schedule = get_schedule("Advantage2_system1")
+    tau_ref_schedule = get_schedule("Advantage_system6")
     
     results_fig = go.Figure()
     spectrum_fig = go.Figure()
@@ -191,14 +192,15 @@ def generate_plots(
     for model in ModelType:
         theory_xs, theory_ys = ProblemModel.load_theory_data_from_file(problem_type, model)
         base_spectrum = ProblemModel.load_spectrum_scatter_from_file(model, problem_type)
-        s_rescaled, spectrum_rescaled = rescale_spectrum(base_spectrum, qpu_schedule, ref_schedule)
+        s_rescaled, spectrum_rescaled = rescale_spectrum(base_spectrum, qpu_schedule, spectrum_ref_schedule)
 
         if model == model_type:
             spectrum_to_plot = spectrum_rescaled
             spectrum_s_vals = s_rescaled
             
         tau_qpu = calculate_tau(spectrum_rescaled, s_rescaled)
-        tau_ref = calculate_tau(base_spectrum, ref_schedule[:,3])
+        ref_s_rescaled, ref_spectrum_rescaled = rescale_spectrum(base_spectrum, tau_ref_schedule, spectrum_ref_schedule)
+        tau_ref = calculate_tau(ref_spectrum_rescaled, ref_s_rescaled)
         x_multiplier =  tau_ref / tau_qpu
 
         print(f"Model: {model.label}, QPU{qpu_name}, tau_qpu: {tau_qpu}, tau_ref: {tau_ref}, mult: {x_multiplier}")
