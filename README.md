@@ -106,8 +106,8 @@ The problem Hamiltonian can be scaled up or down to modify the gap properties, u
 
 The problem is small enough that it can be parallelized across several
 disjoint processor locations. Data is collected from a single programming of 400 reads per data point.
-Standard error bars are calculated treating each embedding as an independent estimators
-(errors reflect a combination of control error and sampling error). 
+Error bars show the standard deviation across embeddings, treating each embedding as an
+independent estimator (errors reflect a combination of control error and sampling error).
 
 ### Theoretical models
 
@@ -130,7 +130,26 @@ models and QPUs, and under rescaling of the problem Hamiltonian.
 
 ## <a name="Code"></a> Code Overview
 
-To do: Use KZM as a model.
+Most of the code specific to the experiment is in the [src](src) directory. The remaining
+files support the user interface, following the standard
+[Dash demo template](https://github.com/dwave-examples/template-dash).
+
+*   [src/model_loading.py](src/model_loading.py) loads a problem Hamiltonian (``h``, ``J`` and
+    its ground-state energy) from [static/models](static/models), along with the precomputed
+    energy spectrum and theory curve for that model.
+
+*   [src/process_embeddings.py](src/process_embeddings.py) finds as many disjoint
+    minor-embeddings of the 16-qubit problem as fit on the selected QPU, so every read samples
+    all embeddings in parallel. Embeddings are cached in the [embeddings](embeddings) directory
+    and reused while they remain valid for that QPU.
+
+*   [src/plotting.py](src/plotting.py) builds the two figures: excited-state probability
+    against annealing time with the theory curves for comparison, and the energy spectrum of
+    the selected model with its minimum gap marked.
+
+*   [demo_callbacks.py](demo_callbacks.py) submits each run with
+    ``ParallelEmbeddingComposite`` using the fast-anneal protocol, and records the fraction of
+    reads that did not reach the ground-state energy.
 
 ## References
 
