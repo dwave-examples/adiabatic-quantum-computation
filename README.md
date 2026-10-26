@@ -83,7 +83,8 @@ solution to an optimization problem.
 
 For many optimization problems, the spectrum of the Hamiltonian as it evolves from driver-dominated
 to problem-dominated exhibits a well-defined closing gap (or anti-crossing).
-At closing gaps transitions out of the ground state are possible via diabatic transitions.
+As evolution proceeds through the phase described by a closing gap
+diabatic transitions out of the ground state to an excited state are possible.
 When the success probability (the probability of ending in a ground state) is limited by transitions
 from the ground state to the first excited state at a single anti-crossing, a two-state
 Landau-Zener process describes the rate of excitation, which becomes exponentially small as
