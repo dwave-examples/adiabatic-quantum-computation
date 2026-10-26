@@ -20,6 +20,7 @@ from demo_configs import (
     EXCITED_STATE_COLORS,
     MODEL_COLORS,
     SHOW_PARALLEL_SAMPLES,
+    RESULTS_FIG_Y_MINS,
 )
 from src.demo_enums import ModelType, ProblemType
 from src.model_loading import ProblemModel
@@ -165,10 +166,10 @@ def calculate_tau(spectra: np.ndarray, c: np.ndarray) -> float:
     v = np.sqrt(p[0])
     cstar = -p[1] / p[0] / 2
     gap = np.sqrt(p[2] - p[0] * cstar**2)
-    t_ad = v / (
-        np.pi**2 * gap**2
+    t_ad = 2*v / (
+        np.pi * gap**2
     )  # gap and v have units h. Need to multiply by dt_by_ds
-    return t_ad * 2 * np.pi
+    return t_ad, gap, cstar
 
 
 def fit_exponential_amplitude(
@@ -194,16 +195,13 @@ def fit_exponential_amplitude(
 def generate_plots(
     job_results: dict|None,
     qpu_name: str,
-    model_type: ModelType,
+    selected_model: ModelType,
     energy_rescaling: float = 1.0,
     problem_type: ProblemType = ProblemType.DEFAULT,
     show_parallel_samples: bool = SHOW_PARALLEL_SAMPLES,
 ) -> tuple[go.Figure, go.Figure]:
     """
     """
-
-    #=======================================
-    # START HERE
 
     qpu_schedule = get_schedule(qpu_name)
     spectrum_ref_schedule = get_schedule("Advantage2_system1")
@@ -220,16 +218,21 @@ def generate_plots(
         theory_xs, theory_ys = ProblemModel.load_theory_data_from_file(problem_type, model)
         base_spectrum = ProblemModel.load_spectrum_scatter_from_file(model, problem_type)
         s_rescaled, spectrum_rescaled = rescale_spectrum(base_spectrum, qpu_schedule, spectrum_ref_schedule, energy_rescaling=energy_rescaling)
-        if model == model_type:
-            spectrum_to_plot = spectrum_rescaled
-            spectrum_s_vals = s_rescaled
+
         # The reference is Advantage_system6 at full bqm sscaling
         # Advantage_system6 has schedule closest 
-        tau_qpu = calculate_tau(spectrum_rescaled, s_rescaled)
+        tau_qpu, gap, c_gap = calculate_tau(spectrum_rescaled, s_rescaled)
         tau_qpu_by_model[model] = tau_qpu
+
+        if model == selected_model:
+            spectrum_to_plot = spectrum_rescaled
+            spectrum_s_vals = s_rescaled
+            spectral_gap = gap
+            spectral_gap_c_val = c_gap
+
         # tau_ref is always computed at full (unscaled) bqm strength, regardless of energy_rescaling
         ref_s_rescaled, ref_spectrum_rescaled = rescale_spectrum(base_spectrum, tau_ref_schedule, spectrum_ref_schedule, energy_rescaling=1.0)
-        tau_ref = calculate_tau(ref_spectrum_rescaled, ref_s_rescaled)
+        tau_ref, _, __ = calculate_tau(ref_spectrum_rescaled, ref_s_rescaled)
         x_multiplier =  tau_ref / tau_qpu
 
         print(f"Model: {model.label}, QPU{qpu_name}, tau_qpu: {tau_qpu}, tau_ref: {tau_ref}, mult: {x_multiplier}")
@@ -248,8 +251,16 @@ def generate_plots(
             make_scatter(spectrum_s_vals, column - egs_column, "Spectrum", idx)
         )
 
-    #========================================================
-    # After this point is unlikely to be relevant
+    spectrum_fig.add_trace(
+        go.Scatter(
+            x=[spectral_gap_c_val, spectral_gap_c_val],
+            y = [0, spectral_gap],
+            mode="lines",
+            name=f"Energy Gap {round(spectral_gap, 2)} GHz",
+            line=dict(color=ENERGY_GAP_COLOR, width=LINE_WIDTH, dash="dash")
+        )
+    )
+
 
     spectrum_fig.update_yaxes(type="log", range=[-1, 2])
     spectrum_fig.update_xaxes(range=[float(np.min(spectrum_s_vals)), float(np.max(spectrum_s_vals))])
@@ -259,7 +270,7 @@ def generate_plots(
     )
 
     x_range = DEFAULT_PLOT_WIDTH
-    y_axis_min = -1.0
+    min_y_val = 1
 
     for model in ModelType:
         if len(job_results[model.name]) > 0:
@@ -279,6 +290,10 @@ def generate_plots(
                 if show_parallel_samples:
                     parallel_times.extend([ta] * len(stat_set))
                     parallel_probs.extend(stat_set)
+
+                set_min = min(stat_set)
+                if set_min < min_y_val:
+                    min_y_val = set_min
 
             fit_errs = list(y_errs)
 
@@ -341,6 +356,12 @@ def generate_plots(
     results_fig.update_layout(
         xaxis_title="Annealing Time (ns)", yaxis_title="Excited State Probability", **PLOT_LAYOUT
     )
+
+    y_axis_min = RESULTS_FIG_Y_MINS[0]
+    # pick the largest y_axis_min that still shows our smallest data point from among preset vals
+    for y_min in RESULTS_FIG_Y_MINS: 
+        if min_y_val < 10**y_axis_min: 
+            y_axis_min = y_min
 
     results_fig.update_xaxes(range=[0, x_range])
     results_fig.update_yaxes(type="log", range=[y_axis_min, 0])

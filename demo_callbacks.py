@@ -491,7 +491,7 @@ def update_main_graph(
     results_plot, spectrum_plot = generate_plots(
         job_results=results,
         qpu_name=qpu_name,
-        model_type=ModelType(int(model_val)),
+        selected_model=ModelType(int(model_val)),
         energy_rescaling=energy_rescaling,
     )
 
