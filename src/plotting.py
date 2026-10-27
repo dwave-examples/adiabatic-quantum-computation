@@ -75,12 +75,14 @@ def make_scatter(x_vals, y_vals, type, other_params: dict, other_data=None):
         )
     elif type == ScatterType.THEORY_LZ:
         model = other_params["model"]
+        amplitude = other_params["amplitude"]
+        tau = other_params["tau"]
         scatter = go.Scatter(
             x=x_vals,
             y=y_vals,
             mode="lines",
             line=dict(color=MODEL_COLORS[model], width=LINE_WIDTH, dash="dash"),
-            name=f"{TheoryCurveMode.LANDAU_ZENER.extended_label}",
+            name=f"{round(amplitude, 2)}exp(-t/{round(tau, 2)})",
         )
 
     elif type == ScatterType.SAMPLE:
@@ -145,9 +147,11 @@ def make_scatter(x_vals, y_vals, type, other_params: dict, other_data=None):
     return scatter
 
 
-def get_schedule(qpu_name: str = "Advantage2_system1") -> np.ndarray:
+def get_schedule(qpu_name: str = "Advantage2_system1") -> np.ndarray | None:
     """Load an annealing schedule, in the convention H/h = -A * sum_i X_i + sum_{i<j} Jij Z_i Z_j."""
     schedule_filepath = get_schedule_filepath(qpu_name)
+    if schedule_filepath is None:
+        return None
     with open(schedule_filepath, "r") as f:
         schedule_data = np.loadtxt(f, delimiter=",", skiprows=1)
     return schedule_data
@@ -192,16 +196,30 @@ def generate_plots(
     spectrum_to_plot = None
     spectrum_s_vals = None
     tau_qpu_by_model = {}
+    has_schedule = qpu_schedule is not None
 
     for model in ModelType:
         theory_xs, theory_ys = ProblemModel.load_theory_data_from_file(problem_type, model)
         base_spectrum = ProblemModel.load_spectrum_scatter_from_file(model, problem_type)
-        s_rescaled, spectrum_rescaled = rescale_spectrum(
-            base_spectrum, qpu_schedule, ref_schedule, energy_rescaling=energy_rescaling
-        )
 
-        # See demo_configs to check which QPU is used for reference schedule
-        tau_qpu, gap, c_gap = calculate_tau(spectrum_rescaled, s_rescaled)
+        # tau_ref is always computed at full (unscaled) bqm strength, regardless of energy_rescaling
+        ref_s_rescaled, ref_spectrum_rescaled = rescale_spectrum(
+            base_spectrum, ref_schedule, ref_schedule, energy_rescaling=1.0
+        )
+        tau_ref, _, __ = calculate_tau(ref_spectrum_rescaled, ref_s_rescaled)
+
+        if has_schedule:
+            # See demo_configs to check which QPU is used for reference schedule
+            s_rescaled, spectrum_rescaled = rescale_spectrum(
+                base_spectrum, qpu_schedule, ref_schedule, energy_rescaling=energy_rescaling
+            )
+            tau_qpu, gap, c_gap = calculate_tau(spectrum_rescaled, s_rescaled)
+        else:
+            # No schedule file for this QPU: display the reference spectrum and skip tau.
+            s_rescaled, spectrum_rescaled = ref_s_rescaled, ref_spectrum_rescaled
+            _, gap, c_gap = calculate_tau(spectrum_rescaled, s_rescaled)
+            tau_qpu = None
+
         tau_qpu_by_model[model] = tau_qpu
 
         if model == selected_model:
@@ -210,18 +228,8 @@ def generate_plots(
             spectral_gap = gap
             gap_c_val = c_gap
 
-        # tau_ref is always computed at full (unscaled) bqm strength, regardless of energy_rescaling
-        ref_s_rescaled, ref_spectrum_rescaled = rescale_spectrum(
-            base_spectrum, ref_schedule, ref_schedule, energy_rescaling=1.0
-        )
-        tau_ref, _, __ = calculate_tau(ref_spectrum_rescaled, ref_s_rescaled)
-        x_mult = tau_ref / tau_qpu
-
-        print(
-            f"Model: {model.label}, QPU{qpu_name}, tau_qpu: {tau_qpu}, tau_ref: {tau_ref}, mult: {x_mult}"
-        )
-
-        if plot_ref:
+        if plot_ref and tau_qpu is not None:
+            x_mult = tau_ref / tau_qpu
             x_vals = [x / x_mult for x in theory_xs[:-1]]
             y_vals = theory_ys[:-1]
             results_fig.add_trace(
@@ -253,6 +261,7 @@ def generate_plots(
 
     x_range = DEFAULT_PLOT_WIDTH
     min_y_val = 1
+    model_fit_data = {}
 
     for model in ModelType:
         if len(job_results[model.name]) > 0:
@@ -276,6 +285,7 @@ def generate_plots(
                     min_y_val = set_min
 
             fit_errs = list(y_errs)
+            model_fit_data[model] = (anneal_times, egs_probs, fit_errs)
 
             if show_parallel_samples:
                 results_fig.add_trace(
@@ -292,18 +302,36 @@ def generate_plots(
             if max(anneal_times) > DEFAULT_PLOT_WIDTH - 1:
                 x_range = MAX_PLOT_WIDTH
 
-            if len(anneal_times) >= 2 and plot_lz:
+    if plot_lz:
+        for model in ModelType:
+            anneal_times, egs_probs, fit_errs = model_fit_data.get(model, ([], [], []))
+
+            if len(anneal_times) >= 2:
+                tau = tau_qpu_by_model[model]
                 fit_amplitude = fit_exponential_amplitude(
                     np.array(anneal_times),
                     np.array(egs_probs),
                     np.array(fit_errs),
-                    tau_qpu_by_model[model],
+                    tau,
                 )
                 fit_times = np.linspace(0, max(anneal_times), 100)
-                fit_probs = fit_amplitude * np.exp(-fit_times / tau_qpu_by_model[model])
-                results_fig.add_trace(
-                    make_scatter(fit_times, fit_probs, ScatterType.THEORY_LZ, {"model": model})
+            else:
+                # Not enough data to fit; default the amplitude and keep the rescaled time scale.
+                tau = tau_qpu_by_model[model]
+                if tau is None:
+                    continue
+                fit_amplitude = 1.0
+                fit_times = np.linspace(0, x_range, 100)
+
+            fit_probs = fit_amplitude * np.exp(-fit_times / tau)
+            results_fig.add_trace(
+                make_scatter(
+                    fit_times,
+                    fit_probs,
+                    ScatterType.THEORY_LZ,
+                    {"model": model, "amplitude": fit_amplitude, "tau": tau},
                 )
+            )
 
     results_fig.update_layout(
         xaxis_title="Annealing Time (ns)", yaxis_title="Excited State Probability", **PLOT_LAYOUT
@@ -318,16 +346,27 @@ def generate_plots(
     results_fig.update_xaxes(range=[0, x_range])
     results_fig.update_yaxes(type="log", range=[y_axis_min, 0])
 
-    spectrum_fig.add_trace(  # TODO Jack, if you want to change the display of tau, do it here
-        go.Scatter(
-            x=[gap_c_val],
-            y=[50],
-            mode="markers+text",
-            marker=dict(size=1),
-            text=[f"τ = {round(tau_qpu,3)}"],
-            textposition="top center",
-            showlegend=False,
+    if has_schedule:
+        spectrum_fig.add_trace(
+            go.Scatter(
+                x=[gap_c_val],
+                y=[50],
+                mode="markers+text",
+                marker=dict(size=1),
+                text=[f"τ = {round(tau_qpu,3)}"],
+                textposition="top center",
+                showlegend=False,
+            )
         )
-    )
+    else:
+        spectrum_fig.add_annotation(
+            text=f"No schedule file for {qpu_name}<br>Landau-Zener timescale not calculated",
+            xref="paper",
+            yref="paper",
+            x=0.5,
+            y=0.5,
+            showarrow=False,
+            align="center",
+        )
 
     return results_fig, spectrum_fig
