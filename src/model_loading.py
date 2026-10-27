@@ -20,7 +20,7 @@ import numpy as np
 
 from src.demo_enums import ModelType, ProblemType
 from src.values import MODELS_PATH
-
+from demo_configs import REFERENCE_QPU
 
 class ProblemModel:
     """This class exists to simplify and encapsulate the loading and saving of specific problem instances:
@@ -30,6 +30,8 @@ class ProblemModel:
     ground state probabilities."""
 
     DEFINITION_FILE_SUFFIX = "_PROBLEM_DEFINITION.json"
+    qpu_num_id = "2_1" if REFERENCE_QPU == "Advantage2_system1" else "_6"
+    QPU_SUFFIX = f"ADV{qpu_num_id}"
 
     def __init__(
         self,
@@ -73,12 +75,12 @@ class ProblemModel:
     @property
     def spectrum_scatter_filename(self) -> str:
         """File name of the CSV energy spectrum data for this model."""
-        return f"{self.lookup_key}_SCATTER.csv"
+        return f"{self.lookup_key}_SCATTER_{ProblemModel.QPU_SUFFIX}.csv"
 
     @property
     def theory_data_filename(self) -> str:
         """File name of the theoretical excited state probability curve for this model."""
-        return f"{self.lookup_key}_THEORY.txt"
+        return f"{self.lookup_key}_THEORY_{ProblemModel.QPU_SUFFIX}.csv"
 
     @property
     def graph_nodes(self) -> set:
@@ -209,7 +211,9 @@ class ProblemModel:
         theory_data_path = MODELS_PATH / ProblemModel(model_type, problem_type).theory_data_filename
         if not theory_data_path.exists():
             raise FileNotFoundError(f"Theory data file not found at {theory_data_path}.")
-        lines = theory_data_path.read_text().splitlines()
-        xs = [float(num) for num in lines[0].strip().split(",")]
-        ys = [float(num) for num in lines[1].strip().split(",")]
+
+        theory_vals = np.loadtxt(theory_data_path, delimiter=",", skiprows=2)
+        xs = theory_vals[:, 0]
+        ys = theory_vals[:, 1]
+        
         return xs, ys

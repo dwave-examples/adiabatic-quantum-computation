@@ -31,7 +31,7 @@ from demo_configs import (
     SUGGESTED_ANNEALING_TIMES,
     THUMBNAIL,
 )
-from src.demo_enums import JobState, ModelType, ProblemType
+from src.demo_enums import JobState, ModelType, ProblemType, TheoryCurveMode
 from src.model_loading import ProblemModel
 from src.qpu_resources import get_qpu_ids
 from src.values import MAX_ANNEALING_TIME, MIN_ANNEALING_TIME
@@ -119,6 +119,34 @@ def checkbox(label: str, id: str, checked: bool) -> html.Div:
         ],
     )
 
+def radio(label: str, id: str, options: list, value: str, inline: bool = True) -> html.Div:
+    """Radio element for option selection.
+
+    Args:
+        label: The title that goes above the radio.
+        id: A unique selector for this element.
+        options: A list of dictionaries of labels and values.
+        value: The value of the radio that should be preselected.
+        inline: Whether the options are displayed beside or below each other.
+    """
+    return html.Div(
+        className="radio-wrapper",
+        children=[
+            dmc.RadioGroup(
+                id=id,
+                className=f"radio{' radio--inline' if inline else ''}",
+                label=label,
+                value=value,
+                children=dmc.Group(
+                    [
+                        dmc.Radio(option["label"], value=option["value"], color=THEME_COLOR)
+                        for option in options
+                    ]
+                ),
+            ),
+        ],
+    )
+
 
 def generate_options(options: list | EnumMeta | dict) -> list[dict]:
     """Format options for dropdowns, checklists, radios, etc.
@@ -179,6 +207,7 @@ def generate_settings_form(solvers: list[str]) -> html.Div:
                 model_options,
                 value=f"{DEFAULT_MODEL.value}",
             ),
+            radio("Theory Curve", "theory-curve", generate_options(TheoryCurveMode), value=TheoryCurveMode.SCHR_EV.value),
             checkbox("Auto-Suggest Next Annealing Time", "annealing-time-suggest", checked=False),
             slider(
                 "Annealing Time (ns)",

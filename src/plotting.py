@@ -21,16 +21,15 @@ from demo_configs import (
     MODEL_COLORS,
     SHOW_PARALLEL_SAMPLES,
     RESULTS_FIG_Y_MINS,
+    REFERENCE_QPU,
 )
-from src.demo_enums import ModelType, ProblemType
+from src.demo_enums import ModelType, ProblemType, TheoryCurveMode, ScatterType
 from src.model_loading import ProblemModel
 from src.qpu_resources import get_schedule_filepath
 from src.values import (
     DEFAULT_PLOT_WIDTH,
-    ENERGY_TIME_RESCALING,
     MAX_PLOT_WIDTH,
     SAMPLE_POINT_SIZE,
-    Y_AXIS_RESCALING,
 )
 
 LINE_WIDTH = 2
@@ -51,26 +50,45 @@ PLOT_LAYOUT = dict(
 
 
 
-def make_scatter(x, y, type, id, other_args=None):
+def make_scatter(
+        x_vals, 
+        y_vals, 
+        type, 
+        other_params: dict, 
+        other_data=None):
 
-    if type == "Theory":
-        tau = other_args["tau"]
+    if type == ScatterType.THEORY_SCH:
+        model = other_params["model"]
         scatter = go.Scatter(
-            x=x,
-            y=y,
+            x=x_vals,
+            y=y_vals,
             mode="lines",
-            name=f"{id.label} Reference [\u03c4(Landau-Zener)={tau:.3g}]",
-            line=dict(color=MODEL_COLORS[id], width=LINE_WIDTH),
+            name=f"{TheoryCurveMode.SCHR_EV.extended_label}",
+            line=dict(color=MODEL_COLORS[model], width=LINE_WIDTH),
+        )
+    elif type == ScatterType.THEORY_LZ:
+        model = other_params["model"]
+        scatter = go.Scatter(
+            x=x_vals,
+            y=y_vals,
+            mode="lines",
+            line=dict(color=MODEL_COLORS[model], width=LINE_WIDTH, dash="dash"),
+            name=f"{TheoryCurveMode.LZ_FIT.extended_label}",
         )
 
-    elif type == "Sample": #TODO finish and apply later
-        model = other_args["model"]
-        y_errs = other_args["err"]
-        sample_point_size = other_args["point_size"]
-        point_label = other_args["label"]
-        go.Scatter(
-                    x=x,
-                    y=y,
+    elif type == ScatterType.SAMPLE: 
+        model = other_params["model"]
+        y_errs = other_data
+        is_parallel = other_params["parallel"]
+        if is_parallel:
+            sample_point_size = SAMPLE_POINT_SIZE + 4
+            point_label = "Sample Mean"
+        else:
+            sample_point_size = SAMPLE_POINT_SIZE
+            point_label = "Sample"
+        scatter = go.Scatter(
+                    x=x_vals,
+                    y=y_vals,
                     error_y=dict(type="data", array=y_errs, visible=True, **ERROR_BAR),
                     mode="markers",
                     marker=dict(
@@ -81,16 +99,42 @@ def make_scatter(x, y, type, id, other_args=None):
                     ),
                     name=f"{model.label} {point_label}",
                 )
-    elif type == "Parallel":
-        pass
-    elif type == "Spectrum":
-        series_labels = ["1st", "2nd", "3rd", "4th", "5th"]
+    elif type == ScatterType.PARALLEL_SAMPLES:
+        model = other_params["model"]
+        point_label = "Samples"
         scatter = go.Scatter(
-            x=x,
-            y=y,
-            mode="lines",
-            name=f"{series_labels[id]} Excited State",
+            x=x_vals,
+            y=y_vals,
+            mode="markers",
+            marker=dict(
+                symbol="circle",
+                size=max(SAMPLE_POINT_SIZE - 3, 1),
+                color=MODEL_COLORS[model],
+                line=MARKER_OUTLINE,
+            ),
+            name=f"{model.label} {point_label}",
         )
+    elif type == ScatterType.SPECTRUM:
+        series_labels = ["1st", "2nd", "3rd", "4th", "5th"]
+        column_idx = other_params["col_idx"]
+        scatter = go.Scatter(
+            x=x_vals,
+            y=y_vals,
+            mode="lines",
+            marker=dict(color=EXCITED_STATE_COLORS[column_idx]),
+            name=f"{series_labels[column_idx]} Excited State",
+        )
+    elif type == ScatterType.ENERGY_GAP:
+        scatter = go.Scatter(
+            x=x_vals,
+            y = y_vals,
+            mode="lines",
+            name=f"Energy Gap {round(y_vals[1], 2)} GHz",
+            line=dict(color=ENERGY_GAP_COLOR, width=LINE_WIDTH, dash="dash")
+        )
+    else:
+        raise ValueError(f"Unknown scatter type {type}")
+
     return scatter
     
 
@@ -166,9 +210,7 @@ def calculate_tau(spectra: np.ndarray, c: np.ndarray) -> float:
     v = np.sqrt(p[0])
     cstar = -p[1] / p[0] / 2
     gap = np.sqrt(p[2] - p[0] * cstar**2)
-    t_ad = 2*v / (
-        np.pi * gap**2
-    )  # gap and v have units h. Need to multiply by dt_by_ds
+    t_ad = 2*v / (np.pi * gap**2)  # gap and v have units h. Need to multiply by dt_by_ds
     return t_ad, gap, cstar
 
 
@@ -196,6 +238,7 @@ def generate_plots(
     job_results: dict|None,
     qpu_name: str,
     selected_model: ModelType,
+    theory_mode: TheoryCurveMode,
     energy_rescaling: float = 1.0,
     problem_type: ProblemType = ProblemType.DEFAULT,
     show_parallel_samples: bool = SHOW_PARALLEL_SAMPLES,
@@ -204,11 +247,13 @@ def generate_plots(
     """
 
     qpu_schedule = get_schedule(qpu_name)
-    spectrum_ref_schedule = get_schedule("Advantage2_system1")
-    tau_ref_schedule = get_schedule("Advantage_system6")
+    ref_schedule = get_schedule(REFERENCE_QPU)
     
     results_fig = go.Figure()
     spectrum_fig = go.Figure()
+
+    plot_schr = (theory_mode == TheoryCurveMode.SCHR_EV or theory_mode == TheoryCurveMode.BOTH)
+    plot_lz = (theory_mode == TheoryCurveMode.LZ_FIT or theory_mode == TheoryCurveMode.BOTH)
 
     spectrum_to_plot = None
     spectrum_s_vals = None
@@ -217,10 +262,9 @@ def generate_plots(
     for model in ModelType:
         theory_xs, theory_ys = ProblemModel.load_theory_data_from_file(problem_type, model)
         base_spectrum = ProblemModel.load_spectrum_scatter_from_file(model, problem_type)
-        s_rescaled, spectrum_rescaled = rescale_spectrum(base_spectrum, qpu_schedule, spectrum_ref_schedule, energy_rescaling=energy_rescaling)
+        s_rescaled, spectrum_rescaled = rescale_spectrum(base_spectrum, qpu_schedule, ref_schedule, energy_rescaling=energy_rescaling)
 
-        # The reference is Advantage_system6 at full bqm sscaling
-        # Advantage_system6 has schedule closest 
+        # See demo_configs to check which QPU is used for reference schedule
         tau_qpu, gap, c_gap = calculate_tau(spectrum_rescaled, s_rescaled)
         tau_qpu_by_model[model] = tau_qpu
 
@@ -228,38 +272,29 @@ def generate_plots(
             spectrum_to_plot = spectrum_rescaled
             spectrum_s_vals = s_rescaled
             spectral_gap = gap
-            spectral_gap_c_val = c_gap
+            gap_c_val = c_gap
 
         # tau_ref is always computed at full (unscaled) bqm strength, regardless of energy_rescaling
-        ref_s_rescaled, ref_spectrum_rescaled = rescale_spectrum(base_spectrum, tau_ref_schedule, spectrum_ref_schedule, energy_rescaling=1.0)
+        ref_s_rescaled, ref_spectrum_rescaled = rescale_spectrum(base_spectrum, ref_schedule, ref_schedule, energy_rescaling=1.0)
         tau_ref, _, __ = calculate_tau(ref_spectrum_rescaled, ref_s_rescaled)
-        x_multiplier =  tau_ref / tau_qpu
+        x_mult =  tau_ref / tau_qpu
 
-        print(f"Model: {model.label}, QPU{qpu_name}, tau_qpu: {tau_qpu}, tau_ref: {tau_ref}, mult: {x_multiplier}")
+        print(f"Model: {model.label}, QPU{qpu_name}, tau_qpu: {tau_qpu}, tau_ref: {tau_ref}, mult: {x_mult}")
 
-        theory_xs = [x / x_multiplier for x in theory_xs[:-1]]
-        theory_ys = theory_ys[:-1]
-        results_fig.add_trace(
-            make_scatter(theory_xs, theory_ys, "Theory", model, other_args={"tau": tau_qpu})
-        )
+        if plot_schr:
+            x_vals = [x / x_mult for x in theory_xs[:-1]]
+            y_vals = theory_ys[:-1]
+            results_fig.add_trace(make_scatter(x_vals, y_vals, ScatterType.THEORY_SCH, {"model": model}))
 
     egs_column = spectrum_to_plot[:, 3]
     excited_columns = [spectrum_to_plot[:, i] for i in range(4,9)]
 
     for idx, column in enumerate(excited_columns):
         spectrum_fig.add_trace(
-            make_scatter(spectrum_s_vals, column - egs_column, "Spectrum", idx)
+            make_scatter(spectrum_s_vals, column - egs_column, ScatterType.SPECTRUM, {"col_idx": idx})
         )
 
-    spectrum_fig.add_trace(
-        go.Scatter(
-            x=[spectral_gap_c_val, spectral_gap_c_val],
-            y = [0, spectral_gap],
-            mode="lines",
-            name=f"Energy Gap {round(spectral_gap, 2)} GHz",
-            line=dict(color=ENERGY_GAP_COLOR, width=LINE_WIDTH, dash="dash")
-        )
-    )
+    spectrum_fig.add_trace( make_scatter([gap_c_val, gap_c_val], [0, spectral_gap], ScatterType.ENERGY_GAP, {}))
 
 
     spectrum_fig.update_yaxes(type="log", range=[-1, 2])
@@ -277,10 +312,9 @@ def generate_plots(
             anneal_times = []
             egs_probs = []
             y_errs = []
-            parallel_times = []
-            parallel_probs = []
-            sample_point_size = SAMPLE_POINT_SIZE
-            sample_point_label = "Samples"
+            par_times = []
+            par_probs = []
+
 
             for ta, stat_set in job_results[model.name].items():
                 anneal_times.append(ta)
@@ -288,8 +322,8 @@ def generate_plots(
                 y_errs.append(np.std(stat_set))
 
                 if show_parallel_samples:
-                    parallel_times.extend([ta] * len(stat_set))
-                    parallel_probs.extend(stat_set)
+                    par_times.extend([ta] * len(stat_set))
+                    par_probs.extend(stat_set)
 
                 set_min = min(stat_set)
                 if set_min < min_y_val:
@@ -298,60 +332,28 @@ def generate_plots(
             fit_errs = list(y_errs)
 
             if show_parallel_samples:
-                sample_point_size += 4
-                y_errs = []
                 results_fig.add_trace(
-                    go.Scatter(
-                        x=parallel_times,
-                        y=parallel_probs,
-                        mode="markers",
-                        marker=dict(
-                            symbol="circle",
-                            size=max(sample_point_size - 7, 1),
-                            color=MODEL_COLORS[model],
-                            line=MARKER_OUTLINE,
-                        ),
-                        name=f"{model.label} {sample_point_label}",
-                    )
+                    make_scatter(par_times, par_probs, ScatterType.PARALLEL_SAMPLES, {"model": model})
                 )
-                sample_point_label = "Sample Mean"
 
+
+            other_params = {"model": model, "parallel": show_parallel_samples}
             results_fig.add_trace(
-                go.Scatter(
-                    x=anneal_times,
-                    y=egs_probs,
-                    error_y=dict(type="data", array=y_errs, visible=True, **ERROR_BAR),
-                    mode="markers",
-                    marker=dict(
-                        symbol="diamond-wide",
-                        size=sample_point_size,
-                        color=MODEL_COLORS[model],
-                        line=MARKER_OUTLINE,
-                    ),
-                    name=f"{model.label} {sample_point_label}",
-                )
+                make_scatter(anneal_times, egs_probs, ScatterType.SAMPLE, other_params)
             )
 
             if max(anneal_times) > DEFAULT_PLOT_WIDTH - 1:
                 x_range = MAX_PLOT_WIDTH
 
-            if len(anneal_times) >= 2:
+            if len(anneal_times) >= 2 and plot_lz:
                 fit_amplitude = fit_exponential_amplitude(
                     np.array(anneal_times), np.array(egs_probs), np.array(fit_errs), tau_qpu_by_model[model]
                 )
                 fit_times = np.linspace(0, max(anneal_times), 100)
                 fit_probs = fit_amplitude * np.exp(-fit_times / tau_qpu_by_model[model])
                 results_fig.add_trace(
-                    go.Scatter(
-                        x=fit_times,
-                        y=fit_probs,
-                        mode="lines",
-                        line=dict(color=MODEL_COLORS[model], width=LINE_WIDTH, dash="dash"),
-                        name=f"Landau-Zener Theory fit y=A exp(-t/{tau_qpu_by_model[model]:.3g})",
-                    )
+                    make_scatter(fit_times, fit_probs, ScatterType.THEORY_LZ, {"model": model})
                 )
-
-    
 
     results_fig.update_layout(
         xaxis_title="Annealing Time (ns)", yaxis_title="Excited State Probability", **PLOT_LAYOUT

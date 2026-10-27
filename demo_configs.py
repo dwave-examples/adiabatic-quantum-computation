@@ -54,6 +54,8 @@ COUPLING_STRENGTH_SLIDER_MARKS = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 DEFAULT_QPU = "Advantage_system4"  # If not available, the first returned will be default
 DEFAULT_MODEL = ModelType.INTERMEDIATE_GAP
 
+REFERENCE_QPU = "Advantage2_system1"
+
 # One color per model, shared by its theory line and its experimental points so the hue
 # identifies the model and the mark shape (line vs. diamond) identifies theory vs. experiment.
 # Colorblind-safe and >= 3:1 contrast on a white plot background.

@@ -27,7 +27,7 @@ from dwave.system import DWaveSampler, ParallelEmbeddingComposite
 
 from demo_configs import NUM_READS, SUGGESTED_ANNEALING_TIMES
 from demo_interface import generate_new_results_dict
-from src.demo_enums import JobState, ModelType
+from src.demo_enums import JobState, ModelType, TheoryCurveMode
 from src.model_loading import ProblemModel
 from src.plotting import generate_plots
 from src.process_embeddings import EmbeddingSet
@@ -448,10 +448,16 @@ def submit_job(
     Input("model-selection", "value"),
     Input("energy-rescaling", "value"),
     Input("qpu-selection", "value"),
+    Input("theory-curve", "value"),
     State("annealing-time-suggest", "checked"),
 )
 def update_main_graph(
-    sample_data: dict, model_val: str, energy_rescaling: float, qpu_name: str, auto_suggest: bool
+    sample_data: dict, 
+    model_val: str, 
+    energy_rescaling: float, 
+    qpu_name: str, 
+    theory_curve_mode: str,
+    auto_suggest: bool
 ) -> tuple[go.Figure, go.Figure, float]:
     """Updates the main graph showing the excited state probability as a function of annealing
     time. This callback triggers whenever a new measurement is added to the current-results
@@ -492,6 +498,7 @@ def update_main_graph(
         job_results=results,
         qpu_name=qpu_name,
         selected_model=ModelType(int(model_val)),
+        theory_mode=TheoryCurveMode(int(theory_curve_mode)),
         energy_rescaling=energy_rescaling,
     )
 

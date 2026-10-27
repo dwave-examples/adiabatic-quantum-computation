@@ -56,3 +56,34 @@ class JobState(Enum):
     @property
     def label(self):
         return self.name.replace("_", " ").title()
+
+class TheoryCurveMode(Enum):
+    SCHR_EV = 1
+    LZ_FIT = 2
+    BOTH = 3
+
+    @property
+    def label(self):
+        labels = {
+            self.SCHR_EV: "Schrödinger",
+            self.LZ_FIT: "Landau-Zener",
+            self.BOTH: "Both"
+        }
+        return labels[self]
+
+    @property
+    def extended_label(self):
+        long_labels = {
+            self.SCHR_EV: "Schedule-Specific Schrödinger Evolution",
+            self.LZ_FIT: "Landau-Zener Theory",
+            self.BOTH: "Both"
+        }
+        return long_labels[self]
+
+class ScatterType(Enum):
+    THEORY_SCH = 0
+    THEORY_LZ = 1
+    SAMPLE = 2
+    PARALLEL_SAMPLES = 3
+    SPECTRUM = 4
+    ENERGY_GAP = 5
