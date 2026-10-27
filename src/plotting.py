@@ -326,6 +326,7 @@ def generate_plots(
             marker=dict(size=1),
             text=[f"τ = {round(tau_qpu,3)}"],
             textposition="top center",
+            showlegend=False,
         )
     )
 
