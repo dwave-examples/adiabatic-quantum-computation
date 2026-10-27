@@ -18,9 +18,10 @@ import json
 
 import numpy as np
 
+from demo_configs import DATA_SOURCE
 from src.demo_enums import ModelType, ProblemType
 from src.values import MODELS_PATH
-from demo_configs import DATA_SOURCE
+
 
 class ProblemModel:
     """This class exists to simplify and encapsulate the loading and saving of specific problem instances:
@@ -31,7 +32,11 @@ class ProblemModel:
 
     DEFINITION_FILE_SUFFIX = "_PROBLEM_DEFINITION.json"
     QPU_SUFFIX = DATA_SOURCE.suffix
-    SCATTER_SUFFIX = DATA_SOURCE.ADVANTAGE_SYSTEM6.suffix if DATA_SOURCE == DATA_SOURCE.ZENODO_REFERENCE else DATA_SOURCE.suffix
+    SCATTER_SUFFIX = (
+        DATA_SOURCE.ADVANTAGE_SYSTEM6.suffix
+        if DATA_SOURCE == DATA_SOURCE.ZENODO_REFERENCE
+        else DATA_SOURCE.suffix
+    )
 
     def __init__(
         self,
@@ -215,5 +220,5 @@ class ProblemModel:
         theory_vals = np.loadtxt(theory_data_path, delimiter=",", skiprows=2)
         xs = theory_vals[:, 0]
         ys = theory_vals[:, 1]
-        
+
         return xs, ys

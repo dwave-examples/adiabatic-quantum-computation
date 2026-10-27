@@ -77,7 +77,7 @@ def toggle_left_column(collapse_trigger: int, to_collapse_class: str) -> tuple[s
 )
 def process_qpu_select(qpu_name: str) -> float:
     """Triggers when the selected QPU is altered, writing the selection time to the
-    relevant store. Also resets the Theory Curve selection to the default, and 
+    relevant store. Also resets the Theory Curve selection to the default, and
     disables it if no schedule is available for the selected QPU.
 
     Args:
@@ -93,7 +93,7 @@ def process_qpu_select(qpu_name: str) -> float:
     """
 
     schedule_check = get_schedule_filepath(qpu_name)
-    
+
     return time.time(), str(TheoryCurveMode.LANDAU_ZENER.value), (schedule_check is None)
 
 
@@ -235,9 +235,7 @@ def set_current_embeddings(
     State("cached-models", "data"),
 )
 def set_current_model(
-    model_val: str, 
-    job_submit_time: float,
-    cached_models: dict
+    model_val: str, job_submit_time: float, cached_models: dict
 ) -> tuple[dict, go.Figure]:
     """Sets the data and the spectrum plot for the currently selected model. Triggers whenever the
     model selection dropdown is changed or the energy rescaling value is modified. Also triggers
@@ -460,15 +458,15 @@ def submit_job(
     State("annealing-time-suggest", "checked"),
 )
 def update_graphs(
-    sample_data: dict, 
-    model_val: str, 
-    energy_rescaling: float, 
-    qpu_name: str, 
+    sample_data: dict,
+    model_val: str,
+    energy_rescaling: float,
+    qpu_name: str,
     theory_curve_mode: str,
-    auto_suggest: bool
+    auto_suggest: bool,
 ) -> tuple[go.Figure, go.Figure, float]:
-    """Both the results graph and the spectrum plot. This callback triggers whenever a new 
-    measurement is added to the current-results data store: it updates the graph with the new 
+    """Both the results graph and the spectrum plot. This callback triggers whenever a new
+    measurement is added to the current-results data store: it updates the graph with the new
     data point and returns the updated figure. It will also trigger if the model, energy
     rescaling, or theory curve mode changes, making the appropriate updates to the spectrum
     and results plot, but leaving plotted data unchanged. Finally, this callback will also

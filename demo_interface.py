@@ -119,6 +119,7 @@ def checkbox(label: str, id: str, checked: bool) -> html.Div:
         ],
     )
 
+
 def radio(label: str, id: str, options: list, value: str, inline: bool = True) -> html.Div:
     """Radio element for option selection.
 
@@ -207,7 +208,12 @@ def generate_settings_form(solvers: list[str]) -> html.Div:
                 model_options,
                 value=f"{DEFAULT_MODEL.value}",
             ),
-            radio("Theory Curve", "theory-curve", generate_options(TheoryCurveMode), value=str(TheoryCurveMode.LANDAU_ZENER.value)),
+            radio(
+                "Theory Curve",
+                "theory-curve",
+                generate_options(TheoryCurveMode),
+                value=str(TheoryCurveMode.LANDAU_ZENER.value),
+            ),
             checkbox("Auto-Suggest Next Annealing Time", "annealing-time-suggest", checked=False),
             slider(
                 "Annealing Time (ns)",

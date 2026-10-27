@@ -1,12 +1,14 @@
-import numpy as np
 import warnings
 
+import numpy as np
+
+
 def rescale_spectrum(
-        spectrum_data: np.ndarray,
-        qpu_schedule: np.ndarray,
-        reference_schedule: np.ndarray,  
-        energy_rescaling: float = 1.0
-    ) -> tuple[np.ndarray, np.ndarray]:
+    spectrum_data: np.ndarray,
+    qpu_schedule: np.ndarray,
+    reference_schedule: np.ndarray,
+    energy_rescaling: float = 1.0,
+) -> tuple[np.ndarray, np.ndarray]:
     """Rescale spectrum_data (computed under reference_schedule, row-aligned) to qpu_schedule.
 
     For each native (reference) row, find qpu_schedule's s where its B/A ratio matches the
@@ -18,17 +20,17 @@ def rescale_spectrum(
     B_ref = reference_schedule[:column_length, 2]
 
     A = qpu_schedule[:column_length, 1]
-    B = qpu_schedule[:column_length, 2]*energy_rescaling
+    B = qpu_schedule[:column_length, 2] * energy_rescaling
     S_qpu = qpu_schedule[:column_length, 0]
 
-    s_vals = np.interp(B_ref/A_ref, B/A, S_qpu)
+    s_vals = np.interp(B_ref / A_ref, B / A, S_qpu)
     A_qpu_at_match = np.interp(s_vals, S_qpu, A)
     E_rescale = A_qpu_at_match / A_ref
 
     multiplier = np.zeros((column_length, column_length))
     # At qpu_schedule == reference_schedule this is the identity (E_rescale == 1).
     np.fill_diagonal(multiplier, E_rescale)
-    
+
     new_spectrum_data = np.matmul(multiplier, spectrum_data)
     return s_vals, new_spectrum_data
 
@@ -60,7 +62,7 @@ def calculate_tau(spectra: np.ndarray, c: np.ndarray) -> float:
     v = np.sqrt(p[0])
     cstar = -p[1] / p[0] / 2
     gap = np.sqrt(p[2] - p[0] * cstar**2)
-    t_ad = 2*v / (np.pi * gap**2)  # gap and v have units h. Need to multiply by dt_by_ds
+    t_ad = 2 * v / (np.pi * gap**2)  # gap and v have units h. Need to multiply by dt_by_ds
     return t_ad, gap, cstar
 
 
