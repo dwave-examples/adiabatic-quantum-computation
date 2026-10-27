@@ -20,7 +20,7 @@ import numpy as np
 
 from src.demo_enums import ModelType, ProblemType
 from src.values import MODELS_PATH
-from demo_configs import REFERENCE_QPU
+from demo_configs import DATA_SOURCE
 
 class ProblemModel:
     """This class exists to simplify and encapsulate the loading and saving of specific problem instances:
@@ -30,8 +30,8 @@ class ProblemModel:
     ground state probabilities."""
 
     DEFINITION_FILE_SUFFIX = "_PROBLEM_DEFINITION.json"
-    qpu_num_id = "2_1" if REFERENCE_QPU == "Advantage2_system1" else "_6"
-    QPU_SUFFIX = f"ADV{qpu_num_id}"
+    QPU_SUFFIX = DATA_SOURCE.suffix
+    SCATTER_SUFFIX = DATA_SOURCE.ADVANTAGE_SYSTEM6.suffix if DATA_SOURCE == DATA_SOURCE.ZENODO_REFERENCE else DATA_SOURCE.suffix
 
     def __init__(
         self,
@@ -75,7 +75,7 @@ class ProblemModel:
     @property
     def spectrum_scatter_filename(self) -> str:
         """File name of the CSV energy spectrum data for this model."""
-        return f"{self.lookup_key}_SCATTER_{ProblemModel.QPU_SUFFIX}.csv"
+        return f"{self.lookup_key}_SCATTER_{ProblemModel.SCATTER_SUFFIX}.csv"
 
     @property
     def theory_data_filename(self) -> str:

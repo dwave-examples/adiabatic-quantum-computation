@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from dwave.cloud import Client
 
-from src.values import SCHEDULES_AND_EMBEDDINGS_PATH, FALLBACK_SCHEDULE_PATH
+from src.values import SCHEDULES_AND_EMBEDDINGS_PATH
 
 
 def get_qpu_ids(print_available: bool = False) -> list[str]:
@@ -45,4 +45,4 @@ def get_schedule_filepath(qpu_name: str) -> str:
     for file in [x for x in SCHEDULES_AND_EMBEDDINGS_PATH.iterdir() if x.is_file()]:
         if suffix in file.name and qpu_name in file.name:
             return file
-    return FALLBACK_SCHEDULE_PATH
+    return None

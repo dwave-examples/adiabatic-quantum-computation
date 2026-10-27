@@ -58,32 +58,55 @@ class JobState(Enum):
         return self.name.replace("_", " ").title()
 
 class TheoryCurveMode(Enum):
-    SCHR_EV = 1
-    LZ_FIT = 2
-    BOTH = 3
+    """ Represents the modes for plotting theory curves, whether the demo will plot the 
+    Schrödinger evolution, the Landau-Zener fit, or both."""
+    LANDAU_ZENER = 0
+    REFERENCE = 1
+    BOTH = 2
 
     @property
     def label(self):
-        labels = {
-            self.SCHR_EV: "Schrödinger",
-            self.LZ_FIT: "Landau-Zener",
-            self.BOTH: "Both"
-        }
-        return labels[self]
+        return self.name.replace("_", "-").title()
 
     @property
     def extended_label(self):
         long_labels = {
-            self.SCHR_EV: "Schedule-Specific Schrödinger Evolution",
-            self.LZ_FIT: "Landau-Zener Theory",
+            self.REFERENCE: "Curve Calculated in Zenodo Reference", #TODO link to data source
+            self.LANDAU_ZENER: "Landau-Zener Theory",
             self.BOTH: "Both"
         }
         return long_labels[self]
 
 class ScatterType(Enum):
-    THEORY_SCH = 0
+    """Tracks the different types of scatter plots created by the plotting function. Each
+    type of plot has different requirements for formatting and data labelling."""
+    THEORY_REF = 0
     THEORY_LZ = 1
     SAMPLE = 2
     PARALLEL_SAMPLES = 3
     SPECTRUM = 4
     ENERGY_GAP = 5
+
+class DataSource(Enum):
+    ZENODO_REFERENCE = 0
+    ADVANTAGE_SYSTEM6 = 1
+    ADVANTAGE2_SYSTEM1 = 2
+
+    @property
+    def suffix(self):
+        """ File suffix for the file for each data source"""
+        labels = {
+            self.ZENODO_REFERENCE: "ZENODO",
+            self.ADVANTAGE_SYSTEM6: "ADV_6",
+            self.ADVANTAGE2_SYSTEM1: "ADV2_1"
+        }
+        return labels[self]
+
+    @property
+    def qpu_name(self):
+        names = {
+            self.ZENODO_REFERENCE: "Advantage_system6",
+            self.ADVANTAGE_SYSTEM6: "Advantage_system6",
+            self.ADVANTAGE2_SYSTEM1: "Advantage2_system1"
+        }
+        return names[self]

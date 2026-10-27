@@ -31,7 +31,7 @@ from src.demo_enums import JobState, ModelType, TheoryCurveMode
 from src.model_loading import ProblemModel
 from src.plotting import generate_plots
 from src.process_embeddings import EmbeddingSet
-from src.qpu_resources import get_qpu_ids
+from src.qpu_resources import get_qpu_ids, get_schedule_filepath
 from src.values import ENERGY_THRESHOLD, MIN_ANNEALING_TIME
 
 
@@ -71,22 +71,30 @@ def toggle_left_column(collapse_trigger: int, to_collapse_class: str) -> tuple[s
 
 @dash.callback(
     Output("qpu-select-time", "data"),
+    Output("theory-curve", "value"),
+    Output("theory-curve", "disabled"),
     Input("qpu-selection", "value"),
 )
 def process_qpu_select(qpu_name: str) -> float:
     """Triggers when the selected QPU is altered, writing the selection time to the
-    relevant store. This callback exists only to trigger the
-    reset_embeddings_and_results callback, as a workaround to allow it to trigger
-    on startup.
+    relevant store. Also resets the Theory Curve selection to the default, and 
+    disables it if no schedule is available for the selected QPU.
 
     Args:
         qpu_name: Name of the selected QPU
 
     Returns:
-        The current time, stored in qpu-select-time to trigger reset_embeddings_and_results.
+        A tuple containing:
+
+        -The current time, stored in qpu-select-time to trigger reset_embeddings_and_results.
+        -The value of the Theory Curve mode that should be pre-selected (always LANDAU_ZENER)
+        -Whether or not to disable the theory curve selection, based on whether the selected
+            QPU has a schedule available.
     """
 
-    return time.time()
+    schedule_check = get_schedule_filepath(qpu_name)
+    
+    return time.time(), str(TheoryCurveMode.LANDAU_ZENER.value), (schedule_check is None)
 
 
 # =================================================================================================
@@ -451,7 +459,7 @@ def submit_job(
     Input("theory-curve", "value"),
     State("annealing-time-suggest", "checked"),
 )
-def update_main_graph(
+def update_graphs(
     sample_data: dict, 
     model_val: str, 
     energy_rescaling: float, 
@@ -459,19 +467,21 @@ def update_main_graph(
     theory_curve_mode: str,
     auto_suggest: bool
 ) -> tuple[go.Figure, go.Figure, float]:
-    """Updates the main graph showing the excited state probability as a function of annealing
-    time. This callback triggers whenever a new measurement is added to the current-results
-    data store: it updates the graph with the new data point and returns the updated figure.
-    If the correct config option is enabled, it will also updates value of the annealing time
-    slider to the next largest value in the predefined default annealing times; this allows a
-    user to easily run the default time series, while still giving complete freedom to manually
-    set annealing times as they desire.
+    """Both the results graph and the spectrum plot. This callback triggers whenever a new 
+    measurement is added to the current-results data store: it updates the graph with the new 
+    data point and returns the updated figure. It will also trigger if the model, energy
+    rescaling, or theory curve mode changes, making the appropriate updates to the spectrum
+    and results plot, but leaving plotted data unchanged. Finally, this callback will also
+    trigger when a new QPU is selected, clearing all data plotted for the previous QPU.
 
     Args:
         sample_data: A dictionary containing the current measurement results.
         model_val: The currently selected model value.
+        energy_rescaling: The current energy rescaling factor.
         qpu_name: The name of the currently selected QPU, used for rescaling the
             results plot to the QPU-specific energy scale.
+        theory_curve_mode: The mode determining which sort of theory curve is displayed on
+            the results plot.
         auto_suggest: Whether the auto-suggest option for the annealing time slider is enabled.
 
     Returns:
@@ -479,6 +489,8 @@ def update_main_graph(
 
         - go.Figure: A plotly figure of the excited state probability as a function of the
             annealing time.
+        - go.Figure: A plot showing the spectrum of excited state energy values as a function
+            of anneal progress.
         - float: The next suggested annealing time. Will reset to the minimum value when
             the model or QPU is changed. If the auto-suggest option is enabled, it will
             set the slider to the next time in sequence. Otherwise it will leave the slider
