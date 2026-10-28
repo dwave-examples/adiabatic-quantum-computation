@@ -131,6 +131,13 @@ parameters are adjusted, it is recalculated. The schedule files are
 limited-accuracy approximations to the energy scales (see documentation); this
 feeds forward to some uncertainty in other derived quantities.
 
+Parity is a conserved quantity of the evolution, therefore the
+eigenvalues are restricted to the positive parity sector. Parity
+might be violated by open-system effects and control errors, but
+the spectral gap analysis restricted to the given sector proves
+accurate. The parity operator is a product of Pauli-X operators,
+with eigenvalue 1.
+
 #### The schedule-based Landau-Zener approximation
 A Landau-Zener timescale τ[model] can be calculated based on a QPU-specific
 spectrum derived from a matched schedule file for each model, using a linear
