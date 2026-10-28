@@ -21,7 +21,7 @@ import dash
 import dimod
 import numpy as np
 import plotly.graph_objects as go
-from dash import MATCH, Input, Output, Patch, State
+from dash import ALL, MATCH, Input, Output, Patch, State
 from dash.exceptions import PreventUpdate
 from dwave.system import DWaveSampler, ParallelEmbeddingComposite
 
@@ -72,13 +72,13 @@ def toggle_left_column(collapse_trigger: int, to_collapse_class: str) -> tuple[s
 @dash.callback(
     Output("qpu-select-time", "data"),
     Output("theory-curve", "value"),
-    Output("theory-curve", "disabled"),
+    Output({"type": "theory-curve-option", "index": ALL}, "disabled"),
     Input("qpu-selection", "value"),
 )
-def process_qpu_select(qpu_name: str) -> tuple[float, list[str], bool]:
+def process_qpu_select(qpu_name: str) -> tuple[float, list[str], list[bool]]:
     """Triggers when the selected QPU is altered, writing the selection time to the
-    relevant store. Also resets the Theory Curve selection to the default, and
-    disables it if no schedule is available for the selected QPU.
+    relevant store. Also resets the Theory Curve selection to Landau-Zener and, if no schedule
+    is available for the selected QPU, locks both options in that state.
 
     Args:
         qpu_name: Name of the selected QPU.
@@ -86,15 +86,16 @@ def process_qpu_select(qpu_name: str) -> tuple[float, list[str], bool]:
     Returns:
         A tuple containing:
 
-        - float: The current time, stored in qpu-select-time to trigger reset_embeddings_and_results.
-        - list[str]: The value of the Theory Curve mode that should be pre-selected (always LANDAU_ZENER)
-        - bool: Whether or not to disable the theory curve selection, based on whether the selected
-        QPU has a schedule available.
+        - float: The current time, stored in qpu-select-time to trigger
+        reset_embeddings_and_results.
+        - list[str]: The Theory Curve values to preselect (always LANDAU_ZENER).
+        - list[bool]: Whether each Theory Curve option is disabled, in TheoryCurveMode order.
     """
 
-    schedule_check = get_schedule_filepath(qpu_name)
+    no_schedule = get_schedule_filepath(qpu_name) is None
+    disabled = [no_schedule] * len(TheoryCurveMode)
 
-    return time.time(), [str(TheoryCurveMode.LANDAU_ZENER.value)], (schedule_check is None)
+    return time.time(), [str(TheoryCurveMode.LANDAU_ZENER.value)], disabled
 
 
 # =================================================================================================

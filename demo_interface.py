@@ -120,7 +120,14 @@ def checkbox(label: str, id: str, checked: bool) -> html.Div:
     )
 
 
-def checklist(label: str, id: str, options: list, values: list, inline: bool = True) -> html.Div:
+def checklist(
+    label: str,
+    id: str,
+    options: list,
+    values: list,
+    inline: bool = True,
+    option_id_type: str | None = None,
+) -> html.Div:
     """Checklist element for option selection.
 
     Args:
@@ -129,7 +136,21 @@ def checklist(label: str, id: str, options: list, values: list, inline: bool = T
         options: A list of dictionaries of labels and values.
         values: A list of values that should be preselected in the checklist.
         inline: Whether the options of the checklist are displayed beside or below each other.
+        option_id_type: If given, each option gets the pattern-matching id
+            ``{"type": option_id_type, "index": value}`` so callbacks can target individual
+            options (for example to disable one).
     """
+    checkboxes = []
+    for option in options:
+        option_kwargs = (
+            {"id": {"type": option_id_type, "index": option["value"]}} if option_id_type else {}
+        )
+        checkboxes.append(
+            dmc.Checkbox(
+                label=option["label"], value=option["value"], color=THEME_COLOR, **option_kwargs
+            )
+        )
+
     return html.Div(
         className="checklist-wrapper",
         children=[
@@ -138,14 +159,7 @@ def checklist(label: str, id: str, options: list, values: list, inline: bool = T
                 className=f"checklist{' checklist--inline' if inline else ''}",
                 label=label,
                 value=values,
-                children=dmc.Group(
-                    [
-                        dmc.Checkbox(
-                            label=option["label"], value=option["value"], color=THEME_COLOR
-                        )
-                        for option in options
-                    ],
-                ),
+                children=dmc.Group(checkboxes),
             ),
         ],
     )
@@ -209,6 +223,7 @@ def generate_settings_form(solvers: list[str]) -> html.Div:
                 "theory-curve",
                 generate_options(TheoryCurveMode),
                 values=[str(TheoryCurveMode.LANDAU_ZENER.value)],
+                option_id_type="theory-curve-option",
             ),
             dropdown(
                 "Model",
