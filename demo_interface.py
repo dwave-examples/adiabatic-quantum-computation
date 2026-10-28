@@ -149,35 +149,6 @@ def checklist(label: str, id: str, options: list, values: list, inline: bool = T
     )
 
 
-def radio(label: str, id: str, options: list, value: str, inline: bool = True) -> html.Div:
-    """Radio element for option selection.
-
-    Args:
-        label: The title that goes above the radio.
-        id: A unique selector for this element.
-        options: A list of dictionaries of labels and values.
-        value: The value of the radio that should be preselected.
-        inline: Whether the options are displayed beside or below each other.
-    """
-    return html.Div(
-        className="radio-wrapper",
-        children=[
-            dmc.RadioGroup(
-                id=id,
-                className=f"radio{' radio--inline' if inline else ''}",
-                label=label,
-                value=value,
-                children=dmc.Group(
-                    [
-                        dmc.Radio(option["label"], value=option["value"], color=THEME_COLOR)
-                        for option in options
-                    ]
-                ),
-            ),
-        ],
-    )
-
-
 def generate_options(options: list | EnumMeta | dict) -> list[dict]:
     """Format options for dropdowns, checklists, radios, etc.
 
@@ -282,11 +253,12 @@ def generate_run_buttons() -> html.Div:
     )
 
 
-def default_graph(title, id: str, title_id: str | None = None) -> html.Div:
+def default_graph(title: str, id: str, title_id: str | None = None, subtitle: str | None = None) -> html.Div:
     """Default graph element with a title.
 
     Args:
         title: The title that goes above the graph.
+        subtitle: The subtitle that goes below the title and above the graph.
         id: A unique selector for this graph element.
         title_id: Optional id for the title heading, so it can be updated by a callback.
 
@@ -294,11 +266,16 @@ def default_graph(title, id: str, title_id: str | None = None) -> html.Div:
         A Div containing the title and the graph.
     """
 
-    heading = html.H3(title, id=title_id) if title_id else html.H3(title)
+    heading = html.H3(
+        title,
+        id=title_id if title_id else "",
+        className="title-with-subtitle" if subtitle else "",
+    )
     return html.Div(
         className="graph-wrapper",
         children=[
             heading,
+            html.H5(subtitle, className="subtitle") if subtitle else None,
             dcc.Graph(
                 id=f"{id}-graph",
                 responsive=True,
@@ -507,13 +484,10 @@ def create_interface() -> html.Div:
                                                 "sample-v-theory",
                                             ),
                                             default_graph(
-                                                [
-                                                    f"{DEFAULT_MODEL.label} spectrum",
-                                                    html.Br(),
-                                                    "(positive parity sector)",
-                                                ],
+                                                f"{DEFAULT_MODEL.label} spectrum",
                                                 "spectrum",
                                                 title_id="spectrum-title",
+                                                subtitle="(positive parity sector)",
                                             ),
                                         ],
                                     )

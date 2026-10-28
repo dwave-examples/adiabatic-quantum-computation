@@ -48,3 +48,11 @@ custom CSS can be added below.
 .settings {
     margin-bottom: 3rem;
 }
+
+h3.title-with-subtitle {
+    margin-bottom: 0.25rem;
+}
+
+h5.subtitle {
+    margin: 0;
+}

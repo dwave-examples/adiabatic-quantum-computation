@@ -48,7 +48,13 @@ PLOT_LAYOUT = dict(
 )
 
 
-def make_scatter(x_vals, y_vals, type, other_params: dict, other_data=None):
+def make_scatter(
+    x_vals: list[float],
+    y_vals: list[float],
+    type: ScatterType,
+    other_params: dict,
+    other_data: dict | None = None,
+) -> go.Scatter:
     """Encapsulates the specific plotting and formatting logic for each of the various
     types of scatter plots created by generate_plots. This keeps that function cleaner
     and allows the plot details to be checked and edited in one place, rather than
@@ -56,8 +62,8 @@ def make_scatter(x_vals, y_vals, type, other_params: dict, other_data=None):
 
     Args:
         x_vals: The x coordinates for the scatter plot.
-        y_vals: The y coordinates.
-        type: Which type of scatter plot to make. Each has different formatting,
+        y_vals: The y coordinates for the scatter plot.
+        type: The type of scatter plot to make. Each has different formatting,
             and may expect different inputs in the last two arguments.
         other_params: Extra parameters needed for the selected plot type.
         other_data: Extra data, like error bars.
@@ -66,7 +72,7 @@ def make_scatter(x_vals, y_vals, type, other_params: dict, other_data=None):
         The scatter plot object.
     """
 
-    if type == ScatterType.THEORY_REF:
+    if type is ScatterType.THEORY_REF:
         model = other_params["model"]
         scatter = go.Scatter(
             x=x_vals,
@@ -75,7 +81,7 @@ def make_scatter(x_vals, y_vals, type, other_params: dict, other_data=None):
             name=f"{TheoryCurveMode.REFERENCE.extended_label}",
             line=dict(color=MODEL_COLORS[model], width=LINE_WIDTH),
         )
-    elif type == ScatterType.THEORY_LZ:
+    elif type is ScatterType.THEORY_LZ:
         model = other_params["model"]
         amplitude = other_params["amplitude"]
         tau = other_params["tau"]
@@ -96,7 +102,7 @@ def make_scatter(x_vals, y_vals, type, other_params: dict, other_data=None):
             name=name,
         )
 
-    elif type == ScatterType.SAMPLE:
+    elif type is ScatterType.SAMPLE:
         model = other_params["model"]
         y_errs = other_data
         is_parallel = other_params["parallel"]
@@ -119,7 +125,7 @@ def make_scatter(x_vals, y_vals, type, other_params: dict, other_data=None):
             ),
             name=f"{model.label} {point_label}",
         )
-    elif type == ScatterType.PARALLEL_SAMPLES:
+    elif type is ScatterType.PARALLEL_SAMPLES:
         model = other_params["model"]
         point_label = "Samples"
         scatter = go.Scatter(
@@ -134,7 +140,7 @@ def make_scatter(x_vals, y_vals, type, other_params: dict, other_data=None):
             ),
             name=f"{model.label} {point_label}",
         )
-    elif type == ScatterType.SPECTRUM:
+    elif type is ScatterType.SPECTRUM:
         series_labels = ["1st", "2nd", "3rd", "4th", "5th"]
         column_idx = other_params["col_idx"]
         scatter = go.Scatter(
@@ -144,7 +150,7 @@ def make_scatter(x_vals, y_vals, type, other_params: dict, other_data=None):
             marker=dict(color=EXCITED_STATE_COLORS[column_idx]),
             name=f"{series_labels[column_idx]} Excited State",
         )
-    elif type == ScatterType.ENERGY_GAP:
+    elif type is ScatterType.ENERGY_GAP:
         scatter = go.Scatter(
             x=x_vals,
             y=y_vals,
@@ -159,10 +165,19 @@ def make_scatter(x_vals, y_vals, type, other_params: dict, other_data=None):
 
 
 def get_schedule(qpu_name: str = "Advantage2_system1") -> np.ndarray | None:
-    """Load an annealing schedule, in the convention H/h = -A * sum_i X_i + sum_{i<j} Jij Z_i Z_j."""
+    """Load an annealing schedule, in the convention H/h = -A * sum_i X_i + sum_{i<j} Jij Z_i Z_j.
+
+    Args:
+        qpu_name: The name of the QPU for which to load the schedule.
+
+    Returns:
+        A numpy array containing the schedule data, or None if the schedule file could not be found.
+    """
     schedule_filepath = get_schedule_filepath(qpu_name)
+
     if schedule_filepath is None:
         return None
+
     with open(schedule_filepath, "r") as f:
         schedule_data = np.loadtxt(f, delimiter=",", skiprows=1)
     return schedule_data
@@ -190,6 +205,7 @@ def generate_plots(
 
     Returns:
         A tuple containing:
+
         - go.Figure: results plot
         - go.Figure: spectrum plot
     """

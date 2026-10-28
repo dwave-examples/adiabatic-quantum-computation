@@ -1,3 +1,17 @@
+# Copyright 2026 D-Wave
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import warnings
 
 import numpy as np
@@ -10,11 +24,29 @@ def rescale_spectrum(
     reference_schedule: np.ndarray,
     energy_rescaling: float = 1.0,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Rescale spectrum_data (computed under reference_schedule, row-aligned) to qpu_schedule.
+    """Rescale a spectrum computed under ``reference_schedule`` to ``qpu_schedule``.
 
-    For each native (reference) row, find qpu_schedule's s where its B/A ratio matches the
-    native row's B_ref/A_ref ratio, then scale by A_qpu(matched s) / A_ref(native row) --
-    matching diagonalize_AK.py's en_rescaling direction exactly.
+    For each row of ``spectrum_data`` (row-aligned with ``reference_schedule``), find the anneal
+    fraction ``s`` of ``qpu_schedule`` whose B/A ratio matches the reference row's B_ref/A_ref
+    ratio, then scale the row by A_qpu(matched s) / A_ref(reference row). This matches the
+    ``en_rescaling`` direction used in ``diagonalize_AK.py``. When ``qpu_schedule`` is
+    ``reference_schedule`` and ``energy_rescaling`` is 1, the spectrum is returned unchanged.
+
+    Args:
+        spectrum_data: Spectrum file contents, one row per anneal fraction of the reference
+            schedule. Columns 3 onward hold the ground-state and excited-state energies; only
+            those columns are meaningful after rescaling.
+        qpu_schedule: Annealing schedule of the target QPU as columns ``(s, A(s), B(s))``.
+        reference_schedule: Annealing schedule the spectrum was computed under, in the same
+            column layout as ``qpu_schedule``.
+        energy_rescaling: Factor applied to B(s) of the QPU schedule, matching the demo's
+            *Energy Rescaling* slider.
+
+    Returns:
+        A tuple containing:
+
+        - np.ndarray: The anneal fraction of ``qpu_schedule`` matched to each row.
+        - np.ndarray: The rescaled spectrum, with the same shape as ``spectrum_data``.
     """
     column_length = len(spectrum_data[:, 0])
     A_ref = reference_schedule[:column_length, 1]
@@ -36,29 +68,40 @@ def rescale_spectrum(
     return s_vals, new_spectrum_data
 
 
-def calculate_tau(spectra: np.ndarray, c: np.ndarray) -> float:
-    """Calculate the Landau-Zener excitation form under a linearized approximation
+def calculate_tau(spectra: np.ndarray, c: np.ndarray) -> tuple[float, float, float]:
+    """Calculate the Landau-Zener excitation timescale under a linearized approximation.
 
-    gap(s) ~ root(e(s)^2 + Delta(s)^2) = root(Dm^2 + (s-s*)^2 v^2)
-    gap^2 = (Dm^2 + s*^2 v^2) - (2 s* v^2)s + v^2 s^2
-    # gap2 is quadratic model in s, fit coefficients:
-    Pex = exp(- tf /t_ad)
-    t_ad = 2 hbar v / ( pi * Dm^2)
+    Near the minimum gap the two-level gap is modeled as
 
-    equivalent statement: v^2 = 1/2 d^2/ds^2 gap^2(s) at s=s*
+        gap(s) ~ sqrt(e(s)^2 + Delta(s)^2) = sqrt(Dm^2 + (s - s*)^2 v^2)
+        gap^2 = (Dm^2 + s*^2 v^2) - (2 s* v^2) s + v^2 s^2
+
+    so ``gap^2`` is quadratic in ``s`` and its coefficients are fitted to the three points
+    around the minimum. Equivalently, v^2 = 1/2 d^2/ds^2 gap^2(s) at s = s*. The excitation
+    probability is then Pex = exp(-tf / t_ad) with t_ad = 2 hbar v / (pi Dm^2).
 
     Args:
-        spectra: sequential eigenvalues as row vectors, for given c.
-        c: c values at which spectra is evaluated
+        spectra: Eigenvalues as row vectors, one row per value of ``c``. Column 3 is the
+            ground-state energy and column 4 the first excited-state energy.
+        c: Values of the anneal parameter at which ``spectra`` is evaluated.
 
     Returns:
-        * adiabatic time scale t_ad. P(diabatic) = exp(- tf /t_ad)
+        A tuple containing:
+
+        - float: The adiabatic timescale t_ad, where P(diabatic) = exp(-tf / t_ad).
+        - float: The minimum gap Dm.
+        - float: The anneal parameter s* at which the gap is minimized.
+
+        All three are -1 if the gap is minimized at the boundary of ``c``, in which case a
+        warning is issued and no fit is performed.
     """
     gap2 = (spectra[:, 4] - spectra[:, 3]) ** 2
     idx = int(np.argmin(gap2))
+
     if not (idx > 0 and idx < spectra.shape[0] - 1):
         warnings.warn("The gap is minimized at the boundary, fit aborted")
-        return -1, -1, -1, -1
+        return -1.0, -1.0, -1.0
+
     p = np.polyfit(x=c[idx - 1 : idx + 2], y=gap2[idx - 1 : idx + 2], deg=2)
     v = np.sqrt(p[0])
     cstar = -p[1] / p[0] / 2
@@ -68,7 +111,16 @@ def calculate_tau(spectra: np.ndarray, c: np.ndarray) -> float:
 
 
 def _exponential_decay(anneal_times: np.ndarray, amplitude: float, tau: float) -> np.ndarray:
-    """Excitation probability model f(t) = A * exp(-t / tau)."""
+    """Excitation probability model f(t) = A * exp(-t / tau).
+
+    Args:
+        anneal_times: Annealing times at which to evaluate the model.
+        amplitude: The prefactor A.
+        tau: The decay timescale, in the same units as ``anneal_times``.
+
+    Returns:
+        The model evaluated at each annealing time.
+    """
     return amplitude * np.exp(-anneal_times / tau)
 
 
@@ -84,11 +136,16 @@ def fit_exponential(
     Args:
         anneal_times: Annealing times (ns) at which probs were measured.
         probs: Measured excited state probabilities, strictly within (0, 1).
-        errs: Standard deviation of each measurement, used as chi-square weights.
+        errs: Standard deviation of each measurement, used as chi-square weights. Points with
+            a zero error are given unit weight.
 
     Returns:
-        A tuple (amplitude, tau, amplitude_err, tau_err) of the best-fit parameters and their
-        one-sigma standard errors (from the fit covariance).
+        A tuple containing:
+
+        - float: The best-fit amplitude A.
+        - float: The best-fit timescale tau.
+        - float: The one-sigma standard error of A, from the fit covariance.
+        - float: The one-sigma standard error of tau, from the fit covariance.
 
     Raises:
         RuntimeError: If the non-linear least squares fit does not converge.

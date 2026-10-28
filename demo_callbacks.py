@@ -21,7 +21,7 @@ import dash
 import dimod
 import numpy as np
 import plotly.graph_objects as go
-from dash import MATCH, Input, Output, Patch, State, ctx, html
+from dash import MATCH, Input, Output, Patch, State
 from dash.exceptions import PreventUpdate
 from dwave.system import DWaveSampler, ParallelEmbeddingComposite
 
@@ -244,7 +244,6 @@ def set_current_model(
 
     Args:
         model_val: The value of the currently selected model from the dropdown.
-        energy_rescaling: The current value of the energy rescaling factor.
         job_submit_time: Job submission time: value is not used, just used as a callback trigger.
         cached_models: A dictionary of cached models, keyed by their lookup keys.
 
@@ -465,9 +464,9 @@ def update_graphs(
     theory_curve_modes: list[str],
     auto_suggest: bool,
 ) -> tuple[go.Figure, go.Figure, list, float]:
-    """Both the results graph and the spectrum plot. This callback triggers whenever a new
-    measurement is added to the current-results data store: it updates the graph with the new
-    data point and returns the updated figure. It will also trigger if the model, energy
+    """Updates both the results graph and the spectrum plot. This callback triggers whenever a new
+    measurement is added to the current-results data store; it updates the graph with the new
+    data point and returns the updated figure. It also triggers if the model, energy
     rescaling, or theory curve modes change, making the appropriate updates to the spectrum
     and results plot, but leaving plotted data unchanged. Finally, this callback will also
     trigger when a new QPU is selected, clearing all data plotted for the previous QPU.
@@ -521,11 +520,7 @@ def update_graphs(
     else:
         next_ta = dash.no_update
 
-    spectrum_title = [
-        f"{ModelType(int(model_val)).label} spectrum",
-        html.Br(),
-        "(positive parity sector)",
-    ]
+    spectrum_title = f"{ModelType(int(model_val)).label} spectrum"
 
     return results_plot, spectrum_plot, spectrum_title, next_ta
 

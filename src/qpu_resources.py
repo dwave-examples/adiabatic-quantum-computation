@@ -41,7 +41,15 @@ def get_qpu_ids(print_available: bool = False) -> list[str]:
     return solver_list
 
 
-def get_schedule_filepath(qpu_name: str) -> str:
+def get_schedule_filepath(qpu_name: str) -> str | None:
+    """Get the file path for the annealing schedule of a specific QPU.
+
+    Args:
+        qpu_name: The name of the QPU.
+
+    Returns:
+        The file path to the annealing schedule, or None if not found.
+    """
     suffix = "annealing_schedule"
     for file in [x for x in SCHEDULES_AND_EMBEDDINGS_PATH.iterdir() if x.is_file()]:
         if suffix in file.name and qpu_name in file.name:
