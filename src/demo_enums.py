@@ -111,6 +111,14 @@ class DataSource(Enum):
         return labels[self]
 
     @property
+    def spectrum_suffix(self):
+        """File name suffix of the energy spectrum files for this data source. The Zenodo
+        theory curves have no spectrum of their own, so they use the Advantage_system6 one."""
+        if self is DataSource.ZENODO_REFERENCE:
+            return DataSource.ADVANTAGE_SYSTEM6.suffix
+        return self.suffix
+
+    @property
     def qpu_name(self):
         """Name of the QPU whose annealing schedule this data source was computed under."""
         names = {

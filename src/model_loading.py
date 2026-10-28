@@ -32,12 +32,8 @@ class ProblemModel:
     ground state probabilities."""
 
     DEFINITION_FILE_SUFFIX = "_PROBLEM_DEFINITION.json"
-    QPU_SUFFIX = DATA_SOURCE.suffix
-    SCATTER_SUFFIX = (
-        DATA_SOURCE.ADVANTAGE_SYSTEM6.suffix
-        if DATA_SOURCE == DATA_SOURCE.ZENODO_REFERENCE
-        else DATA_SOURCE.suffix
-    )
+    THEORY_SUFFIX = DATA_SOURCE.suffix
+    SCATTER_SUFFIX = DATA_SOURCE.spectrum_suffix
 
     def __init__(
         self,
@@ -86,7 +82,7 @@ class ProblemModel:
     @property
     def theory_data_filename(self) -> str:
         """File name of the theoretical excited state probability curve for this model."""
-        return f"{self.lookup_key}_THEORY_{ProblemModel.QPU_SUFFIX}.csv"
+        return f"{self.lookup_key}_THEORY_{ProblemModel.THEORY_SUFFIX}.csv"
 
     @property
     def graph_nodes(self) -> set:

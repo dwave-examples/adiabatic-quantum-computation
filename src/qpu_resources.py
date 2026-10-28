@@ -52,8 +52,5 @@ def get_schedule_filepath(qpu_name: str) -> Path | None:
     Returns:
         The file path to the annealing schedule, or None if not found.
     """
-    suffix = "annealing_schedule"
-    for file in [x for x in SCHEDULES_AND_EMBEDDINGS_PATH.iterdir() if x.is_file()]:
-        if suffix in file.name and qpu_name in file.name:
-            return file
-    return None
+    matches = sorted(SCHEDULES_AND_EMBEDDINGS_PATH.glob(f"*{qpu_name}_*annealing_schedule*.csv"))
+    return matches[0] if matches else None

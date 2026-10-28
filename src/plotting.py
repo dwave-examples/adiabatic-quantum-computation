@@ -23,14 +23,18 @@ from demo_configs import (
     EXCITED_STATE_COLORS,
     MODEL_COLORS,
     REFERENCE_QPU,
-    RESULTS_FIG_Y_MINS,
     SHOW_PARALLEL_SAMPLES,
 )
 from src.calculations import calculate_tau, fit_exponential, rescale_spectrum
 from src.demo_enums import ModelType, ProblemType, ScatterType, TheoryCurveMode
 from src.model_loading import ProblemModel
 from src.qpu_resources import get_schedule_filepath
-from src.values import DEFAULT_PLOT_WIDTH, MAX_PLOT_WIDTH, SAMPLE_POINT_SIZE
+from src.values import (
+    DEFAULT_PLOT_WIDTH,
+    MAX_PLOT_WIDTH,
+    RESULTS_FIG_Y_MINS,
+    SAMPLE_POINT_SIZE,
+)
 
 LINE_WIDTH = 2
 MARKER_OUTLINE = dict(color="white", width=1)
@@ -148,7 +152,7 @@ def make_scatter(
             x=x_vals,
             y=y_vals,
             mode="lines",
-            marker=dict(color=EXCITED_STATE_COLORS[column_idx]),
+            line=dict(color=EXCITED_STATE_COLORS[column_idx], width=LINE_WIDTH),
             name=f"{series_labels[column_idx]} Excited State",
         )
     elif scatter_type is ScatterType.ENERGY_GAP:
@@ -245,6 +249,8 @@ def generate_plots(
                 base_spectrum, qpu_schedule, ref_schedule, energy_rescaling=energy_rescaling
             )
             tau_qpu, gap, c_gap = calculate_tau(spectrum_rescaled, s_rescaled)
+            if tau_qpu <= 0:  # calculate_tau could not fit the gap
+                tau_qpu = None
         else:
             # No schedule file for this QPU: display the reference spectrum and skip tau.
             s_rescaled, spectrum_rescaled = ref_s_rescaled, ref_spectrum_rescaled
@@ -325,9 +331,13 @@ def generate_plots(
                     )
                 )
 
+            # The per-embedding samples already show the spread, so skip the error bars then.
             other_params = {"model": model, "parallel": show_parallel_samples}
+            plotted_errs = [] if show_parallel_samples else y_errs
             results_fig.add_trace(
-                make_scatter(anneal_times, egs_probs, ScatterType.SAMPLE, other_params, y_errs)
+                make_scatter(
+                    anneal_times, egs_probs, ScatterType.SAMPLE, other_params, plotted_errs
+                )
             )
 
             if max(anneal_times) > DEFAULT_PLOT_WIDTH - 1:
