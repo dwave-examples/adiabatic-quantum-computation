@@ -290,7 +290,7 @@ def default_graph(
         html.H3(title, className="title-with-subtitle" if subtitle else "", **heading_kwargs)
     ]
     if subtitle:
-        children.append(html.H5(subtitle, className="subtitle"))
+        children.append(html.P(subtitle, className="subtitle"))
     children.append(
         dcc.Graph(
             id=f"{id}-graph",
