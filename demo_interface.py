@@ -120,6 +120,35 @@ def checkbox(label: str, id: str, checked: bool) -> html.Div:
     )
 
 
+def checklist(label: str, id: str, options: list, values: list, inline: bool = True) -> html.Div:
+    """Checklist element for option selection.
+
+    Args:
+        label: The title that goes above the checklist.
+        id: A unique selector for this element.
+        options: A list of dictionaries of labels and values.
+        values: A list of values that should be preselected in the checklist.
+        inline: Whether the options of the checklist are displayed beside or below each other.
+    """
+    return html.Div(
+        className="checklist-wrapper",
+        children=[
+            dmc.CheckboxGroup(
+                id=id,
+                className=f"checklist{' checklist--inline' if inline else ''}",
+                label=label,
+                value=values,
+                children=dmc.Group(
+                    [
+                        dmc.Checkbox(label=option["label"], value=option["value"], color=THEME_COLOR)
+                        for option in options
+                    ],
+                ),
+            ),
+        ],
+    )
+
+
 def radio(label: str, id: str, options: list, value: str, inline: bool = True) -> html.Div:
     """Radio element for option selection.
 
@@ -202,17 +231,17 @@ def generate_settings_form(solvers: list[str]) -> html.Div:
                 qpu_options,
                 value=default_solver,
             ),
+            checklist(
+                "Theory Curve",
+                "theory-curve",
+                generate_options(TheoryCurveMode),
+                values=[str(TheoryCurveMode.LANDAU_ZENER.value)],
+            ),
             dropdown(
                 "Model",
                 "model-selection",
                 model_options,
                 value=f"{DEFAULT_MODEL.value}",
-            ),
-            radio(
-                "Theory Curve",
-                "theory-curve",
-                generate_options(TheoryCurveMode),
-                value=str(TheoryCurveMode.LANDAU_ZENER.value),
             ),
             checkbox("Auto-Suggest Next Annealing Time", "annealing-time-suggest", checked=False),
             slider(

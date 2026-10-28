@@ -172,7 +172,7 @@ def generate_plots(
     job_results: dict | None,
     qpu_name: str,
     selected_model: ModelType,
-    theory_mode: TheoryCurveMode,
+    theory_modes: list[str],
     energy_rescaling: float = 1.0,
     problem_type: ProblemType = ProblemType.DEFAULT,
     show_parallel_samples: bool = SHOW_PARALLEL_SAMPLES,
@@ -180,19 +180,18 @@ def generate_plots(
     """Generates both the results plot and the spectrum plot for the selected model.
 
     Args:
-        job_results: results from QPU
-        qpu_name: name of the QPU
-        selected_model: which model to plot
-        theory_mode: which theory curves to show
-        energy_rescaling: factor to rescale energies by
-        problem_type: type of problem (currently only default available)
-        show_parallel_samples: whether to show parallel samples
+        job_results: Results from QPU.
+        qpu_name: The name of the selected QPU.
+        selected_model: The model to plot.
+        theory_modes: The theory curves to show.
+        energy_rescaling: The factor to rescale energies by.
+        problem_type: The type of problem (currently only default available).
+        show_parallel_samples: Whether to show parallel samples.
 
     Returns:
         A tuple containing:
         - go.Figure: results plot
         - go.Figure: spectrum plot
-
     """
 
     qpu_schedule = get_schedule(qpu_name)
@@ -201,8 +200,8 @@ def generate_plots(
     results_fig = go.Figure()
     spectrum_fig = go.Figure()
 
-    plot_ref = theory_mode == TheoryCurveMode.REFERENCE or theory_mode == TheoryCurveMode.BOTH
-    plot_lz = theory_mode == TheoryCurveMode.LANDAU_ZENER or theory_mode == TheoryCurveMode.BOTH
+    plot_ref = str(TheoryCurveMode.REFERENCE.value) in theory_modes
+    plot_lz = str(TheoryCurveMode.LANDAU_ZENER.value) in theory_modes
 
     spectrum_to_plot = None
     spectrum_s_vals = None

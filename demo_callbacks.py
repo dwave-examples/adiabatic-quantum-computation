@@ -75,26 +75,26 @@ def toggle_left_column(collapse_trigger: int, to_collapse_class: str) -> tuple[s
     Output("theory-curve", "disabled"),
     Input("qpu-selection", "value"),
 )
-def process_qpu_select(qpu_name: str) -> float:
+def process_qpu_select(qpu_name: str) -> tuple[float, list[str], bool]:
     """Triggers when the selected QPU is altered, writing the selection time to the
     relevant store. Also resets the Theory Curve selection to the default, and
     disables it if no schedule is available for the selected QPU.
 
     Args:
-        qpu_name: Name of the selected QPU
+        qpu_name: Name of the selected QPU.
 
     Returns:
         A tuple containing:
 
-        -The current time, stored in qpu-select-time to trigger reset_embeddings_and_results.
-        -The value of the Theory Curve mode that should be pre-selected (always LANDAU_ZENER)
-        -Whether or not to disable the theory curve selection, based on whether the selected
-            QPU has a schedule available.
+        - float: The current time, stored in qpu-select-time to trigger reset_embeddings_and_results.
+        - list[str]: The value of the Theory Curve mode that should be pre-selected (always LANDAU_ZENER)
+        - bool: Whether or not to disable the theory curve selection, based on whether the selected
+        QPU has a schedule available.
     """
 
     schedule_check = get_schedule_filepath(qpu_name)
 
-    return time.time(), str(TheoryCurveMode.LANDAU_ZENER.value), (schedule_check is None)
+    return time.time(), [str(TheoryCurveMode.LANDAU_ZENER.value)], (schedule_check is None)
 
 
 # =================================================================================================
@@ -118,7 +118,7 @@ def reset_embeddings_and_results(qpu_select_time: float) -> tuple[list, bool, st
         A tuple containing:
 
         - list[dict]: Clears the ``current-embeddings`` store and triggers QPU-specific
-            embeddings to be cached for the newly-selected QPU
+        embeddings to be cached for the newly-selected QPU
         - bool: True, to disable the run button until new embeddings have been cached.
         - str: The FINDING_EMBEDDING label for the job-submit-state field.
         - dict: A new, empty results dictionary. Results are QPU-specific, so changing the QPU
@@ -185,9 +185,9 @@ def set_current_embeddings(
         - list[dict]: The embeddings for the selected QPU, or an empty list if none could be found.
         - list[str]: The list of available solvers.
         - bool: Returns False to re-enable the run button once embeddings have been set. If there is
-            an error finding embeddings, returns True, keeping the run button disabled.
+        an error finding embeddings, returns True, keeping the run button disabled.
         - str: The current job state label, which will be 'READY' if embeddings are successfully set,
-            or an appropriate error state otherwise.
+        or an appropriate error state otherwise.
     """
 
     if job_submit_state != JobState.FINDING_EMBEDDING.label:
@@ -252,7 +252,7 @@ def set_current_model(
         A tuple containing:
 
         - dict: The data for the currently selected model, including h and J values and its
-          ground state energy (EGS).
+        ground state energy (EGS).
         - go.Figure: A plotly figure of the spectrum of energies for the selected model.
     """
 
@@ -327,7 +327,6 @@ def preprocess_job(
 
         - dict: The model data with the next annealing time (in microseconds) added to it.
         - str: The RUNNING label for the job-submit-state field.
-
     """
 
     if job_submit_state != JobState.PREPROCESSING.label:
@@ -392,9 +391,9 @@ def submit_job(
         A tuple containing:
 
         - Patch: The updated results dictionary with the new measurement appended. If the selected
-            solver was unavailable, this dictionary will be returned unchanged.
+        solver was unavailable, this dictionary will be returned unchanged.
         - bool: False indicating that the run button should not be disabled.
-        - list: The list of available solvers.
+        - list[str]: The list of available solvers.
         - str: The final job state label, indicating whether the job succeeded or failed.
         - bool: False indicating that the energy rescaling slider should not be disabled.
     """
@@ -463,13 +462,13 @@ def update_graphs(
     model_val: str,
     energy_rescaling: float,
     qpu_name: str,
-    theory_curve_mode: str,
+    theory_curve_modes: list[str],
     auto_suggest: bool,
 ) -> tuple[go.Figure, go.Figure, list, float]:
     """Both the results graph and the spectrum plot. This callback triggers whenever a new
     measurement is added to the current-results data store: it updates the graph with the new
     data point and returns the updated figure. It will also trigger if the model, energy
-    rescaling, or theory curve mode changes, making the appropriate updates to the spectrum
+    rescaling, or theory curve modes change, making the appropriate updates to the spectrum
     and results plot, but leaving plotted data unchanged. Finally, this callback will also
     trigger when a new QPU is selected, clearing all data plotted for the previous QPU.
 
@@ -479,7 +478,7 @@ def update_graphs(
         energy_rescaling: The current energy rescaling factor.
         qpu_name: The name of the currently selected QPU, used for rescaling the
             results plot to the QPU-specific energy scale.
-        theory_curve_mode: The mode determining which sort of theory curve is displayed on
+        theory_curve_modes: The modes determining which theory curves are displayed on
             the results plot.
         auto_suggest: Whether the auto-suggest option for the annealing time slider is enabled.
 
@@ -487,14 +486,14 @@ def update_graphs(
         A tuple containing:
 
         - go.Figure: A plotly figure of the excited state probability as a function of the
-            annealing time.
+        annealing time.
         - go.Figure: A plot showing the spectrum of excited state energy values as a function
-            of anneal progress.
+        of anneal progress.
         - list: The spectrum plot title, reflecting the currently selected model.
         - float: The next suggested annealing time. Will reset to the minimum value when
-            the model or QPU is changed. If the auto-suggest option is enabled, it will
-            set the slider to the next time in sequence. Otherwise it will leave the slider
-            value where it is.
+        the model or QPU is changed. If the auto-suggest option is enabled, it will
+        set the slider to the next time in sequence. Otherwise it will leave the slider
+        value where it is.
     """
 
     results = {}
@@ -510,7 +509,7 @@ def update_graphs(
         job_results=results,
         qpu_name=qpu_name,
         selected_model=ModelType(int(model_val)),
-        theory_mode=TheoryCurveMode(int(theory_curve_mode)),
+        theory_modes=theory_curve_modes,
         energy_rescaling=energy_rescaling,
     )
 

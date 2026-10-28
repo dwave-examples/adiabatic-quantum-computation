@@ -64,7 +64,6 @@ class TheoryCurveMode(Enum):
 
     LANDAU_ZENER = 0
     REFERENCE = 1
-    BOTH = 2
 
     @property
     def label(self):
@@ -75,7 +74,6 @@ class TheoryCurveMode(Enum):
         long_labels = {
             self.REFERENCE: "Rescaled Published Reference",  # TODO link to data source
             self.LANDAU_ZENER: "Landau-Zener Theory",
-            self.BOTH: "Both",
         }
         return long_labels[self]
 
