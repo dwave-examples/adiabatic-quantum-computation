@@ -285,23 +285,21 @@ def default_graph(
         A Div containing the title and the graph.
     """
 
-    heading = html.H3(
-        title,
-        id=title_id if title_id else "",
-        className="title-with-subtitle" if subtitle else "",
+    heading_kwargs = {"id": title_id} if title_id else {}
+    children = [
+        html.H3(title, className="title-with-subtitle" if subtitle else "", **heading_kwargs)
+    ]
+    if subtitle:
+        children.append(html.H5(subtitle, className="subtitle"))
+    children.append(
+        dcc.Graph(
+            id=f"{id}-graph",
+            responsive=True,
+            config={"displayModeBar": False},
+        )
     )
-    return html.Div(
-        className="graph-wrapper",
-        children=[
-            heading,
-            html.H5(subtitle, className="subtitle") if subtitle else None,
-            dcc.Graph(
-                id=f"{id}-graph",
-                responsive=True,
-                config={"displayModeBar": False},
-            ),
-        ],
-    )
+
+    return html.Div(className="graph-wrapper", children=children)
 
 
 def generate_new_results_dict(problem_type: str = ProblemType.DEFAULT.name) -> dict:

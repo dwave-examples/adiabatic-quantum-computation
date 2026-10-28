@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import warnings
+from functools import lru_cache
 
 import numpy as np
 import plotly.graph_objects as go
@@ -78,7 +79,7 @@ def make_scatter(
             x=x_vals,
             y=y_vals,
             mode="lines",
-            name=f"{TheoryCurveMode.REFERENCE.extended_label}",
+            name=f"{model.label} {TheoryCurveMode.REFERENCE.label}",
             line=dict(color=MODEL_COLORS[model], width=LINE_WIDTH),
         )
     elif scatter_type is ScatterType.THEORY_LZ:
@@ -164,8 +165,10 @@ def make_scatter(
     return scatter
 
 
-def get_schedule(qpu_name: str = "Advantage2_system1") -> np.ndarray | None:
-    """Load an annealing schedule, in the convention H/h = -A * sum_i X_i + sum_{i<j} Jij Z_i Z_j.
+@lru_cache
+def get_schedule(qpu_name: str) -> np.ndarray | None:
+    """Load the fast-anneal schedule of a QPU from ``schedules_and_embeddings``. The result is
+    cached, so the file is read once per QPU.
 
     Args:
         qpu_name: The name of the QPU for which to load the schedule.

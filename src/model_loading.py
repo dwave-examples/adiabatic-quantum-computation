@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import json
+from functools import lru_cache
 
 import numpy as np
 
@@ -178,10 +179,12 @@ class ProblemModel:
         return models_dict
 
     @staticmethod
+    @lru_cache
     def load_spectrum_scatter_from_file(
         model_type: ModelType, problem_type: ProblemType = ProblemType.DEFAULT
     ) -> np.ndarray:
         """Loads the data to create a scatter plot of the energy spectrum for a given problem instance.
+        The result is cached, so each file is read once.
 
         Args:
             problem_type: The type of the problem instance.
@@ -199,11 +202,13 @@ class ProblemModel:
         return np.loadtxt(scatter_path, delimiter=",", skiprows=3)
 
     @staticmethod
+    @lru_cache
     def load_theory_data_from_file(
         problem_type: ProblemType, model_type: ModelType
     ) -> tuple[np.ndarray, np.ndarray]:
         """Loads the data for the theoretical predictions of ground state probability as a
-        function of annealing time for a given problem instance.
+        function of annealing time for a given problem instance. The result is cached, so each
+        file is read once.
 
         Args:
             problem_type: The type of the problem instance.
