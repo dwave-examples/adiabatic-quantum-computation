@@ -21,7 +21,7 @@ import dash
 import dimod
 import numpy as np
 import plotly.graph_objects as go
-from dash import MATCH, Input, Output, Patch, State, ctx
+from dash import MATCH, Input, Output, Patch, State, ctx, html
 from dash.exceptions import PreventUpdate
 from dwave.system import DWaveSampler, ParallelEmbeddingComposite
 
@@ -449,6 +449,7 @@ def submit_job(
 @dash.callback(
     Output("sample-v-theory-graph", "figure"),
     Output("spectrum-graph", "figure"),
+    Output("spectrum-title", "children"),
     Output("annealing-time", "value"),
     Input("current-results", "data"),
     Input("model-selection", "value"),
@@ -464,7 +465,7 @@ def update_graphs(
     qpu_name: str,
     theory_curve_mode: str,
     auto_suggest: bool,
-) -> tuple[go.Figure, go.Figure, float]:
+) -> tuple[go.Figure, go.Figure, list, float]:
     """Both the results graph and the spectrum plot. This callback triggers whenever a new
     measurement is added to the current-results data store: it updates the graph with the new
     data point and returns the updated figure. It will also trigger if the model, energy
@@ -489,6 +490,7 @@ def update_graphs(
             annealing time.
         - go.Figure: A plot showing the spectrum of excited state energy values as a function
             of anneal progress.
+        - list: The spectrum plot title, reflecting the currently selected model.
         - float: The next suggested annealing time. Will reset to the minimum value when
             the model or QPU is changed. If the auto-suggest option is enabled, it will
             set the slider to the next time in sequence. Otherwise it will leave the slider
@@ -520,7 +522,13 @@ def update_graphs(
     else:
         next_ta = dash.no_update
 
-    return results_plot, spectrum_plot, next_ta
+    spectrum_title = [
+        f"{ModelType(int(model_val)).label} spectrum",
+        html.Br(),
+        "(positive parity sector)",
+    ]
+
+    return results_plot, spectrum_plot, spectrum_title, next_ta
 
 
 # ==================================================================================================

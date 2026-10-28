@@ -253,21 +253,23 @@ def generate_run_buttons() -> html.Div:
     )
 
 
-def default_graph(title: str, id: str) -> html.Div:
+def default_graph(title, id: str, title_id: str | None = None) -> html.Div:
     """Default graph element with a title.
 
     Args:
         title: The title that goes above the graph.
         id: A unique selector for this graph element.
+        title_id: Optional id for the title heading, so it can be updated by a callback.
 
     Returns:
         A Div containing the title and the graph.
     """
 
+    heading = html.H3(title, id=title_id) if title_id else html.H3(title)
     return html.Div(
         className="graph-wrapper",
         children=[
-            html.H3(title),
+            heading,
             dcc.Graph(
                 id=f"{id}-graph",
                 responsive=True,
@@ -476,8 +478,13 @@ def create_interface() -> html.Div:
                                                 "sample-v-theory",
                                             ),
                                             default_graph(
-                                                "Energy Spectrum (positive parity sector)",
+                                                [
+                                                    f"{DEFAULT_MODEL.label} spectrum",
+                                                    html.Br(),
+                                                    "(positive parity sector)",
+                                                ],
                                                 "spectrum",
+                                                title_id="spectrum-title",
                                             ),
                                         ],
                                     )

@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import warnings
+
 import numpy as np
 import plotly.graph_objects as go
 
@@ -23,7 +25,7 @@ from demo_configs import (
     RESULTS_FIG_Y_MINS,
     SHOW_PARALLEL_SAMPLES,
 )
-from src.calculations import calculate_tau, fit_exponential_amplitude, rescale_spectrum
+from src.calculations import calculate_tau, fit_exponential, rescale_spectrum
 from src.demo_enums import ModelType, ProblemType, ScatterType, TheoryCurveMode
 from src.model_loading import ProblemModel
 from src.qpu_resources import get_schedule_filepath
@@ -77,12 +79,21 @@ def make_scatter(x_vals, y_vals, type, other_params: dict, other_data=None):
         model = other_params["model"]
         amplitude = other_params["amplitude"]
         tau = other_params["tau"]
+        amplitude_err = other_params.get("amplitude_err")
+        tau_err = other_params.get("tau_err")
+        if amplitude_err is not None and tau_err is not None:
+            name = (
+                f"({round(amplitude, 2)}±{round(amplitude_err, 2)})"
+                f"exp(-t/({round(tau, 2)}±{round(tau_err, 2)}))"
+            )
+        else:
+            name = f"{round(amplitude, 2)}exp(-t/{round(tau, 2)})"
         scatter = go.Scatter(
             x=x_vals,
             y=y_vals,
             mode="lines",
             line=dict(color=MODEL_COLORS[model], width=LINE_WIDTH, dash="dash"),
-            name=f"{round(amplitude, 2)}exp(-t/{round(tau, 2)})",
+            name=name,
         )
 
     elif type == ScatterType.SAMPLE:
@@ -307,14 +318,23 @@ def generate_plots(
             anneal_times, egs_probs, fit_errs = model_fit_data.get(model, ([], [], []))
 
             if len(anneal_times) >= 2:
-                tau = tau_qpu_by_model[model]
-                fit_amplitude = fit_exponential_amplitude(
-                    np.array(anneal_times),
-                    np.array(egs_probs),
-                    np.array(fit_errs),
-                    tau,
-                )
+                try:
+                    fit_amplitude, tau, amplitude_err, tau_err = fit_exponential(
+                        np.array(anneal_times),
+                        np.array(egs_probs),
+                        np.array(fit_errs),
+                    )
+                except (RuntimeError, ValueError) as exc:
+                    warnings.warn(f"Landau-Zener fit failed for {model.label}: {exc}")
+                    continue
                 fit_times = np.linspace(0, max(anneal_times), 100)
+                lz_params = {
+                    "model": model,
+                    "amplitude": fit_amplitude,
+                    "tau": tau,
+                    "amplitude_err": amplitude_err,
+                    "tau_err": tau_err,
+                }
             else:
                 # Not enough data to fit; default the amplitude and keep the rescaled time scale.
                 tau = tau_qpu_by_model[model]
@@ -322,15 +342,11 @@ def generate_plots(
                     continue
                 fit_amplitude = 1.0
                 fit_times = np.linspace(0, x_range, 100)
+                lz_params = {"model": model, "amplitude": fit_amplitude, "tau": tau}
 
             fit_probs = fit_amplitude * np.exp(-fit_times / tau)
             results_fig.add_trace(
-                make_scatter(
-                    fit_times,
-                    fit_probs,
-                    ScatterType.THEORY_LZ,
-                    {"model": model, "amplitude": fit_amplitude, "tau": tau},
-                )
+                make_scatter(fit_times, fit_probs, ScatterType.THEORY_LZ, lz_params)
             )
 
     results_fig.update_layout(
@@ -347,26 +363,27 @@ def generate_plots(
     results_fig.update_yaxes(type="log", range=[y_axis_min, 0])
 
     if has_schedule:
-        spectrum_fig.add_trace(
-            go.Scatter(
-                x=[gap_c_val],
-                y=[50],
-                mode="markers+text",
-                marker=dict(size=1),
-                text=[f"τ = {round(tau_qpu,3)}"],
-                textposition="top center",
-                showlegend=False,
-            )
+        info_text = (
+            f"Landau-Zener timescale, τ = {round(tau_qpu_by_model[selected_model], 3)},"
+            "<br>estimated from schedule"
         )
     else:
-        spectrum_fig.add_annotation(
-            text=f"No schedule file for {qpu_name}<br>Landau-Zener timescale not calculated",
-            xref="paper",
-            yref="paper",
-            x=0.5,
-            y=0.5,
-            showarrow=False,
-            align="center",
+        info_text = (
+            f"No schedule file for {qpu_name}<br>Spectrum shown for {REFERENCE_QPU}"
+            "<br>Landau-Zener timescale not calculated"
         )
+
+    spectrum_fig.add_annotation(
+        text=info_text,
+        xref="paper",
+        yref="paper",
+        x=0.02,
+        y=0.55,
+        xanchor="left",
+        yanchor="bottom",
+        showarrow=False,
+        align="left",
+        font=dict(size=11),
+    )
 
     return results_fig, spectrum_fig

@@ -1,6 +1,7 @@
 import warnings
 
 import numpy as np
+from scipy.optimize import curve_fit
 
 
 def rescale_spectrum(
@@ -66,21 +67,50 @@ def calculate_tau(spectra: np.ndarray, c: np.ndarray) -> float:
     return t_ad, gap, cstar
 
 
-def fit_exponential_amplitude(
-    anneal_times: np.ndarray, probs: np.ndarray, errs: np.ndarray, tau: float
-) -> float:
-    """Chi-square fit of amplitude A for f(t) = A * exp(-t / tau), tau held fixed.
+def _exponential_decay(anneal_times: np.ndarray, amplitude: float, tau: float) -> np.ndarray:
+    """Excitation probability model f(t) = A * exp(-t / tau)."""
+    return amplitude * np.exp(-anneal_times / tau)
+
+
+def fit_exponential(
+    anneal_times: np.ndarray, probs: np.ndarray, errs: np.ndarray
+) -> tuple[float, float, float, float]:
+    """Two-parameter weighted chi-square fit of A and tau for f(t) = A * exp(-t / tau).
+
+    A stable initial tau is seeded from a linear fit to log(probs) with A fixed to 1, then
+    both parameters are refined together by weighted non-linear least squares. Probabilities
+    are assumed strictly within (0, 1), so the logarithm in the seeding stage is well defined.
 
     Args:
         anneal_times: Annealing times (ns) at which probs were measured.
-        probs: Measured excited state probabilities.
+        probs: Measured excited state probabilities, strictly within (0, 1).
         errs: Standard deviation of each measurement, used as chi-square weights.
-        tau: Fixed decay time scale.
 
     Returns:
-        Best-fit amplitude A.
+        A tuple (amplitude, tau, amplitude_err, tau_err) of the best-fit parameters and their
+        one-sigma standard errors (from the fit covariance).
+
+    Raises:
+        RuntimeError: If the non-linear least squares fit does not converge.
     """
-    basis = np.exp(-anneal_times / tau)
-    sigma = np.where(errs > 0, errs, 1.0)  # unweighted fallback for zero-error points
-    weights = 1 / sigma**2
-    return np.sum(weights * probs * basis) / np.sum(weights * basis**2)
+    times = np.asarray(anneal_times, dtype=float)
+    probs = np.asarray(probs, dtype=float)
+    sigma = np.asarray(errs, dtype=float)
+    sigma = np.where(sigma > 0, sigma, 1.0)  # unweighted fallback for zero-error points
+
+    # Stage 1: linear fit of log(p) = -t / tau (A fixed at 1) for a stable initial tau.
+    slope = np.sum(times * np.log(probs)) / np.sum(times**2)
+    tau_init = -1.0 / slope if slope < 0 else float(times.max())
+
+    # Stage 2: weighted non-linear least squares for A and tau jointly.
+    popt, pcov = curve_fit(
+        _exponential_decay,
+        times,
+        probs,
+        p0=[1.0, tau_init],
+        sigma=sigma,
+        absolute_sigma=True,
+    )
+    amplitude, tau = popt
+    amplitude_err, tau_err = np.sqrt(np.diag(pcov))
+    return amplitude, tau, amplitude_err, tau_err

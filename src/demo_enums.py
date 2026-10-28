@@ -73,7 +73,7 @@ class TheoryCurveMode(Enum):
     @property
     def extended_label(self):
         long_labels = {
-            self.REFERENCE: "Curve Calculated in Zenodo Reference",  # TODO link to data source
+            self.REFERENCE: "Rescaled Published Reference",  # TODO link to data source
             self.LANDAU_ZENER: "Landau-Zener Theory",
             self.BOTH: "Both",
         }
