@@ -26,16 +26,17 @@ def rescale_spectrum(
 ) -> tuple[np.ndarray, np.ndarray]:
     """Rescale a spectrum computed under ``reference_schedule`` to ``qpu_schedule``.
 
-    For each row of ``spectrum_data`` (row-aligned with ``reference_schedule``), find the anneal
-    fraction ``s`` of ``qpu_schedule`` whose B/A ratio matches the reference row's B_ref/A_ref
-    ratio, then scale the row by A_qpu(matched s) / A_ref(reference row). This matches the
-    ``en_rescaling`` direction used in ``diagonalize_AK.py``. When ``qpu_schedule`` is
-    ``reference_schedule`` and ``energy_rescaling`` is 1, the spectrum is returned unchanged.
+    Each row of ``spectrum_data`` was computed at some point on the reference schedule, identified
+    by the row's B/A ratio (columns 1 and 2 of the file; the ratio is independent of the A/2, B/2
+    convention). For each row, find the anneal fraction ``s`` of ``qpu_schedule`` with the same
+    B/A ratio, then scale the row's energies by A_qpu(matched s) / A_ref(reference s). This
+    matches the ``en_rescaling`` direction used in ``diagonalize_AK.py``. When ``qpu_schedule``
+    is ``reference_schedule`` and ``energy_rescaling`` is 1, the energies are returned unchanged.
 
     Args:
-        spectrum_data: Spectrum file contents, one row per anneal fraction of the reference
-            schedule. Columns 3 onward hold the ground-state and excited-state energies; only
-            those columns are meaningful after rescaling.
+        spectrum_data: Spectrum file contents with columns ``(s, A, B, E_0, E_1, ...)``, one row
+            per point of the reference schedule. Columns 3 onward hold the ground-state and
+            excited-state energies; only those columns are meaningful after rescaling.
         qpu_schedule: Annealing schedule of the target QPU as columns ``(s, A(s), B(s))``.
         reference_schedule: Annealing schedule the spectrum was computed under, in the same
             column layout as ``qpu_schedule``.

@@ -51,9 +51,9 @@ PLOT_LAYOUT = dict(
 def make_scatter(
     x_vals: list[float],
     y_vals: list[float],
-    type: ScatterType,
+    scatter_type: ScatterType,
     other_params: dict,
-    other_data: dict | None = None,
+    other_data: list | None = None,
 ) -> go.Scatter:
     """Encapsulates the specific plotting and formatting logic for each of the various
     types of scatter plots created by generate_plots. This keeps that function cleaner
@@ -63,7 +63,7 @@ def make_scatter(
     Args:
         x_vals: The x coordinates for the scatter plot.
         y_vals: The y coordinates for the scatter plot.
-        type: The type of scatter plot to make. Each has different formatting,
+        scatter_type: The type of scatter plot to make. Each has different formatting,
             and may expect different inputs in the last two arguments.
         other_params: Extra parameters needed for the selected plot type.
         other_data: Extra data, like error bars.
@@ -72,7 +72,7 @@ def make_scatter(
         The scatter plot object.
     """
 
-    if type is ScatterType.THEORY_REF:
+    if scatter_type is ScatterType.THEORY_REF:
         model = other_params["model"]
         scatter = go.Scatter(
             x=x_vals,
@@ -81,28 +81,28 @@ def make_scatter(
             name=f"{TheoryCurveMode.REFERENCE.extended_label}",
             line=dict(color=MODEL_COLORS[model], width=LINE_WIDTH),
         )
-    elif type is ScatterType.THEORY_LZ:
+    elif scatter_type is ScatterType.THEORY_LZ:
         model = other_params["model"]
         amplitude = other_params["amplitude"]
         tau = other_params["tau"]
         amplitude_err = other_params.get("amplitude_err")
         tau_err = other_params.get("tau_err")
         if amplitude_err is not None and tau_err is not None:
-            name = (
+            formula = (
                 f"({round(amplitude, 2)}±{round(amplitude_err, 2)})"
                 f"exp(-t/({round(tau, 2)}±{round(tau_err, 2)}))"
             )
         else:
-            name = f"{round(amplitude, 2)}exp(-t/{round(tau, 2)})"
+            formula = f"{round(amplitude, 2)}exp(-t/{round(tau, 2)})"
         scatter = go.Scatter(
             x=x_vals,
             y=y_vals,
             mode="lines",
             line=dict(color=MODEL_COLORS[model], width=LINE_WIDTH, dash="dash"),
-            name=name,
+            name=f"{model.label}: {formula}",
         )
 
-    elif type is ScatterType.SAMPLE:
+    elif scatter_type is ScatterType.SAMPLE:
         model = other_params["model"]
         y_errs = other_data
         is_parallel = other_params["parallel"]
@@ -125,7 +125,7 @@ def make_scatter(
             ),
             name=f"{model.label} {point_label}",
         )
-    elif type is ScatterType.PARALLEL_SAMPLES:
+    elif scatter_type is ScatterType.PARALLEL_SAMPLES:
         model = other_params["model"]
         point_label = "Samples"
         scatter = go.Scatter(
@@ -140,7 +140,7 @@ def make_scatter(
             ),
             name=f"{model.label} {point_label}",
         )
-    elif type is ScatterType.SPECTRUM:
+    elif scatter_type is ScatterType.SPECTRUM:
         series_labels = ["1st", "2nd", "3rd", "4th", "5th"]
         column_idx = other_params["col_idx"]
         scatter = go.Scatter(
@@ -150,7 +150,7 @@ def make_scatter(
             marker=dict(color=EXCITED_STATE_COLORS[column_idx]),
             name=f"{series_labels[column_idx]} Excited State",
         )
-    elif type is ScatterType.ENERGY_GAP:
+    elif scatter_type is ScatterType.ENERGY_GAP:
         scatter = go.Scatter(
             x=x_vals,
             y=y_vals,
@@ -159,7 +159,7 @@ def make_scatter(
             line=dict(color=ENERGY_GAP_COLOR, width=LINE_WIDTH, dash="dash"),
         )
     else:
-        raise ValueError(f"Unknown scatter type {type}")
+        raise ValueError(f"Unknown scatter type {scatter_type}")
 
     return scatter
 
@@ -171,7 +171,8 @@ def get_schedule(qpu_name: str = "Advantage2_system1") -> np.ndarray | None:
         qpu_name: The name of the QPU for which to load the schedule.
 
     Returns:
-        A numpy array containing the schedule data, or None if the schedule file could not be found.
+        A numpy array with columns ``(s, A(s), B(s), c)`` in GHz, as published in the schedule
+        file, or None if no schedule file exists for the QPU.
     """
     schedule_filepath = get_schedule_filepath(qpu_name)
 
@@ -184,7 +185,7 @@ def get_schedule(qpu_name: str = "Advantage2_system1") -> np.ndarray | None:
 
 
 def generate_plots(
-    job_results: dict | None,
+    job_results: dict,
     qpu_name: str,
     selected_model: ModelType,
     theory_modes: list[str],
@@ -195,19 +196,20 @@ def generate_plots(
     """Generates both the results plot and the spectrum plot for the selected model.
 
     Args:
-        job_results: Results from QPU.
+        job_results: Results from the QPU, keyed by model name, then by annealing time (ns),
+            giving the excited state probability measured by each parallel embedding.
         qpu_name: The name of the selected QPU.
-        selected_model: The model to plot.
-        theory_modes: The theory curves to show.
+        selected_model: The model whose spectrum is plotted.
+        theory_modes: The ``TheoryCurveMode`` values (as strings) of the theory curves to show.
         energy_rescaling: The factor to rescale energies by.
         problem_type: The type of problem (currently only default available).
-        show_parallel_samples: Whether to show parallel samples.
+        show_parallel_samples: Whether to show the per-embedding samples instead of error bars.
 
     Returns:
         A tuple containing:
 
-        - go.Figure: results plot
-        - go.Figure: spectrum plot
+        - go.Figure: The results plot of excited state probability against annealing time.
+        - go.Figure: The energy spectrum plot of the selected model.
     """
 
     qpu_schedule = get_schedule(qpu_name)

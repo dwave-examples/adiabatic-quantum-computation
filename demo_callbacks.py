@@ -184,10 +184,10 @@ def set_current_embeddings(
 
         - list[dict]: The embeddings for the selected QPU, or an empty list if none could be found.
         - list[str]: The list of available solvers.
-        - bool: Returns False to re-enable the run button once embeddings have been set. If there is
-        an error finding embeddings, returns True, keeping the run button disabled.
-        - str: The current job state label, which will be 'READY' if embeddings are successfully set,
-        or an appropriate error state otherwise.
+        - bool: Returns False to re-enable the run button once embeddings have been set. If
+        there is an error finding embeddings, returns True, keeping the run button disabled.
+        - str: The current job state label, which will be 'READY' if embeddings are successfully
+        set, or an appropriate error state otherwise.
     """
 
     if job_submit_state != JobState.FINDING_EMBEDDING.label:
@@ -234,13 +234,9 @@ def set_current_embeddings(
     Input("job-submit-time", "data"),
     State("cached-models", "data"),
 )
-def set_current_model(
-    model_val: str, job_submit_time: float, cached_models: dict
-) -> tuple[dict, go.Figure]:
-    """Sets the data and the spectrum plot for the currently selected model. Triggers whenever the
-    model selection dropdown is changed or the energy rescaling value is modified. Also triggers
-    on job submission to ensure that a current model is set: there were issues especially around
-    startup with the model not getting set properly otherwise.
+def set_current_model(model_val: str, job_submit_time: float, cached_models: dict) -> dict:
+    """Sets the data for the currently selected model. Triggers whenever the model selection
+    dropdown is changed. Also triggers on job submission to ensure that a current model is set.
 
     Args:
         model_val: The value of the currently selected model from the dropdown.
@@ -248,15 +244,11 @@ def set_current_model(
         cached_models: A dictionary of cached models, keyed by their lookup keys.
 
     Returns:
-        A tuple containing:
-
-        - dict: The data for the currently selected model, including h and J values and its
-        ground state energy (EGS).
-        - go.Figure: A plotly figure of the spectrum of energies for the selected model.
+        The data for the currently selected model, including h and J values and its ground state
+        energy (EGS).
     """
 
-    model_data = cached_models[ProblemModel(ModelType(int(model_val))).lookup_key]
-    return model_data
+    return cached_models[ProblemModel(ModelType(int(model_val))).lookup_key]
 
 
 # =================================================================================================
@@ -463,7 +455,7 @@ def update_graphs(
     qpu_name: str,
     theory_curve_modes: list[str],
     auto_suggest: bool,
-) -> tuple[go.Figure, go.Figure, list, float]:
+) -> tuple[go.Figure, go.Figure, str, float]:
     """Updates both the results graph and the spectrum plot. This callback triggers whenever a new
     measurement is added to the current-results data store; it updates the graph with the new
     data point and returns the updated figure. It also triggers if the model, energy
@@ -488,7 +480,7 @@ def update_graphs(
         annealing time.
         - go.Figure: A plot showing the spectrum of excited state energy values as a function
         of anneal progress.
-        - list: The spectrum plot title, reflecting the currently selected model.
+        - str: The spectrum plot title, reflecting the currently selected model.
         - float: The next suggested annealing time. Will reset to the minimum value when
         the model or QPU is changed. If the auto-suggest option is enabled, it will
         set the slider to the next time in sequence. Otherwise it will leave the slider
@@ -520,7 +512,7 @@ def update_graphs(
     else:
         next_ta = dash.no_update
 
-    spectrum_title = f"{ModelType(int(model_val)).label} spectrum"
+    spectrum_title = f"{ModelType(int(model_val)).label} Spectrum"
 
     return results_plot, spectrum_plot, spectrum_title, next_ta
 

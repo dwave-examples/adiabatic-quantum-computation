@@ -59,8 +59,8 @@ class JobState(Enum):
 
 
 class TheoryCurveMode(Enum):
-    """Represents the modes for plotting theory curves, whether the demo will plot the
-    Schrödinger evolution, the Landau-Zener fit, or both."""
+    """Represents the theory curves that can be plotted alongside the sampled data: the published
+    Schrödinger-evolution reference, the Landau-Zener fit, or both."""
 
     LANDAU_ZENER = 0
     REFERENCE = 1
@@ -71,6 +71,7 @@ class TheoryCurveMode(Enum):
 
     @property
     def extended_label(self):
+        """Longer description of the curve, used in plot legends."""
         long_labels = {
             self.REFERENCE: "Rescaled Published Reference",  # TODO link to data source
             self.LANDAU_ZENER: "Landau-Zener Theory",
@@ -91,13 +92,17 @@ class ScatterType(Enum):
 
 
 class DataSource(Enum):
+    """Source of the precomputed theory curves and energy spectra in ``static/models``. Each
+    source has a matching set of data files and a QPU whose annealing schedule they were
+    computed under."""
+
     ZENODO_REFERENCE = 0
     ADVANTAGE_SYSTEM6 = 1
     ADVANTAGE2_SYSTEM1 = 2
 
     @property
     def suffix(self):
-        """File suffix for the file for each data source"""
+        """File name suffix of the theory curve files for this data source."""
         labels = {
             self.ZENODO_REFERENCE: "ZENODO",
             self.ADVANTAGE_SYSTEM6: "ADV_6",
@@ -107,6 +112,7 @@ class DataSource(Enum):
 
     @property
     def qpu_name(self):
+        """Name of the QPU whose annealing schedule this data source was computed under."""
         names = {
             self.ZENODO_REFERENCE: "Advantage_system6",
             self.ADVANTAGE_SYSTEM6: "Advantage_system6",

@@ -262,9 +262,9 @@ def default_graph(
 
     Args:
         title: The title that goes above the graph.
-        subtitle: The subtitle that goes below the title and above the graph.
         id: A unique selector for this graph element.
         title_id: Optional id for the title heading, so it can be updated by a callback.
+        subtitle: Optional subtitle that goes below the title and above the graph.
 
     Returns:
         A Div containing the title and the graph.
@@ -488,7 +488,7 @@ def create_interface() -> html.Div:
                                                 "sample-v-theory",
                                             ),
                                             default_graph(
-                                                f"{DEFAULT_MODEL.label} spectrum",
+                                                f"{DEFAULT_MODEL.label} Spectrum",
                                                 "spectrum",
                                                 title_id="spectrum-title",
                                                 subtitle="(positive parity sector)",

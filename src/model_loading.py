@@ -201,7 +201,7 @@ class ProblemModel:
     @staticmethod
     def load_theory_data_from_file(
         problem_type: ProblemType, model_type: ModelType
-    ) -> tuple[list[float], list[float]]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         """Loads the data for the theoretical predictions of ground state probability as a
         function of annealing time for a given problem instance.
 
@@ -210,8 +210,11 @@ class ProblemModel:
             model_type: The type of the model instance.
 
         Returns:
-            A tuple containing two lists of floats: the annealing times and the corresponding
-            ground state probabilities as predicted by the theoretical model.
+            A tuple containing:
+
+            - np.ndarray: The annealing times (ns).
+            - np.ndarray: The corresponding excited state probabilities (1 - P_GS) predicted by
+              the theoretical model.
         """
         theory_data_path = MODELS_PATH / ProblemModel(model_type, problem_type).theory_data_filename
         if not theory_data_path.exists():

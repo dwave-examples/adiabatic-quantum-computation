@@ -14,6 +14,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from dwave.cloud import Client
 
 from src.values import SCHEDULES_AND_EMBEDDINGS_PATH
@@ -41,7 +43,7 @@ def get_qpu_ids(print_available: bool = False) -> list[str]:
     return solver_list
 
 
-def get_schedule_filepath(qpu_name: str) -> str | None:
+def get_schedule_filepath(qpu_name: str) -> Path | None:
     """Get the file path for the annealing schedule of a specific QPU.
 
     Args:
