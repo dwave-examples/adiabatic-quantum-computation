@@ -77,8 +77,9 @@ def toggle_left_column(collapse_trigger: int, to_collapse_class: str) -> tuple[s
 )
 def process_qpu_select(qpu_name: str) -> tuple[float, list[str], list[bool]]:
     """Triggers when the selected QPU is altered, writing the selection time to the
-    relevant store. Also resets the Theory Curve selection to Landau-Zener and, if no schedule
-    is available for the selected QPU, locks both options in that state.
+    relevant store. Also resets the Theory Curve selection to the default, and disables the
+    Reference option if no schedule is available for the selected QPU, since the reference
+    curve cannot be rescaled to a QPU without one.
 
     Args:
         qpu_name: Name of the selected QPU.
@@ -93,7 +94,10 @@ def process_qpu_select(qpu_name: str) -> tuple[float, list[str], list[bool]]:
     """
 
     no_schedule = get_schedule_filepath(qpu_name) is None
-    disabled = [no_schedule] * len(TheoryCurveMode)
+    if not no_schedule:
+        return time.time(), dash.no_update, [False] * len(TheoryCurveMode)
+
+    disabled = [mode is TheoryCurveMode.REFERENCE and no_schedule for mode in TheoryCurveMode]
 
     return time.time(), [str(TheoryCurveMode.LANDAU_ZENER.value)], disabled
 
