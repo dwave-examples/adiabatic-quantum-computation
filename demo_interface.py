@@ -140,7 +140,9 @@ def checklist(label: str, id: str, options: list, values: list, inline: bool = T
                 value=values,
                 children=dmc.Group(
                     [
-                        dmc.Checkbox(label=option["label"], value=option["value"], color=THEME_COLOR)
+                        dmc.Checkbox(
+                            label=option["label"], value=option["value"], color=THEME_COLOR
+                        )
                         for option in options
                     ],
                 ),
@@ -253,7 +255,9 @@ def generate_run_buttons() -> html.Div:
     )
 
 
-def default_graph(title: str, id: str, title_id: str | None = None, subtitle: str | None = None) -> html.Div:
+def default_graph(
+    title: str, id: str, title_id: str | None = None, subtitle: str | None = None
+) -> html.Div:
     """Default graph element with a title.
 
     Args:
