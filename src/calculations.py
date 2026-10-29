@@ -49,24 +49,39 @@ def rescale_spectrum(
         - np.ndarray: The anneal fraction of ``qpu_schedule`` matched to each row.
         - np.ndarray: The rescaled spectrum, with the same shape as ``spectrum_data``.
     """
-    column_length = len(spectrum_data[:, 0])
-    A_ref = reference_schedule[:column_length, 1]
-    B_ref = reference_schedule[:column_length, 2]
+    # B/A ratio of the reference schedule at each spectrum row, taken from the file itself so no
+    # row alignment between the spectrum file and the schedule file is assumed.
+    ratio_ref = spectrum_data[:, 2] / spectrum_data[:, 1]
 
-    A = qpu_schedule[:column_length, 1]
-    B = qpu_schedule[:column_length, 2] * energy_rescaling
-    S_qpu = qpu_schedule[:column_length, 0]
+    s_ref = _anneal_fraction_at_ratio(ratio_ref, reference_schedule)
+    A_ref = np.interp(s_ref, reference_schedule[:, 0], reference_schedule[:, 1])
 
-    s_vals = np.interp(B_ref / A_ref, B / A, S_qpu)
-    A_qpu_at_match = np.interp(s_vals, S_qpu, A)
+    s_vals = _anneal_fraction_at_ratio(ratio_ref, qpu_schedule, energy_rescaling)
+    A_qpu_at_match = np.interp(s_vals, qpu_schedule[:, 0], qpu_schedule[:, 1])
+
+    # At qpu_schedule == reference_schedule every factor is 1.
     E_rescale = A_qpu_at_match / A_ref
 
-    multiplier = np.zeros((column_length, column_length))
-    # At qpu_schedule == reference_schedule this is the identity (E_rescale == 1).
-    np.fill_diagonal(multiplier, E_rescale)
-
-    new_spectrum_data = np.matmul(multiplier, spectrum_data)
+    new_spectrum_data = spectrum_data * E_rescale[:, np.newaxis]
     return s_vals, new_spectrum_data
+
+
+def _anneal_fraction_at_ratio(
+    ratio: np.ndarray, schedule: np.ndarray, energy_rescaling: float = 1.0
+) -> np.ndarray:
+    """Find the anneal fraction at which a schedule's B(s)/A(s) ratio takes each given value.
+
+    Args:
+        ratio: Target B/A ratios.
+        schedule: Annealing schedule as columns ``(s, A(s), B(s))``.
+        energy_rescaling: Factor applied to B(s) before matching.
+
+    Returns:
+        The interpolated anneal fraction for each ratio.
+    """
+    s, A, B = schedule.T[:3]
+    valid = A > 0  # A(s) reaches zero at the end of the anneal, where the ratio is undefined
+    return np.interp(ratio, energy_rescaling * B[valid] / A[valid], s[valid])
 
 
 def calculate_tau(spectra: np.ndarray, c: np.ndarray) -> tuple[float, float, float]:
