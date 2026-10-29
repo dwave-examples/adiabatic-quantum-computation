@@ -49,24 +49,24 @@ def rescale_spectrum(
         - np.ndarray: The anneal fraction of ``qpu_schedule`` matched to each row.
         - np.ndarray: The rescaled spectrum, with the same shape as ``spectrum_data``.
     """
-    column_length = len(spectrum_data[:, 0])
-    A_ref = reference_schedule[:column_length, 1]
-    B_ref = reference_schedule[:column_length, 2]
 
-    A = qpu_schedule[:column_length, 1]
-    B = qpu_schedule[:column_length, 2] * energy_rescaling
-    S_qpu = qpu_schedule[:column_length, 0]
+    A_spec = np.trim_zeros(spectrum_data[:, 1], "b")
+    B_spec = spectrum_data[:len(A_spec), 2]
 
-    s_vals = np.interp(B_ref / A_ref, B / A, S_qpu)
-    A_qpu_at_match = np.interp(s_vals, S_qpu, A)
-    E_rescale = A_qpu_at_match / A_ref
+    A_qpu = 2*np.trim_zeros(qpu_schedule[:, 1], "b")
+    B_qpu = 2*qpu_schedule[:len(A_qpu), 2] * energy_rescaling
+    S_qpu = qpu_schedule[:len(A_qpu), 0]
+    S_spec = np.interp(B_spec / A_spec, B_qpu / A_qpu, S_qpu)
 
-    multiplier = np.zeros((column_length, column_length))
+    A_qpu_at_match = np.interp(S_spec, S_qpu, A_qpu)
+    E_rescale = A_qpu_at_match / A_spec
+
+    multiplier = np.zeros((len(A_spec), len(A_spec)))
     # At qpu_schedule == reference_schedule this is the identity (E_rescale == 1).
     np.fill_diagonal(multiplier, E_rescale)
 
     new_spectrum_data = np.matmul(multiplier, spectrum_data)
-    return s_vals, new_spectrum_data
+    return S_spec, new_spectrum_data
 
 
 def calculate_tau(spectra: np.ndarray, c: np.ndarray) -> tuple[float, float, float]:
