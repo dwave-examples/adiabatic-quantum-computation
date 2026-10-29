@@ -120,7 +120,14 @@ def checkbox(label: str, id: str, checked: bool) -> html.Div:
     )
 
 
-def checklist(label: str, id: str, options: list, values: list, inline: bool = True) -> html.Div:
+def checklist(
+    label: str,
+    id: str,
+    options: list,
+    values: list,
+    inline: bool = True,
+    option_id_type: str | None = None,
+) -> html.Div:
     """Checklist element for option selection.
 
     Args:
@@ -129,7 +136,21 @@ def checklist(label: str, id: str, options: list, values: list, inline: bool = T
         options: A list of dictionaries of labels and values.
         values: A list of values that should be preselected in the checklist.
         inline: Whether the options of the checklist are displayed beside or below each other.
+        option_id_type: If given, each option gets the pattern-matching id
+            ``{"type": option_id_type, "index": value}`` so callbacks can target individual
+            options (for example to disable one).
     """
+    checkboxes = []
+    for option in options:
+        option_kwargs = (
+            {"id": {"type": option_id_type, "index": option["value"]}} if option_id_type else {}
+        )
+        checkboxes.append(
+            dmc.Checkbox(
+                label=option["label"], value=option["value"], color=THEME_COLOR, **option_kwargs
+            )
+        )
+
     return html.Div(
         className="checklist-wrapper",
         children=[
@@ -138,41 +159,7 @@ def checklist(label: str, id: str, options: list, values: list, inline: bool = T
                 className=f"checklist{' checklist--inline' if inline else ''}",
                 label=label,
                 value=values,
-                children=dmc.Group(
-                    [
-                        dmc.Checkbox(label=option["label"], value=option["value"], color=THEME_COLOR)
-                        for option in options
-                    ],
-                ),
-            ),
-        ],
-    )
-
-
-def radio(label: str, id: str, options: list, value: str, inline: bool = True) -> html.Div:
-    """Radio element for option selection.
-
-    Args:
-        label: The title that goes above the radio.
-        id: A unique selector for this element.
-        options: A list of dictionaries of labels and values.
-        value: The value of the radio that should be preselected.
-        inline: Whether the options are displayed beside or below each other.
-    """
-    return html.Div(
-        className="radio-wrapper",
-        children=[
-            dmc.RadioGroup(
-                id=id,
-                className=f"radio{' radio--inline' if inline else ''}",
-                label=label,
-                value=value,
-                children=dmc.Group(
-                    [
-                        dmc.Radio(option["label"], value=option["value"], color=THEME_COLOR)
-                        for option in options
-                    ]
-                ),
+                children=dmc.Group(checkboxes),
             ),
         ],
     )
@@ -236,6 +223,7 @@ def generate_settings_form(solvers: list[str]) -> html.Div:
                 "theory-curve",
                 generate_options(TheoryCurveMode),
                 values=[str(TheoryCurveMode.LANDAU_ZENER.value)],
+                option_id_type="theory-curve-option",
             ),
             dropdown(
                 "Model",
@@ -282,30 +270,36 @@ def generate_run_buttons() -> html.Div:
     )
 
 
-def default_graph(title, id: str, title_id: str | None = None) -> html.Div:
+def default_graph(
+    title: str, id: str, title_id: str | None = None, subtitle: str | None = None
+) -> html.Div:
     """Default graph element with a title.
 
     Args:
         title: The title that goes above the graph.
         id: A unique selector for this graph element.
         title_id: Optional id for the title heading, so it can be updated by a callback.
+        subtitle: Optional subtitle that goes below the title and above the graph.
 
     Returns:
         A Div containing the title and the graph.
     """
 
-    heading = html.H3(title, id=title_id) if title_id else html.H3(title)
-    return html.Div(
-        className="graph-wrapper",
-        children=[
-            heading,
-            dcc.Graph(
-                id=f"{id}-graph",
-                responsive=True,
-                config={"displayModeBar": False},
-            ),
-        ],
+    heading_kwargs = {"id": title_id} if title_id else {}
+    children = [
+        html.H3(title, className="title-with-subtitle" if subtitle else "", **heading_kwargs)
+    ]
+    if subtitle:
+        children.append(html.P(subtitle, className="subtitle"))
+    children.append(
+        dcc.Graph(
+            id=f"{id}-graph",
+            responsive=True,
+            config={"displayModeBar": False},
+        )
     )
+
+    return html.Div(className="graph-wrapper", children=children)
 
 
 def generate_new_results_dict(problem_type: str = ProblemType.DEFAULT.name) -> dict:
@@ -507,13 +501,10 @@ def create_interface() -> html.Div:
                                                 "sample-v-theory",
                                             ),
                                             default_graph(
-                                                [
-                                                    f"{DEFAULT_MODEL.label} spectrum",
-                                                    html.Br(),
-                                                    "(positive parity sector)",
-                                                ],
+                                                f"{DEFAULT_MODEL.label} Spectrum",
                                                 "spectrum",
                                                 title_id="spectrum-title",
+                                                subtitle="(positive parity sector)",
                                             ),
                                         ],
                                     )

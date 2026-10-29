@@ -47,7 +47,8 @@ class EmbeddingSet:
             target_graph: The graph structure of the QPU for which embeddings are being managed
             problem_type: The type of problem for which embeddings are being managed. Currently
                 only the default problem type is supported, but more can be added in the future.
-            embeddings_dir: The directory where embeddings are saved. Defaults to SCHEDULES_AND_EMBEDDINGS_PATH.
+            embeddings_dir: The directory where embeddings are saved. Defaults to
+                SCHEDULES_AND_EMBEDDINGS_PATH.
         """
 
         self.qpu_name = qpu_name

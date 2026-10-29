@@ -66,8 +66,6 @@ MODEL_COLORS = {
     ModelType.SMALL_GAP: "#eb6834",  # orange
 }
 
-RESULTS_FIG_Y_MINS = [-1.0, -1.5, -2.0]
-
 # Single-hue ramp for the excited states on the spectrum plot, darkest for the 1st excited
 # state (which sets the energy gap) through lightest for the 5th.
 EXCITED_STATE_COLORS = ["#0d366b", "#1c5cab", "#2a78d6", "#5598e7", "#86b6ef"]
