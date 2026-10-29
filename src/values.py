@@ -15,8 +15,9 @@
 import pathlib
 
 REPO_PATH = pathlib.Path(__file__).parent.parent.resolve()
-EMBEDDINGS_PATH = REPO_PATH / "embeddings"
-MODELS_PATH = REPO_PATH / "static" / "models"
+STATIC_PATH = REPO_PATH / "static"
+SCHEDULES_AND_EMBEDDINGS_PATH = REPO_PATH / "schedules_and_embeddings"
+MODELS_PATH = STATIC_PATH / "models"
 
 ENERGY_THRESHOLD = 1e-8  # Relative to ground state energy
 MIN_ANNEALING_TIME = 5
@@ -27,6 +28,10 @@ MAX_ANNEALING_TIME = 30
 SAMPLE_POINT_SIZE = 14
 DEFAULT_PLOT_WIDTH = 21
 MAX_PLOT_WIDTH = 31
+
+# Candidate lower limits (log10) for the results plot y-axis. The plot steps down through these
+# until the smallest sampled probability is visible.
+RESULTS_FIG_Y_MINS = [-1.0, -1.5, -2.0]
 
 ENERGY_TIME_RESCALING = {  # Used to rescale energy axis for plotting samples from
     "Advantage2_system5": 2.48,  # processors that have different energy scales.

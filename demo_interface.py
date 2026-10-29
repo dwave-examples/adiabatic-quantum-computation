@@ -31,7 +31,7 @@ from demo_configs import (
     SUGGESTED_ANNEALING_TIMES,
     THUMBNAIL,
 )
-from src.demo_enums import JobState, ModelType, ProblemType
+from src.demo_enums import JobState, ModelType, ProblemType, TheoryCurveMode
 from src.model_loading import ProblemModel
 from src.qpu_resources import get_qpu_ids
 from src.values import MAX_ANNEALING_TIME, MIN_ANNEALING_TIME
@@ -120,6 +120,51 @@ def checkbox(label: str, id: str, checked: bool) -> html.Div:
     )
 
 
+def checklist(
+    label: str,
+    id: str,
+    options: list,
+    values: list,
+    inline: bool = True,
+    option_id_type: str | None = None,
+) -> html.Div:
+    """Checklist element for option selection.
+
+    Args:
+        label: The title that goes above the checklist.
+        id: A unique selector for this element.
+        options: A list of dictionaries of labels and values.
+        values: A list of values that should be preselected in the checklist.
+        inline: Whether the options of the checklist are displayed beside or below each other.
+        option_id_type: If given, each option gets the pattern-matching id
+            ``{"type": option_id_type, "index": value}`` so callbacks can target individual
+            options (for example to disable one).
+    """
+    checkboxes = []
+    for option in options:
+        option_kwargs = (
+            {"id": {"type": option_id_type, "index": option["value"]}} if option_id_type else {}
+        )
+        checkboxes.append(
+            dmc.Checkbox(
+                label=option["label"], value=option["value"], color=THEME_COLOR, **option_kwargs
+            )
+        )
+
+    return html.Div(
+        className="checklist-wrapper",
+        children=[
+            dmc.CheckboxGroup(
+                id=id,
+                className=f"checklist{' checklist--inline' if inline else ''}",
+                label=label,
+                value=values,
+                children=dmc.Group(checkboxes),
+            ),
+        ],
+    )
+
+
 def generate_options(options: list | EnumMeta | dict) -> list[dict]:
     """Format options for dropdowns, checklists, radios, etc.
 
@@ -173,6 +218,13 @@ def generate_settings_form(solvers: list[str]) -> html.Div:
                 qpu_options,
                 value=default_solver,
             ),
+            checklist(
+                "Theory Curve",
+                "theory-curve",
+                generate_options(TheoryCurveMode),
+                values=[str(TheoryCurveMode.LANDAU_ZENER.value)],
+                option_id_type="theory-curve-option",
+            ),
             dropdown(
                 "Model",
                 "model-selection",
@@ -218,28 +270,36 @@ def generate_run_buttons() -> html.Div:
     )
 
 
-def default_graph(title: str, id: str) -> html.Div:
+def default_graph(
+    title: str, id: str, title_id: str | None = None, subtitle: str | None = None
+) -> html.Div:
     """Default graph element with a title.
 
     Args:
         title: The title that goes above the graph.
         id: A unique selector for this graph element.
+        title_id: Optional id for the title heading, so it can be updated by a callback.
+        subtitle: Optional subtitle that goes below the title and above the graph.
 
     Returns:
         A Div containing the title and the graph.
     """
 
-    return html.Div(
-        className="graph-wrapper",
-        children=[
-            html.H3(title),
-            dcc.Graph(
-                id=f"{id}-graph",
-                responsive=True,
-                config={"displayModeBar": False},
-            ),
-        ],
+    heading_kwargs = {"id": title_id} if title_id else {}
+    children = [
+        html.H3(title, className="title-with-subtitle" if subtitle else "", **heading_kwargs)
+    ]
+    if subtitle:
+        children.append(html.P(subtitle, className="subtitle"))
+    children.append(
+        dcc.Graph(
+            id=f"{id}-graph",
+            responsive=True,
+            config={"displayModeBar": False},
+        )
     )
+
+    return html.Div(className="graph-wrapper", children=children)
 
 
 def generate_new_results_dict(problem_type: str = ProblemType.DEFAULT.name) -> dict:
@@ -441,8 +501,10 @@ def create_interface() -> html.Div:
                                                 "sample-v-theory",
                                             ),
                                             default_graph(
-                                                "Energy Spectrum",
+                                                f"{DEFAULT_MODEL.label} Spectrum",
                                                 "spectrum",
+                                                title_id="spectrum-title",
+                                                subtitle="(positive parity sector)",
                                             ),
                                         ],
                                     )

@@ -21,17 +21,17 @@ import dash
 import dimod
 import numpy as np
 import plotly.graph_objects as go
-from dash import MATCH, Input, Output, Patch, State, ctx
+from dash import ALL, MATCH, Input, Output, Patch, State
 from dash.exceptions import PreventUpdate
 from dwave.system import DWaveSampler, ParallelEmbeddingComposite
 
 from demo_configs import NUM_READS, SUGGESTED_ANNEALING_TIMES
 from demo_interface import generate_new_results_dict
-from src.demo_enums import JobState, ModelType
+from src.demo_enums import JobState, ModelType, TheoryCurveMode
 from src.model_loading import ProblemModel
-from src.plotting import get_results_plot, get_spectrum_plot
+from src.plotting import generate_plots
 from src.process_embeddings import EmbeddingSet
-from src.qpu_resources import get_qpu_ids
+from src.qpu_resources import get_qpu_ids, get_schedule_filepath
 from src.values import ENERGY_THRESHOLD, MIN_ANNEALING_TIME
 
 
@@ -71,22 +71,35 @@ def toggle_left_column(collapse_trigger: int, to_collapse_class: str) -> tuple[s
 
 @dash.callback(
     Output("qpu-select-time", "data"),
+    Output("theory-curve", "value"),
+    Output({"type": "theory-curve-option", "index": ALL}, "disabled"),
     Input("qpu-selection", "value"),
 )
-def process_qpu_select(qpu_name: str) -> float:
+def process_qpu_select(qpu_name: str) -> tuple[float, list[str], list[bool]]:
     """Triggers when the selected QPU is altered, writing the selection time to the
-    relevant store. This callback exists only to trigger the
-    reset_embeddings_and_results callback, as a workaround to allow it to trigger
-    on startup.
+    relevant store. Also resets the Theory Curve selection to the default, and disables the
+    Reference option if no schedule is available for the selected QPU, since the reference
+    curve cannot be rescaled to a QPU without one.
 
     Args:
-        qpu_name: Name of the selected QPU
+        qpu_name: Name of the selected QPU.
 
     Returns:
-        The current time, stored in qpu-select-time to trigger reset_embeddings_and_results.
+        A tuple containing:
+
+        - float: The current time, stored in qpu-select-time to trigger
+        reset_embeddings_and_results.
+        - list[str]: The Theory Curve values to preselect (always LANDAU_ZENER).
+        - list[bool]: Whether each Theory Curve option is disabled, in TheoryCurveMode order.
     """
 
-    return time.time()
+    no_schedule = get_schedule_filepath(qpu_name) is None
+    if not no_schedule:
+        return time.time(), dash.no_update, [False] * len(TheoryCurveMode)
+
+    disabled = [mode is TheoryCurveMode.REFERENCE and no_schedule for mode in TheoryCurveMode]
+
+    return time.time(), [str(TheoryCurveMode.LANDAU_ZENER.value)], disabled
 
 
 # =================================================================================================
@@ -110,7 +123,7 @@ def reset_embeddings_and_results(qpu_select_time: float) -> tuple[list, bool, st
         A tuple containing:
 
         - list[dict]: Clears the ``current-embeddings`` store and triggers QPU-specific
-            embeddings to be cached for the newly-selected QPU
+        embeddings to be cached for the newly-selected QPU
         - bool: True, to disable the run button until new embeddings have been cached.
         - str: The FINDING_EMBEDDING label for the job-submit-state field.
         - dict: A new, empty results dictionary. Results are QPU-specific, so changing the QPU
@@ -118,6 +131,30 @@ def reset_embeddings_and_results(qpu_select_time: float) -> tuple[list, bool, st
     """
 
     return [], True, JobState.FINDING_EMBEDDING.label, generate_new_results_dict()
+
+
+# =================================================================================================
+
+
+@dash.callback(
+    Output("current-results", "data", allow_duplicate=True),
+    Input("energy-rescaling", "value"),
+    prevent_initial_call=True,
+)
+def reset_results_on_energy_rescaling(energy_rescaling: float) -> dict:
+    """Clears stored results when the energy rescaling factor changes.
+
+    Previously measured results were taken at the old energy scale, so they are not
+    comparable to results taken at the new one.
+
+    Args:
+        energy_rescaling: The newly selected energy rescaling factor.
+
+    Returns:
+        A new, empty results dictionary.
+    """
+
+    return generate_new_results_dict()
 
 
 @dash.callback(
@@ -152,10 +189,10 @@ def set_current_embeddings(
 
         - list[dict]: The embeddings for the selected QPU, or an empty list if none could be found.
         - list[str]: The list of available solvers.
-        - bool: Returns False to re-enable the run button once embeddings have been set. If there is
-            an error finding embeddings, returns True, keeping the run button disabled.
-        - str: The current job state label, which will be 'READY' if embeddings are successfully set,
-            or an appropriate error state otherwise.
+        - bool: Returns False to re-enable the run button once embeddings have been set. If
+        there is an error finding embeddings, returns True, keeping the run button disabled.
+        - str: The current job state label, which will be 'READY' if embeddings are successfully
+        set, or an appropriate error state otherwise.
     """
 
     if job_submit_state != JobState.FINDING_EMBEDDING.label:
@@ -198,39 +235,25 @@ def set_current_embeddings(
 
 @dash.callback(
     Output("current-model", "data"),
-    Output("spectrum-graph", "figure"),
     Input("model-selection", "value"),
-    Input("energy-rescaling", "value"),
     Input("job-submit-time", "data"),
     State("cached-models", "data"),
 )
-def set_current_model(
-    model_val: str, energy_rescaling: float, job_submit_time: float, cached_models: dict
-) -> tuple[dict, go.Figure]:
-    """Sets the data and the spectrum plot for the currently selected model. Triggers whenever the
-    model selection dropdown is changed or the energy rescaling value is modified. Also triggers
-    on job submission to ensure that a current model is set: there were issues especially around
-    startup with the model not getting set properly otherwise.
+def set_current_model(model_val: str, job_submit_time: float, cached_models: dict) -> dict:
+    """Sets the data for the currently selected model. Triggers whenever the model selection
+    dropdown is changed. Also triggers on job submission to ensure that a current model is set.
 
     Args:
         model_val: The value of the currently selected model from the dropdown.
-        energy_rescaling: The current value of the energy rescaling factor.
         job_submit_time: Job submission time: value is not used, just used as a callback trigger.
         cached_models: A dictionary of cached models, keyed by their lookup keys.
 
     Returns:
-        A tuple containing:
-
-        - dict: The data for the currently selected model, including h and J values and its
-          ground state energy (EGS).
-        - go.Figure: A plotly figure of the spectrum of energies for the selected model.
+        The data for the currently selected model, including h and J values and its ground state
+        energy (EGS).
     """
-    spectrum_plot = get_spectrum_plot(ModelType(int(model_val)), energy_rescaling=energy_rescaling)
-    if ctx.triggered_id == "energy-rescaling":
-        model_data = dash.no_update
-    else:
-        model_data = cached_models[ProblemModel(ModelType(int(model_val))).lookup_key]
-    return model_data, spectrum_plot
+
+    return cached_models[ProblemModel(ModelType(int(model_val))).lookup_key]
 
 
 # =================================================================================================
@@ -300,7 +323,6 @@ def preprocess_job(
 
         - dict: The model data with the next annealing time (in microseconds) added to it.
         - str: The RUNNING label for the job-submit-state field.
-
     """
 
     if job_submit_state != JobState.PREPROCESSING.label:
@@ -365,9 +387,9 @@ def submit_job(
         A tuple containing:
 
         - Patch: The updated results dictionary with the new measurement appended. If the selected
-            solver was unavailable, this dictionary will be returned unchanged.
+        solver was unavailable, this dictionary will be returned unchanged.
         - bool: False indicating that the run button should not be disabled.
-        - list: The list of available solvers.
+        - list[str]: The list of available solvers.
         - str: The final job state label, indicating whether the job succeeded or failed.
         - bool: False indicating that the energy rescaling slider should not be disabled.
     """
@@ -421,43 +443,54 @@ def submit_job(
 
 @dash.callback(
     Output("sample-v-theory-graph", "figure"),
+    Output("spectrum-graph", "figure"),
+    Output("spectrum-title", "children"),
     Output("annealing-time", "value"),
     Input("current-results", "data"),
     Input("model-selection", "value"),
-    State("qpu-selection", "value"),
+    Input("energy-rescaling", "value"),
+    Input("qpu-selection", "value"),
+    Input("theory-curve", "value"),
     State("annealing-time-suggest", "checked"),
 )
-def update_main_graph(
-    sample_data: dict, model_val: str, qpu_name: str, auto_suggest: bool
-) -> tuple[go.Figure, float]:
-    """Updates the main graph showing the excited state probability as a function of annealing
-    time. This callback triggers whenever a new measurement is added to the current-results
-    data store: it updates the graph with the new data point and returns the updated figure.
-    If the correct config option is enabled, it will also updates value of the annealing time
-    slider to the next largest value in the predefined default annealing times; this allows a
-    user to easily run the default time series, while still giving complete freedom to manually
-    set annealing times as they desire.
+def update_graphs(
+    sample_data: dict,
+    model_val: str,
+    energy_rescaling: float,
+    qpu_name: str,
+    theory_curve_modes: list[str],
+    auto_suggest: bool,
+) -> tuple[go.Figure, go.Figure, str, float]:
+    """Updates both the results graph and the spectrum plot. This callback triggers whenever a new
+    measurement is added to the current-results data store; it updates the graph with the new
+    data point and returns the updated figure. It also triggers if the model, energy
+    rescaling, or theory curve modes change, making the appropriate updates to the spectrum
+    and results plot, but leaving plotted data unchanged. Finally, this callback will also
+    trigger when a new QPU is selected, clearing all data plotted for the previous QPU.
 
     Args:
         sample_data: A dictionary containing the current measurement results.
         model_val: The currently selected model value.
+        energy_rescaling: The current energy rescaling factor.
         qpu_name: The name of the currently selected QPU, used for rescaling the
             results plot to the QPU-specific energy scale.
+        theory_curve_modes: The modes determining which theory curves are displayed on
+            the results plot.
         auto_suggest: Whether the auto-suggest option for the annealing time slider is enabled.
 
     Returns:
         A tuple containing:
 
         - go.Figure: A plotly figure of the excited state probability as a function of the
-            annealing time.
+        annealing time.
+        - go.Figure: A plot showing the spectrum of excited state energy values as a function
+        of anneal progress.
+        - str: The spectrum plot title, reflecting the currently selected model.
         - float: The next suggested annealing time. Will reset to the minimum value when
-            the model or QPU is changed. If the auto-suggest option is enabled, it will
-            set the slider to the next time in sequence. Otherwise it will leave the slider
-            value where it is.
+        the model or QPU is changed. If the auto-suggest option is enabled, it will
+        set the slider to the next time in sequence. Otherwise it will leave the slider
+        value where it is.
     """
-
-    if ctx.triggered_id == "model-selection":
-        return dash.no_update, MIN_ANNEALING_TIME
 
     results = {}
     largest_ta = 0.0
@@ -468,7 +501,13 @@ def update_main_graph(
         if results[model.name] and model.name == current_model:
             largest_ta = max(results[model.name])
 
-    fig = get_results_plot(results, qpu_name)
+    results_plot, spectrum_plot = generate_plots(
+        job_results=results,
+        qpu_name=qpu_name,
+        selected_model=ModelType(int(model_val)),
+        theory_modes=theory_curve_modes,
+        energy_rescaling=energy_rescaling,
+    )
 
     if auto_suggest:
         next_ta_index = bisect.bisect_right(SUGGESTED_ANNEALING_TIMES, largest_ta)
@@ -478,7 +517,9 @@ def update_main_graph(
     else:
         next_ta = dash.no_update
 
-    return fig, next_ta
+    spectrum_title = f"{ModelType(int(model_val)).label} Spectrum"
+
+    return results_plot, spectrum_plot, spectrum_title, next_ta
 
 
 # ==================================================================================================

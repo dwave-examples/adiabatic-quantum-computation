@@ -15,9 +15,11 @@
 from __future__ import annotations
 
 import json
+from functools import lru_cache
 
 import numpy as np
 
+from demo_configs import DATA_SOURCE
 from src.demo_enums import ModelType, ProblemType
 from src.values import MODELS_PATH
 
@@ -30,6 +32,8 @@ class ProblemModel:
     ground state probabilities."""
 
     DEFINITION_FILE_SUFFIX = "_PROBLEM_DEFINITION.json"
+    THEORY_SUFFIX = DATA_SOURCE.suffix
+    SCATTER_SUFFIX = DATA_SOURCE.spectrum_suffix
 
     def __init__(
         self,
@@ -73,12 +77,12 @@ class ProblemModel:
     @property
     def spectrum_scatter_filename(self) -> str:
         """File name of the CSV energy spectrum data for this model."""
-        return f"{self.lookup_key}_SCATTER.csv"
+        return f"{self.lookup_key}_SCATTER_{ProblemModel.SCATTER_SUFFIX}.csv"
 
     @property
     def theory_data_filename(self) -> str:
         """File name of the theoretical excited state probability curve for this model."""
-        return f"{self.lookup_key}_THEORY.txt"
+        return f"{self.lookup_key}_THEORY_{ProblemModel.THEORY_SUFFIX}.csv"
 
     @property
     def graph_nodes(self) -> set:
@@ -171,10 +175,12 @@ class ProblemModel:
         return models_dict
 
     @staticmethod
+    @lru_cache
     def load_spectrum_scatter_from_file(
         model_type: ModelType, problem_type: ProblemType = ProblemType.DEFAULT
     ) -> np.ndarray:
         """Loads the data to create a scatter plot of the energy spectrum for a given problem instance.
+        The result is cached, so each file is read once.
 
         Args:
             problem_type: The type of the problem instance.
@@ -192,24 +198,31 @@ class ProblemModel:
         return np.loadtxt(scatter_path, delimiter=",", skiprows=3)
 
     @staticmethod
+    @lru_cache
     def load_theory_data_from_file(
         problem_type: ProblemType, model_type: ModelType
-    ) -> tuple[list[float], list[float]]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         """Loads the data for the theoretical predictions of ground state probability as a
-        function of annealing time for a given problem instance.
+        function of annealing time for a given problem instance. The result is cached, so each
+        file is read once.
 
         Args:
             problem_type: The type of the problem instance.
             model_type: The type of the model instance.
 
         Returns:
-            A tuple containing two lists of floats: the annealing times and the corresponding
-            ground state probabilities as predicted by the theoretical model.
+            A tuple containing:
+
+            - np.ndarray: The annealing times (ns).
+            - np.ndarray: The corresponding excited state probabilities (1 - P_GS) predicted by
+              the theoretical model.
         """
         theory_data_path = MODELS_PATH / ProblemModel(model_type, problem_type).theory_data_filename
         if not theory_data_path.exists():
             raise FileNotFoundError(f"Theory data file not found at {theory_data_path}.")
-        lines = theory_data_path.read_text().splitlines()
-        xs = [float(num) for num in lines[0].strip().split(",")]
-        ys = [float(num) for num in lines[1].strip().split(",")]
+
+        theory_vals = np.loadtxt(theory_data_path, delimiter=",", skiprows=2)
+        xs = theory_vals[:, 0]
+        ys = theory_vals[:, 1]
+
         return xs, ys

@@ -35,7 +35,7 @@ custom CSS can be added below.
     position: relative;
 }
 
-label.mantine-Checkbox-label {
+.checkbox-wrapper label.mantine-Checkbox-label {
     font-weight: 600;
     font-size: 1.125rem;
     color: var(--blue-darkest);
@@ -47,4 +47,12 @@ label.mantine-Checkbox-label {
 
 .settings {
     margin-bottom: 3rem;
+}
+
+h3.title-with-subtitle {
+    margin-bottom: 0.25rem;
+}
+
+p.subtitle {
+    margin: 0;
 }

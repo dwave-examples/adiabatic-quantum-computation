@@ -14,7 +14,7 @@
 
 """This file stores input parameters for the app."""
 
-from src.demo_enums import ModelType
+from src.demo_enums import DataSource, ModelType
 from src.values import MAX_ANNEALING_TIME, MIN_ANNEALING_TIME
 
 APP_TITLE = "Adiabatic Quantum Computation"
@@ -48,11 +48,14 @@ SHOW_PARALLEL_SAMPLES = False
 # The number of reads for each job sent to the QPU. More reads are more accurate, but take longer.
 NUM_READS = 400
 
-COUPLING_STRENGTH_SLIDER_MARKS = [0.2, 0.4, 0.6, 0.8, 1.0]
+COUPLING_STRENGTH_SLIDER_MARKS = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 
 # TODO link to enums
-DEFAULT_QPU = "Advantage_system4"  # If not available, the first returned will be default
+DEFAULT_QPU = "Advantage_system6"  # If not available, the first returned will be default
 DEFAULT_MODEL = ModelType.INTERMEDIATE_GAP
+
+DATA_SOURCE = DataSource.ZENODO_REFERENCE  # Source for the data plotted in the theory curves
+REFERENCE_QPU = DATA_SOURCE.qpu_name
 
 # One color per model, shared by its theory line and its experimental points so the hue
 # identifies the model and the mark shape (line vs. diamond) identifies theory vs. experiment.
