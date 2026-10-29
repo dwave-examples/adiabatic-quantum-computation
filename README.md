@@ -108,7 +108,7 @@ The problem Hamiltonians studied are 16-qubit, 52-coupler frustrated Ising
 models with uniform (antiferromagnetic and ferromagnetic) absolute coupling
 strength matched to those presented in Figure 2c [[1]](#1). These are stored in
 [static/models](static/models) as JSON files and can be selected from the
-*Model* dropdown, they are matched to those in the Zenodo repository supporting
+*Model* dropdown; they match those in the Zenodo repository supporting
 the publication [[2]](#2).
 
 The problem Hamiltonian can be scaled up or down to modify the gap properties,
@@ -123,11 +123,12 @@ combination of control error and sampling error).
 
 ### Theoretical models
 
-#### The energy spectrum
+#### The Energy Spectrum
 The evolution of the driver term and problem Hamiltonians is modeled using
 device-specific annealing schedules. The spectrum is calculated via exact
 diagonalization on the basis of the programmed Hamiltonian and schedule. As demo
-parameters are adjusted, it is recalculated. The schedule files are
+parameters are adjusted, it is recalculated. The
+[schedule files](https://docs.dwavequantum.com/en/latest/quantum_research/solver_properties_specific.html) are
 limited-accuracy approximations to the energy scales (see documentation); this
 feeds forward to some uncertainty in other derived quantities.
 
@@ -138,7 +139,7 @@ the spectral gap analysis restricted to the given sector proves
 accurate. The parity operator is a product of Pauli-X operators,
 with eigenvalue 1.
 
-#### The schedule-based Landau-Zener approximation
+#### The Schedule-Based Landau-Zener Approximation
 A Landau-Zener timescale τ[model] can be calculated based on a QPU-specific
 spectrum derived from a matched schedule file for each model, using a linear
 approximation to the rate through the gap. This value (when the schedule file
@@ -146,16 +147,17 @@ exists) is shown in the right plot. The Landau-Zener approximation is accurate
 if a single gap closes tightly, the anneal duration is long, and closed system
 dynamics apply.
 
-#### Landau-Zener data fit (default setting)
-Once two or more data points are collected they are fitted to a two-parameter
-model A_f exp(-t/τ[fit]). Good agreement with Landau-Zener theory is indicated
-by approach to a straight line on the log-linear scale for larger time. A small
-deviation of A_f from 1 is anticipated, to accommodate non-Landau-Zener
+#### Landau-Zener Data Fit (default setting)
+Once two or more data points are collected, they are fitted to a two-parameter
+model A_f exp(-t/τ[fit]). On the log-linear scale, an exponential decay appears
+as a straight line. The data agree with Landau-Zener theory when they approach
+this line at larger anneal times. A small
+deviation of A_f from 1 is anticipated to accommodate non-Landau-Zener
 processes. τ[fit] captures the rate of excitation from the ground state, and is
 expected to be in qualitative agreement with the schedule derived values
 τ[model]. Fitted values are given in legend entries.
 
-#### Literature reference curves (optional setting)
+#### Literature Reference Curves (optional setting)
 The data from Figure 2c is also included as a reference [[1]](#1). Note that
 this data is publicly available as part of a Zenodo repository [[2]](#2). This
 theory curve reflects an Advantage system and gives reasonable agreement with
