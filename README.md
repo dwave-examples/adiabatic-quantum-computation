@@ -198,9 +198,9 @@ remaining files support the user interface, following the standard
 Quantum critical dynamics in a 5,000-qubit programmable spin glass.
 Nature 617, 61–66 (2023). https://doi.org/10.1038/s41586-023-05867-2
 
-<a name="2">[2]</a> King, A.D., Suzuki, S., Raymond, J. et al.
-Coherent quantum annealing in a programmable 2000-qubit Ising chain [Data set].
-Zenodo (2022). https://doi.org/10.5281/zenodo.7640778
+<a name="2">[2]</a> King, A.D., Raymond, J., Lanting, T. et al.
+Quantum critical dynamics in a 5000-qubit programmable spin glass: data
+repository [Data set]. Zenodo (2023). https://doi.org/10.5281/zenodo.7640778
 
 <a name="3">[3]</a> Raymond, J., Amin, M.H., King, A.D. et al.
 Quantum error mitigation in quantum annealing.
