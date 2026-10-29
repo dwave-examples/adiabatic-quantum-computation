@@ -21,7 +21,6 @@ from scipy.optimize import curve_fit
 def rescale_spectrum(
     spectrum_data: np.ndarray,
     qpu_schedule: np.ndarray,
-    reference_schedule: np.ndarray,
     energy_rescaling: float = 1.0,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Rescale a spectrum computed under ``reference_schedule`` to ``qpu_schedule``.
