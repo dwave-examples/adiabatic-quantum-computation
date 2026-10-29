@@ -51,8 +51,9 @@ def rescale_spectrum(
     B_spec = spectrum_data[:len(A_spec), 2]
     ratio_spec = B_spec / A_spec
 
-    A_qpu = 2*np.trim_zeros(qpu_schedule[:, 1], "b")
-    B_qpu = 2*qpu_schedule[:len(A_qpu), 2] * energy_rescaling
+    schdule_energy_rescale = 2 # A and B values in the spectrum file are multiplied by 2 relative to the schedule
+    A_qpu = schdule_energy_rescale*np.trim_zeros(qpu_schedule[:, 1], "b")
+    B_qpu = schdule_energy_rescale*qpu_schedule[:len(A_qpu), 2] * energy_rescaling
     ratio_qpu = B_qpu / A_qpu
     S_qpu = qpu_schedule[:len(A_qpu), 0]
     S_spec = np.interp(ratio_spec, ratio_qpu, S_qpu)
