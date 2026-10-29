@@ -49,20 +49,18 @@ def rescale_spectrum(
 
     A_spec = np.trim_zeros(spectrum_data[:, 1], "b")
     B_spec = spectrum_data[:len(A_spec), 2]
+    ratio_spec = B_spec / A_spec
 
     A_qpu = 2*np.trim_zeros(qpu_schedule[:, 1], "b")
     B_qpu = 2*qpu_schedule[:len(A_qpu), 2] * energy_rescaling
+    ratio_qpu = B_qpu / A_qpu
     S_qpu = qpu_schedule[:len(A_qpu), 0]
-    S_spec = np.interp(B_spec / A_spec, B_qpu / A_qpu, S_qpu)
+    S_spec = np.interp(ratio_spec, ratio_qpu, S_qpu)
 
     A_qpu_at_match = np.interp(S_spec, S_qpu, A_qpu)
     E_rescale = A_qpu_at_match / A_spec
 
-    multiplier = np.zeros((len(A_spec), len(A_spec)))
-    # At qpu_schedule == reference_schedule this is the identity (E_rescale == 1).
-    np.fill_diagonal(multiplier, E_rescale)
-
-    new_spectrum_data = np.matmul(multiplier, spectrum_data)
+    new_spectrum_data = spectrum_data*E_rescale[:, np.newaxis]
     return S_spec, new_spectrum_data
 
 

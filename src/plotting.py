@@ -239,14 +239,14 @@ def generate_plots(
 
         # tau_ref is always computed at full (unscaled) bqm strength, regardless of energy_rescaling
         ref_s_rescaled, ref_spectrum_rescaled = rescale_spectrum(
-            base_spectrum, ref_schedule, ref_schedule, energy_rescaling=1.0
+            base_spectrum, ref_schedule, energy_rescaling=1.0
         )
         tau_ref, _, __ = calculate_tau(ref_spectrum_rescaled, ref_s_rescaled)
 
         if has_schedule:
             # See demo_configs to check which QPU is used for reference schedule
             s_rescaled, spectrum_rescaled = rescale_spectrum(
-                base_spectrum, qpu_schedule, ref_schedule, energy_rescaling=energy_rescaling
+                base_spectrum, qpu_schedule, energy_rescaling=energy_rescaling
             )
             tau_qpu, gap, c_gap = calculate_tau(spectrum_rescaled, s_rescaled)
             if tau_qpu <= 0:  # calculate_tau could not fit the gap
