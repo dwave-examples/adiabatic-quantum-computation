@@ -194,9 +194,9 @@ remaining files support the user interface, following the standard
 
 ## References
 
-<a name="1">[1]</a> King, A.D., Suzuki, S., Raymond, J. et al.
-Coherent quantum annealing in a programmable 2,000 qubit Ising chain.
-Nat. Phys. 18, 1324–1328 (2022). https://doi.org/10.1038/s41567-022-01741-6
+<a name="1">[1]</a> King, A.D., Raymond, J., Lanting, T. et al.
+Quantum critical dynamics in a 5,000-qubit programmable spin glass.
+Nature 617, 61–66 (2023). https://doi.org/10.1038/s41586-023-05867-2
 
 <a name="2">[2]</a> King, A.D., Suzuki, S., Raymond, J. et al.
 Coherent quantum annealing in a programmable 2000-qubit Ising chain [Data set].
