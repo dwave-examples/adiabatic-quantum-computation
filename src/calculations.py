@@ -37,8 +37,6 @@ def rescale_spectrum(
             per point of the reference schedule. Columns 3 onward hold the ground-state and
             excited-state energies; only those columns are meaningful after rescaling.
         qpu_schedule: Annealing schedule of the target QPU as columns ``(s, A(s), B(s))``.
-        reference_schedule: Annealing schedule the spectrum was computed under, in the same
-            column layout as ``qpu_schedule``.
         energy_rescaling: Factor applied to B(s) of the QPU schedule, matching the demo's
             *Energy Rescaling* slider.
 
