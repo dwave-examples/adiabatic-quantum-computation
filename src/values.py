@@ -32,14 +32,3 @@ MAX_PLOT_WIDTH = 31
 # Candidate lower limits (log10) for the results plot y-axis. The plot steps down through these
 # until the smallest sampled probability is visible.
 RESULTS_FIG_Y_MINS = [-1.0, -1.5, -2.0]
-
-ENERGY_TIME_RESCALING = {  # Used to rescale energy axis for plotting samples from
-    "Advantage2_system5": 2.48,  # processors that have different energy scales.
-    "Advantage2_system1": 2.85,
-    "Advantage_system4": 1.09,
-}
-
-Y_AXIS_RESCALING = {
-    "Advantage2_system5": -1.9,
-    "Advantage2_system1": -1.9,
-}
