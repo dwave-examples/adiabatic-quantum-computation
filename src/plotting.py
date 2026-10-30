@@ -234,8 +234,8 @@ def generate_plots(
     has_schedule = qpu_schedule is not None
 
     for model in ModelType:
-        theory_xs, theory_ys = ProblemModel.load_theory_data_from_file(problem_type, model)
-        base_spectrum = ProblemModel.load_spectrum_scatter_from_file(model, problem_type)
+        theory_xs, theory_ys = ProblemModel.load_theory_data_from_file(model, problem_type)
+        base_spectrum = ProblemModel.load_spectrum_data_from_file(model, problem_type)
 
         # tau_ref is always computed at full (unscaled) bqm strength, regardless of energy_rescaling
         ref_s_rescaled, ref_spectrum_rescaled = rescale_spectrum(

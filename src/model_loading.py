@@ -33,7 +33,7 @@ class ProblemModel:
 
     DEFINITION_FILE_SUFFIX = "_PROBLEM_DEFINITION.json"
     THEORY_SUFFIX = DATA_SOURCE.suffix
-    SCATTER_SUFFIX = DATA_SOURCE.spectrum_suffix
+    SPECTRUM_SUFFIX = DATA_SOURCE.spectrum_suffix
 
     def __init__(
         self,
@@ -75,9 +75,9 @@ class ProblemModel:
         return f"{self.lookup_key}{ProblemModel.DEFINITION_FILE_SUFFIX}"
 
     @property
-    def spectrum_scatter_filename(self) -> str:
+    def spectrum_data_filename(self) -> str:
         """File name of the CSV energy spectrum data for this model."""
-        return f"{self.lookup_key}_SCATTER_{ProblemModel.SCATTER_SUFFIX}.csv"
+        return f"{self.lookup_key}_SPECTRUM_{ProblemModel.SPECTRUM_SUFFIX}.csv"
 
     @property
     def theory_data_filename(self) -> str:
@@ -176,7 +176,7 @@ class ProblemModel:
 
     @staticmethod
     @lru_cache
-    def load_spectrum_scatter_from_file(
+    def load_spectrum_data_from_file(
         model_type: ModelType, problem_type: ProblemType = ProblemType.DEFAULT
     ) -> np.ndarray:
         """Loads the data to create a scatter plot of the energy spectrum for a given problem instance.
@@ -187,20 +187,20 @@ class ProblemModel:
             model_type: The type of the model instance.
 
         Returns:
-            A numpy ndarray containing the scatter plot data.
+            A numpy ndarray containing the spectrum scatter plot data.
         """
 
-        scatter_path = (
-            MODELS_PATH / ProblemModel(model_type, problem_type).spectrum_scatter_filename
+        spectrum_path = (
+            MODELS_PATH / ProblemModel(model_type, problem_type).spectrum_data_filename
         )
-        if not scatter_path.exists():
-            raise FileNotFoundError(f"Scatter CSV file not found at {scatter_path}.")
-        return np.loadtxt(scatter_path, delimiter=",", skiprows=3)
+        if not spectrum_path.exists():
+            raise FileNotFoundError(f"Spectrum CSV file not found at {spectrum_path}.")
+        return np.loadtxt(spectrum_path, delimiter=",", skiprows=3)
 
     @staticmethod
     @lru_cache
     def load_theory_data_from_file(
-        problem_type: ProblemType, model_type: ModelType
+        model_type: ModelType, problem_type: ProblemType = ProblemType.DEFAULT
     ) -> tuple[np.ndarray, np.ndarray]:
         """Loads the data for the theoretical predictions of ground state probability as a
         function of annealing time for a given problem instance. The result is cached, so each
